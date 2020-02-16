@@ -71,11 +71,11 @@ pub const ColorEditFlagBits = struct {
     pub const PickerHueWheel: ColorEditFlags = 1 << 26;
     pub const InputRGB: ColorEditFlags = 1 << 27;
     pub const InputHSV: ColorEditFlags = 1 << 28;
-    pub const _OptionsDefault: ColorEditFlags = Uint8|DisplayRGB|InputRGB|PickerHueBar;
-    pub const _DisplayMask: ColorEditFlags = DisplayRGB|DisplayHSV|DisplayHex;
-    pub const _DataTypeMask: ColorEditFlags = Uint8|Float;
-    pub const _PickerMask: ColorEditFlags = PickerHueWheel|PickerHueBar;
-    pub const _InputMask: ColorEditFlags = InputRGB|InputHSV;
+    pub const _OptionsDefault: ColorEditFlags = Uint8 | DisplayRGB | InputRGB | PickerHueBar;
+    pub const _DisplayMask: ColorEditFlags = DisplayRGB | DisplayHSV | DisplayHex;
+    pub const _DataTypeMask: ColorEditFlags = Uint8 | Float;
+    pub const _PickerMask: ColorEditFlags = PickerHueWheel | PickerHueBar;
+    pub const _InputMask: ColorEditFlags = InputRGB | InputHSV;
 };
 
 pub const ComboFlags = u32;
@@ -248,7 +248,7 @@ pub const WindowFlagBits = struct {
     pub const NoFocusOnAppearing: WindowFlags = 1 << 12;
     pub const NoBringToFrontOnFocus: WindowFlags = 1 << 13;
     pub const AlwaysVerticalScrollbar: WindowFlags = 1 << 14;
-    pub const AlwaysHorizontalScrollbar: WindowFlags = 1<< 15;
+    pub const AlwaysHorizontalScrollbar: WindowFlags = 1 << 15;
     pub const AlwaysUseWindowPadding: WindowFlags = 1 << 16;
     pub const NoNavInputs: WindowFlags = 1 << 18;
     pub const NoNavFocus: WindowFlags = 1 << 19;
@@ -872,7 +872,7 @@ pub const Payload = extern struct {
     SourceId: ID,
     SourceParentId: ID,
     DataFrameCount: i32,
-    DataType: [32+1]u8,
+    DataType: [32 + 1]u8,
     Preview: bool,
     Delivery: bool,
 
@@ -913,7 +913,11 @@ pub const Storage = extern struct {
 
 pub const StoragePair = extern struct {
     key: ID,
-    value: extern union { val_i: i32, val_f: f32, val_p: ?*c_void },
+    value: extern union {
+        val_i: i32,
+        val_f: f32,
+        val_p: ?*c_void,
+    },
 
     pub const initInt = raw.ImGuiStoragePair_ImGuiStoragePairInt;
     pub const initFloat = raw.ImGuiStoragePair_ImGuiStoragePairFloat;
@@ -2362,7 +2366,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_back_const(self: *const Vector(DrawCmd)) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_back_const(self: *const Vector(DrawIdx)) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_back_const(self: *const Vector(DrawVert)) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_back_const(self: *const Vector(*Font)) [*c]const*Font;
+    pub extern fn ImVector_ImFontPtr_back_const(self: *const Vector(*Font)) [*c]const *Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_back_const(self: *const Vector(FontAtlasCustomRect)) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_back_const(self: *const Vector(FontConfig)) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_back_const(self: *const Vector(FontGlyph)) [*c]const FontGlyph;
@@ -2396,7 +2400,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_begin_const(self: *const Vector(DrawCmd)) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_begin_const(self: *const Vector(DrawIdx)) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_begin_const(self: *const Vector(DrawVert)) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_begin_const(self: *const Vector(*Font)) [*c]const*Font;
+    pub extern fn ImVector_ImFontPtr_begin_const(self: *const Vector(*Font)) [*c]const *Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_begin_const(self: *const Vector(FontAtlasCustomRect)) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_begin_const(self: *const Vector(FontConfig)) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_begin_const(self: *const Vector(FontGlyph)) [*c]const FontGlyph;
@@ -2515,7 +2519,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_end_const(self: *const Vector(DrawCmd)) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_end_const(self: *const Vector(DrawIdx)) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_end_const(self: *const Vector(DrawVert)) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_end_const(self: *const Vector(*Font)) [*c]const*Font;
+    pub extern fn ImVector_ImFontPtr_end_const(self: *const Vector(*Font)) [*c]const *Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_end_const(self: *const Vector(FontAtlasCustomRect)) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_end_const(self: *const Vector(FontConfig)) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_end_const(self: *const Vector(FontGlyph)) [*c]const FontGlyph;
@@ -2532,7 +2536,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_erase(self: *Vector(DrawCmd), it: [*c]const DrawCmd) [*c]DrawCmd;
     pub extern fn ImVector_ImDrawIdx_erase(self: *Vector(DrawIdx), it: [*c]const DrawIdx) [*c]DrawIdx;
     pub extern fn ImVector_ImDrawVert_erase(self: *Vector(DrawVert), it: [*c]const DrawVert) [*c]DrawVert;
-    pub extern fn ImVector_ImFontPtr_erase(self: *Vector(*Font), it: [*c]const*Font) [*c]*Font;
+    pub extern fn ImVector_ImFontPtr_erase(self: *Vector(*Font), it: [*c]const *Font) [*c]*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_erase(self: *Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect) [*c]FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_erase(self: *Vector(FontConfig), it: [*c]const FontConfig) [*c]FontConfig;
     pub extern fn ImVector_ImFontGlyph_erase(self: *Vector(FontGlyph), it: [*c]const FontGlyph) [*c]FontGlyph;
@@ -2549,7 +2553,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_eraseTPtr(self: *Vector(DrawCmd), it: [*c]const DrawCmd, it_last: [*c]const DrawCmd) [*c]DrawCmd;
     pub extern fn ImVector_ImDrawIdx_eraseTPtr(self: *Vector(DrawIdx), it: [*c]const DrawIdx, it_last: [*c]const DrawIdx) [*c]DrawIdx;
     pub extern fn ImVector_ImDrawVert_eraseTPtr(self: *Vector(DrawVert), it: [*c]const DrawVert, it_last: [*c]const DrawVert) [*c]DrawVert;
-    pub extern fn ImVector_ImFontPtr_eraseTPtr(self: *Vector(*Font), it: [*c]const*Font, it_last: [*c]const*Font) [*c]*Font;
+    pub extern fn ImVector_ImFontPtr_eraseTPtr(self: *Vector(*Font), it: [*c]const *Font, it_last: [*c]const *Font) [*c]*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_eraseTPtr(self: *Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect, it_last: [*c]const FontAtlasCustomRect) [*c]FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_eraseTPtr(self: *Vector(FontConfig), it: [*c]const FontConfig, it_last: [*c]const FontConfig) [*c]FontConfig;
     pub extern fn ImVector_ImFontGlyph_eraseTPtr(self: *Vector(FontGlyph), it: [*c]const FontGlyph, it_last: [*c]const FontGlyph) [*c]FontGlyph;
@@ -2566,7 +2570,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_erase_unsorted(self: *Vector(DrawCmd), it: [*c]const DrawCmd) [*c]DrawCmd;
     pub extern fn ImVector_ImDrawIdx_erase_unsorted(self: *Vector(DrawIdx), it: [*c]const DrawIdx) [*c]DrawIdx;
     pub extern fn ImVector_ImDrawVert_erase_unsorted(self: *Vector(DrawVert), it: [*c]const DrawVert) [*c]DrawVert;
-    pub extern fn ImVector_ImFontPtr_erase_unsorted(self: *Vector(*Font), it: [*c]const*Font) [*c]*Font;
+    pub extern fn ImVector_ImFontPtr_erase_unsorted(self: *Vector(*Font), it: [*c]const *Font) [*c]*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_erase_unsorted(self: *Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect) [*c]FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_erase_unsorted(self: *Vector(FontConfig), it: [*c]const FontConfig) [*c]FontConfig;
     pub extern fn ImVector_ImFontGlyph_erase_unsorted(self: *Vector(FontGlyph), it: [*c]const FontGlyph) [*c]FontGlyph;
@@ -2600,7 +2604,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_find_const(self: *const Vector(DrawCmd), v: DrawCmd) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_find_const(self: *const Vector(DrawIdx), v: DrawIdx) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_find_const(self: *const Vector(DrawVert), v: DrawVert) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_find_const(self: *const Vector(*Font), v: *Font) [*c]const*Font;
+    pub extern fn ImVector_ImFontPtr_find_const(self: *const Vector(*Font), v: *Font) [*c]const *Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_find_const(self: *const Vector(FontAtlasCustomRect), v: FontAtlasCustomRect) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_find_const(self: *const Vector(FontConfig), v: FontConfig) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_find_const(self: *const Vector(FontGlyph), v: FontGlyph) [*c]const FontGlyph;
@@ -2668,7 +2672,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_front_const(self: *const Vector(DrawCmd)) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_front_const(self: *const Vector(DrawIdx)) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_front_const(self: *const Vector(DrawVert)) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_front_const(self: *const Vector(*Font)) [*c]const*Font;
+    pub extern fn ImVector_ImFontPtr_front_const(self: *const Vector(*Font)) [*c]const *Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_front_const(self: *const Vector(FontAtlasCustomRect)) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_front_const(self: *const Vector(FontConfig)) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_front_const(self: *const Vector(FontGlyph)) [*c]const FontGlyph;
@@ -2685,7 +2689,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_index_from_ptr(self: *const Vector(DrawCmd), it: [*c]const DrawCmd) i32;
     pub extern fn ImVector_ImDrawIdx_index_from_ptr(self: *const Vector(DrawIdx), it: [*c]const DrawIdx) i32;
     pub extern fn ImVector_ImDrawVert_index_from_ptr(self: *const Vector(DrawVert), it: [*c]const DrawVert) i32;
-    pub extern fn ImVector_ImFontPtr_index_from_ptr(self: *const Vector(*Font), it: [*c]const*Font) i32;
+    pub extern fn ImVector_ImFontPtr_index_from_ptr(self: *const Vector(*Font), it: [*c]const *Font) i32;
     pub extern fn ImVector_ImFontAtlasCustomRect_index_from_ptr(self: *const Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect) i32;
     pub extern fn ImVector_ImFontConfig_index_from_ptr(self: *const Vector(FontConfig), it: [*c]const FontConfig) i32;
     pub extern fn ImVector_ImFontGlyph_index_from_ptr(self: *const Vector(FontGlyph), it: [*c]const FontGlyph) i32;
@@ -2702,7 +2706,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_insert(self: *Vector(DrawCmd), it: [*c]const DrawCmd, v: DrawCmd) [*c]DrawCmd;
     pub extern fn ImVector_ImDrawIdx_insert(self: *Vector(DrawIdx), it: [*c]const DrawIdx, v: DrawIdx) [*c]DrawIdx;
     pub extern fn ImVector_ImDrawVert_insert(self: *Vector(DrawVert), it: [*c]const DrawVert, v: DrawVert) [*c]DrawVert;
-    pub extern fn ImVector_ImFontPtr_insert(self: *Vector(*Font), it: [*c]const*Font, v: *Font) [*c]*Font;
+    pub extern fn ImVector_ImFontPtr_insert(self: *Vector(*Font), it: [*c]const *Font, v: *Font) [*c]*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_insert(self: *Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect, v: FontAtlasCustomRect) [*c]FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_insert(self: *Vector(FontConfig), it: [*c]const FontConfig, v: FontConfig) [*c]FontConfig;
     pub extern fn ImVector_ImFontGlyph_insert(self: *Vector(FontGlyph), it: [*c]const FontGlyph, v: FontGlyph) [*c]FontGlyph;
@@ -2930,7 +2934,7 @@ pub const raw = struct {
     pub extern fn igColorPicker3(label: [*]const u8, col: *[3]f32, flags: ColorEditFlags) bool;
     pub extern fn igColorPicker4(label: [*]const u8, col: *[4]f32, flags: ColorEditFlags, ref_col: [*c]const f32) bool;
     pub extern fn igColumns(count: i32, id: [*]const u8, border: bool) void;
-    pub extern fn igCombo(label: [*]const u8, current_item: [*c]i32, items: [*]const[*]const u8, items_count: i32, popup_max_height_in_items: i32) bool;
+    pub extern fn igCombo(label: [*]const u8, current_item: [*c]i32, items: [*]const [*]const u8, items_count: i32, popup_max_height_in_items: i32) bool;
     pub extern fn igComboStr(label: [*]const u8, current_item: [*c]i32, items_separated_by_zeros: [*]const u8, popup_max_height_in_items: i32) bool;
     pub extern fn igComboFnPtr(label: [*]const u8, current_item: [*c]i32, items_getter: ?extern fn (data: ?*c_void, idx: i32, out_text: *[*]const u8) bool, data: ?*c_void, items_count: i32, popup_max_height_in_items: i32) bool;
     pub extern fn igCreateContext(shared_font_atlas: *FontAtlas) *Context;
@@ -3075,7 +3079,7 @@ pub const raw = struct {
     pub extern fn igIsWindowFocused(flags: FocusedFlags) bool;
     pub extern fn igIsWindowHovered(flags: HoveredFlags) bool;
     pub extern fn igLabelText(label: [*]const u8, fmt: [*]const u8, ...) void;
-    pub extern fn igListBoxStr_arr(label: [*]const u8, current_item: [*c]i32, items: [*]const[*]const u8, items_count: i32, height_in_items: i32) bool;
+    pub extern fn igListBoxStr_arr(label: [*]const u8, current_item: [*c]i32, items: [*]const [*]const u8, items_count: i32, height_in_items: i32) bool;
     pub extern fn igListBoxFnPtr(label: [*]const u8, current_item: [*c]i32, items_getter: ?extern fn (data: ?*c_void, idx: i32, out_text: *[*]const u8) bool, data: ?*c_void, items_count: i32, height_in_items: i32) bool;
     pub extern fn igListBoxFooter() void;
     pub extern fn igListBoxHeaderVec2(label: [*]const u8, size: Vec2) bool;
@@ -3223,12 +3227,3 @@ pub const raw = struct {
     pub extern fn igValueUint(prefix: [*]const u8, v: u32) void;
     pub extern fn igValueFloat(prefix: [*]const u8, v: f32, float_format: [*]const u8) void;
 };
-
-test "foo" {
-    var cb: DrawCallback = undefined;
-    const std = @import("std");
-    _ = std.meta.fields(@This());
-    _ = std.meta.fields(raw);
-    var vec: Vector(f32) = undefined;
-    vec.init();
-}

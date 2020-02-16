@@ -440,7 +440,8 @@ class ZigData:
             f.write(r+'\n')
         f.write('};\n')
 
-        f.write("""
+        if False:
+            f.write("""
 test "foo" {
     var cb: DrawCallback = undefined;
     const std = @import("std");
