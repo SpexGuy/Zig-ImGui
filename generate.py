@@ -14,9 +14,9 @@ from collections import namedtuple
 from os import makedirs
 
 typeConversions = {
-    'int': 's32',
+    'int': 'i32',
     'unsigned int': 'u32',
-    'short': 's16',
+    'short': 'i16',
     'unsigned short': 'u16',
     'float': 'f32',
     'double': 'f64',
@@ -26,10 +26,10 @@ typeConversions = {
     'char': 'u8',
     'unsigned char': 'u8',
     'size_t': 'usize',
-    'ImS8': 's8',
-    'ImS16': 's16',
-    'ImS32': 's32',
-    'ImS64': 's64',
+    'ImS8': 'i8',
+    'ImS16': 'i16',
+    'ImS32': 'i32',
+    'ImS64': 'i64',
     'ImU8': 'u8',
     'ImU16': 'u16',
     'ImU32': 'u32',
@@ -37,18 +37,24 @@ typeConversions = {
     'ImGuiCond': 'CondFlags',
 }
 
-vectorDef = """pub fn Vector(comptime T: type) type {
-    return extern struct {
-        size: i32,
-        capacity: i32,
-        data: [*]T,
-    };
-}"""
+MightBeArray = (
+    'ImVec2',
+    'ImVec4',
+    'ImWchar'
+)
 
 Structure = namedtuple('Structure', ['zigName', 'fieldsDecl', 'functions'])
+TemplateInfo = namedtuple('TemplateInfo', ['zigName', 'implementations', 'functions'])
+TemplateImpl = namedtuple('TemplateImpl', ['zigFullType', 'zigInnerType', 'variant', 'map', 'functions'])
 
 class ZigData:
     def __init__(self):
+        self.opaqueTypes = {}
+        """ {cName: True} """
+
+        self.templates = {}
+        """ {cName: TemplateInfo} """
+
         self.typedefs = {}
         """ {cName : zigDecl} """
 
@@ -66,8 +72,35 @@ class ZigData:
         
         self.rootFunctions = []
         """ []zigDecl """
+        
+        self.reverseTemplateMap = {}
+        """ {cName : zigDecl} """
+
+        self.context = []
     
+    def addTemplate(self, name, info):
+        self.context = [name]
+        generic = info['generic']
+        implementations = info['implementations']
+        zigName = self.convertTypeName(name)
+        savedImpls = {}
+        for cType in implementations:
+            variant = implementations[cType]
+            self.context.append(variant)
+            cVariant = name+'_'+variant
+            zigType = self.convertComplexType(cType, False)
+            zigFullType = zigName+'('+zigType+')'
+            self.reverseTemplateMap[cVariant] = zigFullType
+            templateMap = {}
+            templateMap[generic] = zigType
+            templateMap[name] = zigFullType
+            savedImpls[cVariant] = TemplateImpl(zigFullType, zigType, variant, templateMap, [])
+            self.context.pop()
+        self.templates[name] = TemplateInfo(zigName, savedImpls, [])
+
     def addTypedef(self, name, definition):
+        self.context = [name]
+
         # don't generate known type conversions
         if name in typeConversions: return
         
@@ -76,12 +109,15 @@ class ZigData:
         if definition.endswith(';'): definition = definition[:-1]
 
         # don't generate redundant C typedefs
-        if definition == 'struct '+name: return
+        if definition == 'struct '+name:
+            self.opaqueTypes[name] = True
+            return
         
         decl = 'pub const '+self.convertTypeName(name)+' = '+self.convertComplexType(definition, False)+';'
         self.typedefs[name] = decl
         
     def addFlags(self, name, jsonValues):
+        self.context = [name]
         self.typedefs.pop(name[:-1], None)
 
         if name == 'ImGuiCond_':
@@ -103,6 +139,7 @@ class ZigData:
         self.bitsets.append(decl)
         
     def addEnum(self, name, jsonValues):
+        self.context = [name]
         assert(name.endswith('_'))
         self.typedefs.pop(name[:-1], None)
         zigName = self.convertTypeName(name[:-1])
@@ -128,10 +165,13 @@ class ZigData:
         self.enums.append(decl)
         
     def addStruct(self, name, jsonFields):
+        self.context = [name]
+        self.opaqueTypes.pop(name, None)
         zigName = self.convertTypeName(name)
         decl = ''
         for field in jsonFields:
             fieldName = field['name']
+            self.context.append(fieldName)
             buffers = []
             while (fieldName.endswith(']')):
                 start = fieldName.rindex('[')
@@ -159,60 +199,76 @@ class ZigData:
     def addFunction(self, jFunc):
         if 'nonUDT' in jFunc: return
         rawName = jFunc['ov_cimguiname']
-        if 'constructor' in jFunc:
-            retType = 'void'
-        else:
-            retType = jFunc['ret']
-        if 'templated' in jFunc:
-            stname = jFunc['stname']
+        self.context = []
+        stname = jFunc['stname'] if 'stname' in jFunc else None
+        if 'templated' in jFunc and jFunc['templated'] == True:
             info = self.templates[stname]
-            zigStname = self.convertTypeName(stname)
-            macro = info['generic']
-            instantiations = info['implementations']
-            for cType in instantiations:
-                variant = instantiations[cType]
-                zigType = self.convertComplexType(cType, False)
-                template = {}
-                template[macro] = zigType
-                template[stname] = zigStname+'('+zigType+')'
-                params = []
-                for arg in jFunc['argsT']:
-                    if arg['type'] == '...': params.append('...')
-                    else: params.append(arg['name']+': '+self.convertComplexType(arg['type'], True, template))
-                rawDecl = '    pub extern fn '+rawName+'_'+variant+'('+', '.join(params)+') '+self.convertComplexType(retType, False, template)+';'
-                self.rawCommands.append(rawDecl)
+            instantiations = info.implementations
+            for cVariant in instantiations:
+                instance = instantiations[cVariant]
+                self.makeFunction(jFunc, rawName.replace(stname, cVariant), cVariant, instantiations, instance.map)
+            info.functions.append(self.makeZigFunctionName(jFunc, rawName, stname))
         else:
-            params = []
-            for arg in jFunc['argsT']:
-                if arg['type'] == '...': params.append('...')
-                else: params.append(arg['name']+': '+self.convertComplexType(arg['type'], True))
-            rawDecl = '    pub extern fn '+rawName+'('+', '.join(params)+') '+self.convertComplexType(retType, False)+';'
-            self.rawCommands.append(rawDecl)
-            if 'stname' in jFunc and jFunc['stname']:
-                struct = jFunc['stname']
-                declName = rawName.replace(struct+'_', '')
-                if 'constructor' in jFunc:
-                    declName = declName.replace(struct, 'init')
-                elif 'destructor' in jFunc:
-                    declName = declName.replace('destroy', 'deinit')
-                decl = '    pub const '+declName+' = raw.'+rawName+';'
-                self.structures[struct].functions.append(decl)
+            self.makeFunction(jFunc, rawName, stname, self.structures)
+    
+    def makeFunction(self, jFunc, rawName, stname, parentTable, template=None):
+        if 'ret' in jFunc:
+            retType = jFunc['ret']
+        else:
+            retType = 'void'
+        self.context.append(rawName)
+        params = []
+        for arg in jFunc['argsT']:
+            if arg['type'] == 'va_list':
+                self.context.pop()
+                return # skip this function entirely
+            if arg['type'] == '...': params.append('...')
+            else:
+                self.context.append(arg['name'])
+                params.append(arg['name']+': '+self.convertComplexType(arg['type'], True, template))
+                self.context.pop()
+        rawDecl = '    pub extern fn '+rawName+'('+', '.join(params)+') '+self.convertComplexType(retType, False, template)+';'
+        self.context.pop()
+        self.rawCommands.append(rawDecl)
+        if stname:
+            declName = self.makeZigFunctionName(jFunc, rawName, stname)
+            decl = '    pub const '+declName+' = raw.'+rawName+';'
+            parentTable[stname].functions.append(decl)
+        else:
+            assert(rawName[0:2] == 'ig')
+            decl = 'pub const '+rawName[2:]+' = raw.'+rawName+';'
+            self.rootFunctions.append(decl)
+
+    def makeZigFunctionName(self, jFunc, rawName, struct):
+        declName = rawName.replace(struct+'_', '')
+        if 'constructor' in jFunc:
+            declName = declName.replace(struct, 'init')
+        elif 'destructor' in jFunc:
+            declName = declName.replace('destroy', 'deinit')
+        return declName
         
     def convertComplexType(self, type, forFunction, template=None):
         """ template is (templateMacro, templateInstance) """
+        # remove trailing const, it doesn't mean anything to Zig
+        if type.endswith('const'):
+            type = type[:-5].strip()
+
         buffers = ''
         bufferNeedsPointer = False
         while type.endswith(']'):
             start = type.rindex('[')
             buffer = type[start:]
-            type = type[:start]
+            type = type[:start].strip()
             bufferNeedsPointer = buffer != '[]'
             if not bufferNeedsPointer:
                 buffer = '[*]'
             buffers = buffer + buffers
         if bufferNeedsPointer and forFunction:
             buffers = '*' + buffers
-            
+        if type.endswith('const'):
+            type = type[:-5].strip()
+            buffers += 'const'
+
 
         if type.startswith('union'):
             # anonymous union
@@ -224,7 +280,9 @@ class ZigData:
                 spaceIndex = p.rindex(' ')
                 paramName = p[spaceIndex+1:]
                 paramType = p[:spaceIndex]
+                self.context.append(paramName)
                 zigParams.append(paramName + ': ' + self.convertComplexType(paramType, False, template))
+                self.context.pop()
             return 'extern union { ' + ', '.join(zigParams) + ' }'
 
         if '(*)' in type:
@@ -238,7 +296,12 @@ class ZigData:
                 spaceIndex = p.rindex(' ')
                 paramName = p[spaceIndex+1:]
                 paramType = p[:spaceIndex]
+                while paramName.startswith('*'):
+                    paramType += '*'
+                    paramName = paramName[1:].strip()
+                self.context.append(paramName)
                 zigParams.append(paramName + ': ' + self.convertComplexType(paramType, True, template))
+                self.context.pop()
             return '?extern fn ('+', '.join(zigParams)+') '+zigReturnType
         
         valueConst = False
@@ -264,14 +327,43 @@ class ZigData:
                 valueConst = False
         
         zigValue = buffers
-        for _ in range(numPointers):
-            zigValue += '[*c]'
-        if valueConst:
-            zigValue += 'const '
+        if numPointers > 0:
+            zigValue += self.getPointers(numPointers, valueType, forFunction)
+        if valueConst and not zigValue.endswith('const'):
+            zigValue += 'const'
 
-        zigValue += self.convertTypeName(valueType, template)
+        innerType = self.convertTypeName(valueType, template)
+        if innerType[0].isalpha() and len(zigValue) > 0 and zigValue[-1].isalpha():
+            zigValue += ' '
+        zigValue += innerType
             
         return zigValue
+
+    def getPointers(self, numPointers, valueType, forFunction):
+        pointers = ''
+
+        if len(self.context) > 0 and 'out' in self.context[-1] or numPointers > 1 and forFunction:
+            pointers += '*'
+            numPointers -= 1
+
+        if numPointers > 1:
+            for i in range(numPointers-1):
+                pointers += '[*]'
+            pointers += '*'
+        elif numPointers == 1:
+            if valueType == 'char' or valueType == 'ImWchar':
+                pointers += '[*]'
+            elif valueType.startswith('Im') and not (valueType in MightBeArray):
+                pointers += '*'
+            elif len(self.context) > 0:
+                name = self.context[-1]
+                if name == 'self':
+                    pointers += '*'
+                else:
+                    pointers += '[*c]'
+            else:
+                pointers += '[*c]'
+        return pointers
 
     def convertTypeName(self, cName, template=None):
         """ template is (templateMacro, templateInstance) """
@@ -279,6 +371,8 @@ class ZigData:
             return template[cName]
         elif cName in typeConversions:
             return typeConversions[cName]
+        elif cName in self.reverseTemplateMap:
+            return self.reverseTemplateMap[cName]
         elif cName.startswith('ImGui'):
             return cName[len('ImGui'):]
         elif cName.startswith('Im'):
@@ -288,17 +382,20 @@ class ZigData:
             return cName
             
     def writeFile(self, f):
-        for v in data.typedefs.values():
+        for t in self.opaqueTypes:
+            f.write('pub const '+self.convertTypeName(t)+' = @OpaqueType();\n')
+
+        for v in self.typedefs.values():
             f.write(v + '\n')
         f.write('\n')
 
-        for b in data.bitsets:
+        for b in self.bitsets:
             f.write(b + '\n\n')
             
-        for e in data.enums:
+        for e in self.enums:
             f.write(e + '\n\n')
 
-        for s in data.structures.values():
+        for s in self.structures.values():
             f.write('pub const '+s.zigName+' = extern struct {\n')
             f.write(s.fieldsDecl+'\n')
             if s.functions:
@@ -306,11 +403,53 @@ class ZigData:
             for func in s.functions:
                 f.write(func+'\n')
             f.write('};\n\n')
-            
+        
+        for t in self.templates:
+            info = self.templates[t]
+            for impl in info.implementations:
+                implInfo = info.implementations[impl]
+                f.write('const FTABLE_'+impl+' = struct {\n')
+                for func in implInfo.functions:
+                    f.write(func+'\n')
+                f.write('};\n\n')
+            f.write('fn getFTABLE_'+t+'(comptime T: type) type {\n')
+            for impl in info.implementations:
+                implInfo = info.implementations[impl]
+                f.write('    if (T == '+implInfo.zigInnerType+') return FTABLE_'+impl+';\n')
+            f.write('    @compileError("Invalid '+info.zigName+' type");\n')
+            f.write('}\n\n')
+            f.write('pub fn '+info.zigName+'(comptime T: type) type {\n')
+            f.write('    return extern struct {\n')
+            f.write('        //@TODO: fill in fields\n')
+            f.write('        size: i32,\n')
+            f.write('        capacity: i32,\n')
+            f.write('        items: [*]T,\n')
+            f.write('\n')
+            f.write('        const FTABLE = getFTABLE_'+t+'(T);\n')
+            for func in info.functions:
+                f.write('        pub const '+func+' = FTABLE.'+func+';\n')
+            f.write('    };\n')
+            f.write('}\n\n')
+
+        for func in self.rootFunctions:
+            f.write(func+'\n')
+        f.write('\n')
+
         f.write('pub const raw = struct {\n')
-        for r in data.rawCommands:
+        for r in self.rawCommands:
             f.write(r+'\n')
         f.write('};\n')
+
+        f.write("""
+test "foo" {
+    var cb: DrawCallback = undefined;
+    const std = @import("std");
+    _ = std.meta.fields(@This());
+    _ = std.meta.fields(raw);
+    var vec: Vector(f32) = undefined;
+    vec.init();
+}
+""");
 
 
 if __name__ == '__main__':
@@ -325,7 +464,9 @@ if __name__ == '__main__':
         
     data = ZigData()
     
-    data.templates = jsonTemplates
+    for template in jsonTemplates:
+        info = jsonTemplates[template]
+        data.addTemplate(template, info)
     
     for typedef in jsonTypedefs:
         data.addTypedef(typedef, jsonTypedefs[typedef])
