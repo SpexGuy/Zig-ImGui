@@ -45,7 +45,7 @@ MightBeArray = (
 
 Structure = namedtuple('Structure', ['zigName', 'fieldsDecl', 'functions'])
 TemplateInfo = namedtuple('TemplateInfo', ['zigName', 'implementations', 'functions'])
-TemplateImpl = namedtuple('TemplateImpl', ['zigFullType', 'zigInnerType', 'variant', 'map', 'functions'])
+TemplateImpl = namedtuple('TemplateImpl', ['zigFullType', 'zigInnerType', 'nogenerate', 'variant', 'map', 'functions'])
 
 class ZigData:
     def __init__(self):
@@ -82,10 +82,15 @@ class ZigData:
         self.context = [name]
         generic = info['generic']
         implementations = info['implementations']
+        nogen = info['nogenerate']
         zigName = self.convertTypeName(name)
         savedImpls = {}
         for cType in implementations:
             variant = implementations[cType]
+            nogenerate = []
+            for func in nogen:
+                if variant in nogen[func]:
+                    nogenerate.append(func)
             self.context.append(variant)
             cVariant = name+'_'+variant
             zigType = self.convertComplexType(cType, False)
@@ -94,7 +99,7 @@ class ZigData:
             templateMap = {}
             templateMap[generic] = zigType
             templateMap[name] = zigFullType
-            savedImpls[cVariant] = TemplateImpl(zigFullType, zigType, variant, templateMap, [])
+            savedImpls[cVariant] = TemplateImpl(zigFullType, zigType, nogenerate, variant, templateMap, [])
             self.context.pop()
         self.templates[name] = TemplateInfo(zigName, savedImpls, [])
 
@@ -206,7 +211,8 @@ class ZigData:
             instantiations = info.implementations
             for cVariant in instantiations:
                 instance = instantiations[cVariant]
-                self.makeFunction(jFunc, rawName.replace(stname, cVariant), cVariant, instantiations, instance.map)
+                if not(rawName in instance.nogenerate):
+                    self.makeFunction(jFunc, rawName.replace(stname, cVariant), cVariant, instantiations, instance.map)
             info.functions.append(self.makeZigFunctionName(jFunc, rawName, stname))
         else:
             self.makeFunction(jFunc, rawName, stname, self.structures)
@@ -427,7 +433,7 @@ class ZigData:
             f.write('\n')
             f.write('        const FTABLE = getFTABLE_'+t+'(T);\n')
             for func in info.functions:
-                f.write('        pub const '+func+' = FTABLE.'+func+';\n')
+                f.write('        pub const '+func+' = if (@hasAttr(FTABLE, "'+func+'")) FTABLE.'+func+' else @compileError("Invalid template instantiation");\n')
             f.write('    };\n')
             f.write('}\n\n')
 
