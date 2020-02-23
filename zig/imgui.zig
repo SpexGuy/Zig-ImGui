@@ -71,11 +71,11 @@ pub const ColorEditFlagBits = struct {
     pub const PickerHueWheel: ColorEditFlags = 1 << 26;
     pub const InputRGB: ColorEditFlags = 1 << 27;
     pub const InputHSV: ColorEditFlags = 1 << 28;
-    pub const _OptionsDefault: ColorEditFlags = Uint8 | DisplayRGB | InputRGB | PickerHueBar;
-    pub const _DisplayMask: ColorEditFlags = DisplayRGB | DisplayHSV | DisplayHex;
-    pub const _DataTypeMask: ColorEditFlags = Uint8 | Float;
-    pub const _PickerMask: ColorEditFlags = PickerHueWheel | PickerHueBar;
-    pub const _InputMask: ColorEditFlags = InputRGB | InputHSV;
+    pub const _OptionsDefault: ColorEditFlags = Uint8|DisplayRGB|InputRGB|PickerHueBar;
+    pub const _DisplayMask: ColorEditFlags = DisplayRGB|DisplayHSV|DisplayHex;
+    pub const _DataTypeMask: ColorEditFlags = Uint8|Float;
+    pub const _PickerMask: ColorEditFlags = PickerHueWheel|PickerHueBar;
+    pub const _InputMask: ColorEditFlags = InputRGB|InputHSV;
 };
 
 pub const ComboFlags = u32;
@@ -248,7 +248,7 @@ pub const WindowFlagBits = struct {
     pub const NoFocusOnAppearing: WindowFlags = 1 << 12;
     pub const NoBringToFrontOnFocus: WindowFlags = 1 << 13;
     pub const AlwaysVerticalScrollbar: WindowFlags = 1 << 14;
-    pub const AlwaysHorizontalScrollbar: WindowFlags = 1 << 15;
+    pub const AlwaysHorizontalScrollbar: WindowFlags = 1<< 15;
     pub const AlwaysUseWindowPadding: WindowFlags = 1 << 16;
     pub const NoNavInputs: WindowFlags = 1 << 18;
     pub const NoNavFocus: WindowFlags = 1 << 19;
@@ -872,7 +872,7 @@ pub const Payload = extern struct {
     SourceId: ID,
     SourceParentId: ID,
     DataFrameCount: i32,
-    DataType: [32 + 1]u8,
+    DataType: [32+1]u8,
     Preview: bool,
     Delivery: bool,
 
@@ -913,11 +913,7 @@ pub const Storage = extern struct {
 
 pub const StoragePair = extern struct {
     key: ID,
-    value: extern union {
-        val_i: i32,
-        val_f: f32,
-        val_p: ?*c_void,
-    },
+    value: extern union { val_i: i32, val_f: f32, val_p: ?*c_void },
 
     pub const initInt = raw.ImGuiStoragePair_ImGuiStoragePairInt;
     pub const initFloat = raw.ImGuiStoragePair_ImGuiStoragePairFloat;
@@ -1648,47 +1644,46 @@ fn getFTABLE_ImVector(comptime T: type) type {
 
 pub fn Vector(comptime T: type) type {
     return extern struct {
-        //@TODO: fill in fields
-        size: i32,
+        len: i32,
         capacity: i32,
         items: [*]T,
 
         const FTABLE = getFTABLE_ImVector(T);
-        pub const init = if (@hasAttr(FTABLE, "init")) FTABLE.init else @compileError("Invalid template instantiation");
-        pub const initVector = if (@hasAttr(FTABLE, "initVector")) FTABLE.initVector else @compileError("Invalid template instantiation");
-        pub const _grow_capacity = if (@hasAttr(FTABLE, "_grow_capacity")) FTABLE._grow_capacity else @compileError("Invalid template instantiation");
-        pub const back = if (@hasAttr(FTABLE, "back")) FTABLE.back else @compileError("Invalid template instantiation");
-        pub const back_const = if (@hasAttr(FTABLE, "back_const")) FTABLE.back_const else @compileError("Invalid template instantiation");
-        pub const begin = if (@hasAttr(FTABLE, "begin")) FTABLE.begin else @compileError("Invalid template instantiation");
-        pub const begin_const = if (@hasAttr(FTABLE, "begin_const")) FTABLE.begin_const else @compileError("Invalid template instantiation");
-        pub const capacity = if (@hasAttr(FTABLE, "capacity")) FTABLE.capacity else @compileError("Invalid template instantiation");
-        pub const clear = if (@hasAttr(FTABLE, "clear")) FTABLE.clear else @compileError("Invalid template instantiation");
-        pub const contains = if (@hasAttr(FTABLE, "contains")) FTABLE.contains else @compileError("Invalid template instantiation");
-        pub const deinit = if (@hasAttr(FTABLE, "deinit")) FTABLE.deinit else @compileError("Invalid template instantiation");
-        pub const empty = if (@hasAttr(FTABLE, "empty")) FTABLE.empty else @compileError("Invalid template instantiation");
-        pub const end = if (@hasAttr(FTABLE, "end")) FTABLE.end else @compileError("Invalid template instantiation");
-        pub const end_const = if (@hasAttr(FTABLE, "end_const")) FTABLE.end_const else @compileError("Invalid template instantiation");
-        pub const erase = if (@hasAttr(FTABLE, "erase")) FTABLE.erase else @compileError("Invalid template instantiation");
-        pub const eraseTPtr = if (@hasAttr(FTABLE, "eraseTPtr")) FTABLE.eraseTPtr else @compileError("Invalid template instantiation");
-        pub const erase_unsorted = if (@hasAttr(FTABLE, "erase_unsorted")) FTABLE.erase_unsorted else @compileError("Invalid template instantiation");
-        pub const find = if (@hasAttr(FTABLE, "find")) FTABLE.find else @compileError("Invalid template instantiation");
-        pub const find_const = if (@hasAttr(FTABLE, "find_const")) FTABLE.find_const else @compileError("Invalid template instantiation");
-        pub const find_erase = if (@hasAttr(FTABLE, "find_erase")) FTABLE.find_erase else @compileError("Invalid template instantiation");
-        pub const find_erase_unsorted = if (@hasAttr(FTABLE, "find_erase_unsorted")) FTABLE.find_erase_unsorted else @compileError("Invalid template instantiation");
-        pub const front = if (@hasAttr(FTABLE, "front")) FTABLE.front else @compileError("Invalid template instantiation");
-        pub const front_const = if (@hasAttr(FTABLE, "front_const")) FTABLE.front_const else @compileError("Invalid template instantiation");
-        pub const index_from_ptr = if (@hasAttr(FTABLE, "index_from_ptr")) FTABLE.index_from_ptr else @compileError("Invalid template instantiation");
-        pub const insert = if (@hasAttr(FTABLE, "insert")) FTABLE.insert else @compileError("Invalid template instantiation");
-        pub const pop_back = if (@hasAttr(FTABLE, "pop_back")) FTABLE.pop_back else @compileError("Invalid template instantiation");
-        pub const push_back = if (@hasAttr(FTABLE, "push_back")) FTABLE.push_back else @compileError("Invalid template instantiation");
-        pub const push_front = if (@hasAttr(FTABLE, "push_front")) FTABLE.push_front else @compileError("Invalid template instantiation");
-        pub const reserve = if (@hasAttr(FTABLE, "reserve")) FTABLE.reserve else @compileError("Invalid template instantiation");
-        pub const resize = if (@hasAttr(FTABLE, "resize")) FTABLE.resize else @compileError("Invalid template instantiation");
-        pub const resizeT = if (@hasAttr(FTABLE, "resizeT")) FTABLE.resizeT else @compileError("Invalid template instantiation");
-        pub const shrink = if (@hasAttr(FTABLE, "shrink")) FTABLE.shrink else @compileError("Invalid template instantiation");
-        pub const size = if (@hasAttr(FTABLE, "size")) FTABLE.size else @compileError("Invalid template instantiation");
-        pub const size_in_bytes = if (@hasAttr(FTABLE, "size_in_bytes")) FTABLE.size_in_bytes else @compileError("Invalid template instantiation");
-        pub const swap = if (@hasAttr(FTABLE, "swap")) FTABLE.swap else @compileError("Invalid template instantiation");
+        pub const init = if (@hasDecl(FTABLE, "init")) FTABLE.init else @compileError("Invalid template instantiation");
+        pub const initVector = if (@hasDecl(FTABLE, "initVector")) FTABLE.initVector else @compileError("Invalid template instantiation");
+        pub const _grow_capacity = if (@hasDecl(FTABLE, "_grow_capacity")) FTABLE._grow_capacity else @compileError("Invalid template instantiation");
+        pub const back = if (@hasDecl(FTABLE, "back")) FTABLE.back else @compileError("Invalid template instantiation");
+        pub const back_const = if (@hasDecl(FTABLE, "back_const")) FTABLE.back_const else @compileError("Invalid template instantiation");
+        pub const begin = if (@hasDecl(FTABLE, "begin")) FTABLE.begin else @compileError("Invalid template instantiation");
+        pub const begin_const = if (@hasDecl(FTABLE, "begin_const")) FTABLE.begin_const else @compileError("Invalid template instantiation");
+        pub const capacity = if (@hasDecl(FTABLE, "capacity")) FTABLE.capacity else @compileError("Invalid template instantiation");
+        pub const clear = if (@hasDecl(FTABLE, "clear")) FTABLE.clear else @compileError("Invalid template instantiation");
+        pub const contains = if (@hasDecl(FTABLE, "contains")) FTABLE.contains else @compileError("Invalid template instantiation");
+        pub const deinit = if (@hasDecl(FTABLE, "deinit")) FTABLE.deinit else @compileError("Invalid template instantiation");
+        pub const empty = if (@hasDecl(FTABLE, "empty")) FTABLE.empty else @compileError("Invalid template instantiation");
+        pub const end = if (@hasDecl(FTABLE, "end")) FTABLE.end else @compileError("Invalid template instantiation");
+        pub const end_const = if (@hasDecl(FTABLE, "end_const")) FTABLE.end_const else @compileError("Invalid template instantiation");
+        pub const erase = if (@hasDecl(FTABLE, "erase")) FTABLE.erase else @compileError("Invalid template instantiation");
+        pub const eraseTPtr = if (@hasDecl(FTABLE, "eraseTPtr")) FTABLE.eraseTPtr else @compileError("Invalid template instantiation");
+        pub const erase_unsorted = if (@hasDecl(FTABLE, "erase_unsorted")) FTABLE.erase_unsorted else @compileError("Invalid template instantiation");
+        pub const find = if (@hasDecl(FTABLE, "find")) FTABLE.find else @compileError("Invalid template instantiation");
+        pub const find_const = if (@hasDecl(FTABLE, "find_const")) FTABLE.find_const else @compileError("Invalid template instantiation");
+        pub const find_erase = if (@hasDecl(FTABLE, "find_erase")) FTABLE.find_erase else @compileError("Invalid template instantiation");
+        pub const find_erase_unsorted = if (@hasDecl(FTABLE, "find_erase_unsorted")) FTABLE.find_erase_unsorted else @compileError("Invalid template instantiation");
+        pub const front = if (@hasDecl(FTABLE, "front")) FTABLE.front else @compileError("Invalid template instantiation");
+        pub const front_const = if (@hasDecl(FTABLE, "front_const")) FTABLE.front_const else @compileError("Invalid template instantiation");
+        pub const index_from_ptr = if (@hasDecl(FTABLE, "index_from_ptr")) FTABLE.index_from_ptr else @compileError("Invalid template instantiation");
+        pub const insert = if (@hasDecl(FTABLE, "insert")) FTABLE.insert else @compileError("Invalid template instantiation");
+        pub const pop_back = if (@hasDecl(FTABLE, "pop_back")) FTABLE.pop_back else @compileError("Invalid template instantiation");
+        pub const push_back = if (@hasDecl(FTABLE, "push_back")) FTABLE.push_back else @compileError("Invalid template instantiation");
+        pub const push_front = if (@hasDecl(FTABLE, "push_front")) FTABLE.push_front else @compileError("Invalid template instantiation");
+        pub const reserve = if (@hasDecl(FTABLE, "reserve")) FTABLE.reserve else @compileError("Invalid template instantiation");
+        pub const resize = if (@hasDecl(FTABLE, "resize")) FTABLE.resize else @compileError("Invalid template instantiation");
+        pub const resizeT = if (@hasDecl(FTABLE, "resizeT")) FTABLE.resizeT else @compileError("Invalid template instantiation");
+        pub const shrink = if (@hasDecl(FTABLE, "shrink")) FTABLE.shrink else @compileError("Invalid template instantiation");
+        pub const size = if (@hasDecl(FTABLE, "size")) FTABLE.size else @compileError("Invalid template instantiation");
+        pub const size_in_bytes = if (@hasDecl(FTABLE, "size_in_bytes")) FTABLE.size_in_bytes else @compileError("Invalid template instantiation");
+        pub const swap = if (@hasDecl(FTABLE, "swap")) FTABLE.swap else @compileError("Invalid template instantiation");
     };
 }
 
@@ -2316,7 +2311,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_back_const(self: *const Vector(DrawCmd)) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_back_const(self: *const Vector(DrawIdx)) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_back_const(self: *const Vector(DrawVert)) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_back_const(self: *const Vector(*Font)) [*c]const *Font;
+    pub extern fn ImVector_ImFontPtr_back_const(self: *const Vector(*Font)) [*c]const*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_back_const(self: *const Vector(FontAtlasCustomRect)) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_back_const(self: *const Vector(FontConfig)) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_back_const(self: *const Vector(FontGlyph)) [*c]const FontGlyph;
@@ -2350,7 +2345,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_begin_const(self: *const Vector(DrawCmd)) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_begin_const(self: *const Vector(DrawIdx)) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_begin_const(self: *const Vector(DrawVert)) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_begin_const(self: *const Vector(*Font)) [*c]const *Font;
+    pub extern fn ImVector_ImFontPtr_begin_const(self: *const Vector(*Font)) [*c]const*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_begin_const(self: *const Vector(FontAtlasCustomRect)) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_begin_const(self: *const Vector(FontConfig)) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_begin_const(self: *const Vector(FontGlyph)) [*c]const FontGlyph;
@@ -2459,7 +2454,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_end_const(self: *const Vector(DrawCmd)) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_end_const(self: *const Vector(DrawIdx)) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_end_const(self: *const Vector(DrawVert)) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_end_const(self: *const Vector(*Font)) [*c]const *Font;
+    pub extern fn ImVector_ImFontPtr_end_const(self: *const Vector(*Font)) [*c]const*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_end_const(self: *const Vector(FontAtlasCustomRect)) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_end_const(self: *const Vector(FontConfig)) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_end_const(self: *const Vector(FontGlyph)) [*c]const FontGlyph;
@@ -2476,7 +2471,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_erase(self: *Vector(DrawCmd), it: [*c]const DrawCmd) [*c]DrawCmd;
     pub extern fn ImVector_ImDrawIdx_erase(self: *Vector(DrawIdx), it: [*c]const DrawIdx) [*c]DrawIdx;
     pub extern fn ImVector_ImDrawVert_erase(self: *Vector(DrawVert), it: [*c]const DrawVert) [*c]DrawVert;
-    pub extern fn ImVector_ImFontPtr_erase(self: *Vector(*Font), it: [*c]const *Font) [*c]*Font;
+    pub extern fn ImVector_ImFontPtr_erase(self: *Vector(*Font), it: [*c]const*Font) [*c]*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_erase(self: *Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect) [*c]FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_erase(self: *Vector(FontConfig), it: [*c]const FontConfig) [*c]FontConfig;
     pub extern fn ImVector_ImFontGlyph_erase(self: *Vector(FontGlyph), it: [*c]const FontGlyph) [*c]FontGlyph;
@@ -2493,7 +2488,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_eraseTPtr(self: *Vector(DrawCmd), it: [*c]const DrawCmd, it_last: [*c]const DrawCmd) [*c]DrawCmd;
     pub extern fn ImVector_ImDrawIdx_eraseTPtr(self: *Vector(DrawIdx), it: [*c]const DrawIdx, it_last: [*c]const DrawIdx) [*c]DrawIdx;
     pub extern fn ImVector_ImDrawVert_eraseTPtr(self: *Vector(DrawVert), it: [*c]const DrawVert, it_last: [*c]const DrawVert) [*c]DrawVert;
-    pub extern fn ImVector_ImFontPtr_eraseTPtr(self: *Vector(*Font), it: [*c]const *Font, it_last: [*c]const *Font) [*c]*Font;
+    pub extern fn ImVector_ImFontPtr_eraseTPtr(self: *Vector(*Font), it: [*c]const*Font, it_last: [*c]const*Font) [*c]*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_eraseTPtr(self: *Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect, it_last: [*c]const FontAtlasCustomRect) [*c]FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_eraseTPtr(self: *Vector(FontConfig), it: [*c]const FontConfig, it_last: [*c]const FontConfig) [*c]FontConfig;
     pub extern fn ImVector_ImFontGlyph_eraseTPtr(self: *Vector(FontGlyph), it: [*c]const FontGlyph, it_last: [*c]const FontGlyph) [*c]FontGlyph;
@@ -2510,7 +2505,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_erase_unsorted(self: *Vector(DrawCmd), it: [*c]const DrawCmd) [*c]DrawCmd;
     pub extern fn ImVector_ImDrawIdx_erase_unsorted(self: *Vector(DrawIdx), it: [*c]const DrawIdx) [*c]DrawIdx;
     pub extern fn ImVector_ImDrawVert_erase_unsorted(self: *Vector(DrawVert), it: [*c]const DrawVert) [*c]DrawVert;
-    pub extern fn ImVector_ImFontPtr_erase_unsorted(self: *Vector(*Font), it: [*c]const *Font) [*c]*Font;
+    pub extern fn ImVector_ImFontPtr_erase_unsorted(self: *Vector(*Font), it: [*c]const*Font) [*c]*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_erase_unsorted(self: *Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect) [*c]FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_erase_unsorted(self: *Vector(FontConfig), it: [*c]const FontConfig) [*c]FontConfig;
     pub extern fn ImVector_ImFontGlyph_erase_unsorted(self: *Vector(FontGlyph), it: [*c]const FontGlyph) [*c]FontGlyph;
@@ -2531,7 +2526,7 @@ pub const raw = struct {
     pub extern fn ImVector_char_find(self: *Vector(u8), v: u8) [*c]u8;
     pub extern fn ImVector_float_find(self: *Vector(f32), v: f32) [*c]f32;
     pub extern fn ImVector_ImDrawIdx_find_const(self: *const Vector(DrawIdx), v: DrawIdx) [*c]const DrawIdx;
-    pub extern fn ImVector_ImFontPtr_find_const(self: *const Vector(*Font), v: *Font) [*c]const *Font;
+    pub extern fn ImVector_ImFontPtr_find_const(self: *const Vector(*Font), v: *Font) [*c]const*Font;
     pub extern fn ImVector_ImTextureID_find_const(self: *const Vector(TextureID), v: TextureID) [*c]const TextureID;
     pub extern fn ImVector_ImU32_find_const(self: *const Vector(u32), v: u32) [*c]const u32;
     pub extern fn ImVector_ImWchar_find_const(self: *const Vector(Wchar), v: Wchar) [*c]const Wchar;
@@ -2572,7 +2567,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_front_const(self: *const Vector(DrawCmd)) [*c]const DrawCmd;
     pub extern fn ImVector_ImDrawIdx_front_const(self: *const Vector(DrawIdx)) [*c]const DrawIdx;
     pub extern fn ImVector_ImDrawVert_front_const(self: *const Vector(DrawVert)) [*c]const DrawVert;
-    pub extern fn ImVector_ImFontPtr_front_const(self: *const Vector(*Font)) [*c]const *Font;
+    pub extern fn ImVector_ImFontPtr_front_const(self: *const Vector(*Font)) [*c]const*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_front_const(self: *const Vector(FontAtlasCustomRect)) [*c]const FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_front_const(self: *const Vector(FontConfig)) [*c]const FontConfig;
     pub extern fn ImVector_ImFontGlyph_front_const(self: *const Vector(FontGlyph)) [*c]const FontGlyph;
@@ -2589,7 +2584,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_index_from_ptr(self: *const Vector(DrawCmd), it: [*c]const DrawCmd) i32;
     pub extern fn ImVector_ImDrawIdx_index_from_ptr(self: *const Vector(DrawIdx), it: [*c]const DrawIdx) i32;
     pub extern fn ImVector_ImDrawVert_index_from_ptr(self: *const Vector(DrawVert), it: [*c]const DrawVert) i32;
-    pub extern fn ImVector_ImFontPtr_index_from_ptr(self: *const Vector(*Font), it: [*c]const *Font) i32;
+    pub extern fn ImVector_ImFontPtr_index_from_ptr(self: *const Vector(*Font), it: [*c]const*Font) i32;
     pub extern fn ImVector_ImFontAtlasCustomRect_index_from_ptr(self: *const Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect) i32;
     pub extern fn ImVector_ImFontConfig_index_from_ptr(self: *const Vector(FontConfig), it: [*c]const FontConfig) i32;
     pub extern fn ImVector_ImFontGlyph_index_from_ptr(self: *const Vector(FontGlyph), it: [*c]const FontGlyph) i32;
@@ -2606,7 +2601,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImDrawCmd_insert(self: *Vector(DrawCmd), it: [*c]const DrawCmd, v: DrawCmd) [*c]DrawCmd;
     pub extern fn ImVector_ImDrawIdx_insert(self: *Vector(DrawIdx), it: [*c]const DrawIdx, v: DrawIdx) [*c]DrawIdx;
     pub extern fn ImVector_ImDrawVert_insert(self: *Vector(DrawVert), it: [*c]const DrawVert, v: DrawVert) [*c]DrawVert;
-    pub extern fn ImVector_ImFontPtr_insert(self: *Vector(*Font), it: [*c]const *Font, v: *Font) [*c]*Font;
+    pub extern fn ImVector_ImFontPtr_insert(self: *Vector(*Font), it: [*c]const*Font, v: *Font) [*c]*Font;
     pub extern fn ImVector_ImFontAtlasCustomRect_insert(self: *Vector(FontAtlasCustomRect), it: [*c]const FontAtlasCustomRect, v: FontAtlasCustomRect) [*c]FontAtlasCustomRect;
     pub extern fn ImVector_ImFontConfig_insert(self: *Vector(FontConfig), it: [*c]const FontConfig, v: FontConfig) [*c]FontConfig;
     pub extern fn ImVector_ImFontGlyph_insert(self: *Vector(FontGlyph), it: [*c]const FontGlyph, v: FontGlyph) [*c]FontGlyph;
@@ -2834,7 +2829,7 @@ pub const raw = struct {
     pub extern fn igColorPicker3(label: [*]const u8, col: *[3]f32, flags: ColorEditFlags) bool;
     pub extern fn igColorPicker4(label: [*]const u8, col: *[4]f32, flags: ColorEditFlags, ref_col: [*c]const f32) bool;
     pub extern fn igColumns(count: i32, id: [*]const u8, border: bool) void;
-    pub extern fn igCombo(label: [*]const u8, current_item: [*c]i32, items: [*]const [*]const u8, items_count: i32, popup_max_height_in_items: i32) bool;
+    pub extern fn igCombo(label: [*]const u8, current_item: [*c]i32, items: [*]const[*]const u8, items_count: i32, popup_max_height_in_items: i32) bool;
     pub extern fn igComboStr(label: [*]const u8, current_item: [*c]i32, items_separated_by_zeros: [*]const u8, popup_max_height_in_items: i32) bool;
     pub extern fn igComboFnPtr(label: [*]const u8, current_item: [*c]i32, items_getter: ?extern fn (data: ?*c_void, idx: i32, out_text: *[*]const u8) bool, data: ?*c_void, items_count: i32, popup_max_height_in_items: i32) bool;
     pub extern fn igCreateContext(shared_font_atlas: *FontAtlas) *Context;
@@ -2979,7 +2974,7 @@ pub const raw = struct {
     pub extern fn igIsWindowFocused(flags: FocusedFlags) bool;
     pub extern fn igIsWindowHovered(flags: HoveredFlags) bool;
     pub extern fn igLabelText(label: [*]const u8, fmt: [*]const u8, ...) void;
-    pub extern fn igListBoxStr_arr(label: [*]const u8, current_item: [*c]i32, items: [*]const [*]const u8, items_count: i32, height_in_items: i32) bool;
+    pub extern fn igListBoxStr_arr(label: [*]const u8, current_item: [*c]i32, items: [*]const[*]const u8, items_count: i32, height_in_items: i32) bool;
     pub extern fn igListBoxFnPtr(label: [*]const u8, current_item: [*c]i32, items_getter: ?extern fn (data: ?*c_void, idx: i32, out_text: *[*]const u8) bool, data: ?*c_void, items_count: i32, height_in_items: i32) bool;
     pub extern fn igListBoxFooter() void;
     pub extern fn igListBoxHeaderVec2(label: [*]const u8, size: Vec2) bool;
