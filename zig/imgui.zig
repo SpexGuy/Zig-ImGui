@@ -2832,9 +2832,9 @@ pub const raw = struct {
     pub extern fn igCombo(label: [*]const u8, current_item: [*c]i32, items: [*]const[*]const u8, items_count: i32, popup_max_height_in_items: i32) bool;
     pub extern fn igComboStr(label: [*]const u8, current_item: [*c]i32, items_separated_by_zeros: [*]const u8, popup_max_height_in_items: i32) bool;
     pub extern fn igComboFnPtr(label: [*]const u8, current_item: [*c]i32, items_getter: ?extern fn (data: ?*c_void, idx: i32, out_text: *[*]const u8) bool, data: ?*c_void, items_count: i32, popup_max_height_in_items: i32) bool;
-    pub extern fn igCreateContext(shared_font_atlas: *FontAtlas) *Context;
+    pub extern fn igCreateContext(shared_font_atlas: ?*FontAtlas) *Context;
     pub extern fn igDebugCheckVersionAndDataLayout(version_str: [*]const u8, sz_io: usize, sz_style: usize, sz_vec2: usize, sz_vec4: usize, sz_drawvert: usize, sz_drawidx: usize) bool;
-    pub extern fn igDestroyContext(ctx: *Context) void;
+    pub extern fn igDestroyContext(ctx: ?*Context) void;
     pub extern fn igDragFloat(label: [*]const u8, v: [*c]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*]const u8, power: f32) bool;
     pub extern fn igDragFloat2(label: [*]const u8, v: *[2]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*]const u8, power: f32) bool;
     pub extern fn igDragFloat3(label: [*]const u8, v: *[3]f32, v_speed: f32, v_min: f32, v_max: f32, format: [*]const u8, power: f32) bool;
@@ -3084,21 +3084,21 @@ pub const raw = struct {
     pub extern fn igShowStyleSelector(label: [*]const u8) bool;
     pub extern fn igShowUserGuide() void;
     pub extern fn igSliderAngle(label: [*]const u8, v_rad: [*c]f32, v_degrees_min: f32, v_degrees_max: f32, format: [*]const u8) bool;
-    pub extern fn igSliderFloat(label: [*]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: [*]const u8, power: f32) bool;
-    pub extern fn igSliderFloat2(label: [*]const u8, v: *[2]f32, v_min: f32, v_max: f32, format: [*]const u8, power: f32) bool;
-    pub extern fn igSliderFloat3(label: [*]const u8, v: *[3]f32, v_min: f32, v_max: f32, format: [*]const u8, power: f32) bool;
-    pub extern fn igSliderFloat4(label: [*]const u8, v: *[4]f32, v_min: f32, v_max: f32, format: [*]const u8, power: f32) bool;
-    pub extern fn igSliderInt(label: [*]const u8, v: [*c]i32, v_min: i32, v_max: i32, format: [*]const u8) bool;
-    pub extern fn igSliderInt2(label: [*]const u8, v: *[2]i32, v_min: i32, v_max: i32, format: [*]const u8) bool;
-    pub extern fn igSliderInt3(label: [*]const u8, v: *[3]i32, v_min: i32, v_max: i32, format: [*]const u8) bool;
-    pub extern fn igSliderInt4(label: [*]const u8, v: *[4]i32, v_min: i32, v_max: i32, format: [*]const u8) bool;
+    pub extern fn igSliderFloat(label: [*]const u8, v: [*c]f32, v_min: f32, v_max: f32, format: ?[*]const u8, power: f32) bool;
+    pub extern fn igSliderFloat2(label: [*]const u8, v: *[2]f32, v_min: f32, v_max: f32, format: ?[*]const u8, power: f32) bool;
+    pub extern fn igSliderFloat3(label: [*]const u8, v: *[3]f32, v_min: f32, v_max: f32, format: ?[*]const u8, power: f32) bool;
+    pub extern fn igSliderFloat4(label: [*]const u8, v: *[4]f32, v_min: f32, v_max: f32, format: ?[*]const u8, power: f32) bool;
+    pub extern fn igSliderInt(label: [*]const u8, v: [*c]i32, v_min: i32, v_max: i32, format: ?[*]const u8) bool;
+    pub extern fn igSliderInt2(label: [*]const u8, v: *[2]i32, v_min: i32, v_max: i32, format: ?[*]const u8) bool;
+    pub extern fn igSliderInt3(label: [*]const u8, v: *[3]i32, v_min: i32, v_max: i32, format: ?[*]const u8) bool;
+    pub extern fn igSliderInt4(label: [*]const u8, v: *[4]i32, v_min: i32, v_max: i32, format: ?[*]const u8) bool;
     pub extern fn igSliderScalar(label: [*]const u8, data_type: DataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: [*]const u8, power: f32) bool;
     pub extern fn igSliderScalarN(label: [*]const u8, data_type: DataType, p_data: ?*c_void, components: i32, p_min: ?*const c_void, p_max: ?*const c_void, format: [*]const u8, power: f32) bool;
     pub extern fn igSmallButton(label: [*]const u8) bool;
     pub extern fn igSpacing() void;
-    pub extern fn igStyleColorsClassic(dst: *Style) void;
-    pub extern fn igStyleColorsDark(dst: *Style) void;
-    pub extern fn igStyleColorsLight(dst: *Style) void;
+    pub extern fn igStyleColorsClassic(dst: ?*Style) void;
+    pub extern fn igStyleColorsDark(dst: ?*Style) void;
+    pub extern fn igStyleColorsLight(dst: ?*Style) void;
     pub extern fn igText(fmt: [*]const u8, ...) void;
     pub extern fn igTextColored(col: Vec4, fmt: [*]const u8, ...) void;
     pub extern fn igTextDisabled(fmt: [*]const u8, ...) void;
@@ -3122,3 +3122,10 @@ pub const raw = struct {
     pub extern fn igValueUint(prefix: [*]const u8, v: u32) void;
     pub extern fn igValueFloat(prefix: [*]const u8, v: f32, float_format: [*]const u8) void;
 };
+
+pub const VERSION = c"1.75";
+pub fn CHECKVERSION() void {
+    if (@import("builtin").mode != .ReleaseFast) {
+        @import("std").debug.assert(raw.igDebugCheckVersionAndDataLayout(VERSION, @sizeOf(IO), @sizeOf(Style), @sizeOf(Vec2), @sizeOf(Vec4), @sizeOf(DrawVert), @sizeOf(DrawIdx)));
+    }
+}

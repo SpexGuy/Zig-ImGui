@@ -7,14 +7,15 @@ const glslc_command = if (std.os.windows.is_the_target) "tools/win/glslc.exe" el
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
     {
-        const exe = b.addExecutable("example_glfw_vulkan", "example_glfw_vulkan/main.zig");
+        const exe = b.addExecutable("example_glfw_vulkan", "example_glfw_vulkan.zig");
         exe.setBuildMode(mode);
         exe.linkLibC();
+        exe.addPackagePath("imgui", "../zig/imgui.zig");
         //exe.addCSourceFile("extern_c/stb/stb_image.c", [_][]const u8{ "-std=c99", "-DSTB_IMAGE_IMPLEMENTATION=1" });
         if (std.os.windows.is_the_target) {
             exe.linkSystemLibrary("lib/win/glfw3dll");
             exe.linkSystemLibrary("lib/win/vulkan-1");
-            exe.linkSystemLibrary("lib/win/cimguid");
+            exe.linkSystemLibrary("../lib/win/cimguid");
         } else {
             exe.linkSystemLibrary("glfw");
             exe.linkSystemLibrary("vulkan");

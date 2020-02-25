@@ -44,14 +44,65 @@
 //  2016-10-18: Vulkan: Add location decorators & change to use structs as in/out in glsl, update embedded spv (produced with glslangValidator -x). Null the released resources.
 //  2016-08-27: Vulkan: Fix Vulkan example for use when a depth buffer is active.
 
-const imgui = @import("include/imgui.zig");
+const imgui = @import("imgui");
 const std = @import("std");
 const vk = @import("include/vk.zig");
 
+pub const InitInfo = struct {
+    Instance: vk.Instance,
+    PhysicalDevice: vk.PhysicalDevice,
+    Device: vk.Device,
+    QueueFamily: u32,
+    Queue: vk.Queue,
+    PipelineCache: vk.PipelineCache,
+    DescriptorPool: vk.DescriptorPool,
+    MinImageCount: u32,          // >= 2
+    ImageCount: u32,             // >= MinImageCount
+    MSAASamples: vk.SampleCountFlags,   // >= VK_SAMPLE_COUNT_1_BIT
+    Allocator: ?*const vk.AllocationCallbacks,
+};
+
+struct Frame
+{
+    CommandPool: vk.CommandPool,
+    CommandBuffer: vk.CommandBuffer,
+    Fence: vk.Fence,
+    Backbuffer: vk.Image,
+    BackbufferView: vk.ImageView,
+    Framebuffer: vk.Framebuffer,
+};
+
+struct FrameSemaphores
+{
+    ImageAcquiredSemaphore: vk.Semaphore,
+    RenderCompleteSemaphore: vk.Semaphore,
+};
+
+// Helper structure to hold the data needed by one rendering context into one OS window
+// (Used by example's main.cpp. Used by multi-viewport features. Probably NOT used by your own engine/app.)
+const Window = struct {
+    Width: u32 = 0,
+    Height: u32 = 0,
+    Swapchain: vk.SwapchainKHR = undefined,
+    Surface: vk.SurfaceKHR = undefined,
+    SurfaceFormat: vk.SurfaceFormatKHR = undefined,
+    PresentMode: vk.PresentModeKHR = undefined,
+    RenderPass: vk.RenderPass = undefined,
+    ClearEnable: bool = true,
+    ClearValue: vk.ClearValue = vk.ClearValue{
+		.color = vk.ClearColorValue{.int32 = [_]i32{0,0,0,0}},
+		.depthStencil = vk.ClearDepthStencilValue{ .depth = 0, .stencil = 0 },
+	},
+    FrameIndex: u32 = 0,             // Current frame being rendered to (0 <= FrameIndex < FrameInFlightCount)
+    ImageCount: u32 = 0,             // Number of simultaneous in-flight frames (returned by vkGetSwapchainImagesKHR, usually derived from min_image_count)
+    SemaphoreIndex: u32 = 0,         // Current set of swapchain wait semaphores we're using (needs to be distinct from per frame data)
+    Frames: [*]Frame = undefined;
+    FrameSemaphores: [*]FrameSemaphores = undefined;
+};
+
 // Reusable buffers used for rendering 1 current in-flight frame, for ImGui_ImplVulkan_RenderDrawData()
 // [Please zero-clear before use!]
-const ImGui_ImplVulkanH_FrameRenderBuffers = struct 
-{
+const FrameRenderBuffers = struct {
     VertexBufferMemory: vk.DeviceMemory,
     IndexBufferMemory: vk.DeviceMemory, 
     VertexBufferSize: vk.DeviceSize,
@@ -61,8 +112,7 @@ const ImGui_ImplVulkanH_FrameRenderBuffers = struct
 };
 
 // Each viewport will hold 1 ImGui_ImplVulkanH_WindowRenderBuffers
-// [Please zero-clear before use!]
-const ImGui_ImplVulkanH_WindowRenderBuffers = struct {
+const WindowRenderBuffers = struct {
     Index: u32 = 0,
     FrameRenderBuffers: []ImGui_ImplVulkanH_FrameRenderBuffers = &[_]ImGui_ImplVulkanH_FrameRenderBuffers{},  
 };
