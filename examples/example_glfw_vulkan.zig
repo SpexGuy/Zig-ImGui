@@ -33,16 +33,16 @@ const impl_vulkan = struct {
         RenderPass: vk.RenderPass = undefined,
         ClearEnable: bool = true,
         ClearValue: vk.ClearValue = vk.ClearValue{
-            .color = vk.ClearColorValue{.int32 = [_]i32{0,0,0,0}},
+            .color = vk.ClearColorValue{ .int32 = [_]i32{ 0, 0, 0, 0 } },
             .depthStencil = vk.ClearDepthStencilValue{ .depth = 0, .stencil = 0 },
         },
-        FrameIndex: u32 = 0,             // Current frame being rendered to (0 <= FrameIndex < FrameInFlightCount)
-        ImageCount: u32 = 0,             // Number of simultaneous in-flight frames (returned by vkGetSwapchainImagesKHR, usually derived from min_image_count)
-        SemaphoreIndex: u32 = 0,         // Current set of swapchain wait semaphores we're using (needs to be distinct from per frame data)
+        FrameIndex: u32 = 0, // Current frame being rendered to (0 <= FrameIndex < FrameInFlightCount)
+        ImageCount: u32 = 0, // Number of simultaneous in-flight frames (returned by vkGetSwapchainImagesKHR, usually derived from min_image_count)
+        SemaphoreIndex: u32 = 0, // Current set of swapchain wait semaphores we're using (needs to be distinct from per frame data)
         Frames: [*]Frame = undefined,
         FrameSemaphores: [*]FrameSemaphores = undefined,
     };
-    
+
     const InitInfo = struct {
         Instance: vk.Instance,
         PhysicalDevice: vk.PhysicalDevice,
@@ -51,24 +51,22 @@ const impl_vulkan = struct {
         Queue: vk.Queue,
         PipelineCache: vk.PipelineCache,
         DescriptorPool: vk.DescriptorPool,
-        MinImageCount: u32,          // >= 2
-        ImageCount: u32,             // >= MinImageCount
-        MSAASamples: vk.SampleCountFlags,   // >= VK_SAMPLE_COUNT_1_BIT
+        MinImageCount: u32, // >= 2
+        ImageCount: u32, // >= MinImageCount
+        MSAASamples: vk.SampleCountFlags, // >= VK_SAMPLE_COUNT_1_BIT
         Allocator: ?*const vk.AllocationCallbacks,
     };
-    
+
     fn SelectSurfaceFormat(device: vk.PhysicalDevice, surface: vk.SurfaceKHR, requests: []const vk.Format, colorSpace: vk.ColorSpaceKHR) vk.SurfaceFormatKHR {
         return undefined;
     }
-    
+
     fn SelectPresentMode(device: vk.PhysicalDevice, surface: vk.SurfaceKHR, options: []const vk.PresentModeKHR) vk.PresentModeKHR {
         return options[0];
     }
-    
-    fn CreateWindow(instance: vk.Instance, pd: vk.PhysicalDevice, d: vk.Device, wd: *Window, qf: u32, alloc: ?*vk.AllocationCallbacks, width: u32, height: u32, minImages: u32) void {
-        
-    }
-    
+
+    fn CreateWindow(instance: vk.Instance, pd: vk.PhysicalDevice, d: vk.Device, wd: *Window, qf: u32, alloc: ?*vk.AllocationCallbacks, width: u32, height: u32, minImages: u32) void {}
+
     fn Init(info: *InitInfo, rp: vk.RenderPass) void {}
     fn CreateFontsTexture(cb: vk.CommandBuffer) void {}
     fn DestroyFontUploadObjects() void {}
@@ -105,7 +103,7 @@ extern fn debug_report(flags: vk.DebugReportFlagsEXT, objectType: vk.DebugReport
     return vk.FALSE;
 }
 
-fn SetupVulkan(extensions: []const[*]const u8, allocator: *std.mem.Allocator) !void {
+fn SetupVulkan(extensions: []const [*]const u8, allocator: *std.mem.Allocator) !void {
     // Create Vulkan Instance
     {
         var create_info = vk.InstanceCreateInfo{
@@ -498,7 +496,7 @@ pub fn main() !void {
             _ = imgui.SliderFloat(c"float", &slider_value, 0.0, 1.0, null, 1); // Edit 1 float using a slider from 0.0 to 1.0
             _ = imgui.ColorEdit3(c"clear color", @ptrCast(*[3]f32, &clear_color), 0); // Edit 3 floats representing a color
 
-            if (imgui.Button(c"Button", imgui.Vec2{.x = 0, .y = 0})) // Buttons return true when clicked (most widgets return true when edited/activated)
+            if (imgui.Button(c"Button", imgui.Vec2{ .x = 0, .y = 0 })) // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter += 1;
             imgui.SameLine(0, -1);
             imgui.Text(c"counter = %d", counter);
@@ -511,7 +509,7 @@ pub fn main() !void {
         if (show_another_window) {
             _ = imgui.Begin(c"Another Window", &show_another_window, 0); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
             imgui.Text(c"Hello from another window!");
-            if (imgui.Button(c"Close Me", imgui.Vec2{.x = 0, .y = 0}))
+            if (imgui.Button(c"Close Me", imgui.Vec2{ .x = 0, .y = 0 }))
                 show_another_window = false;
             imgui.End();
         }
@@ -541,7 +539,7 @@ pub fn main() !void {
 fn arrayPtrType(comptime ptrType: type) type {
     const info = @typeInfo(ptrType);
     if (info.Pointer.is_const) {
-        return *const[1] ptrType.Child;
+        return *const [1]ptrType.Child;
     } else {
         return *[1]ptrType.Child;
     }
