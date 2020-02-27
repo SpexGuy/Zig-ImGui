@@ -13,9 +13,11 @@ pub fn build(b: *Builder) void {
         exe.addPackagePath("imgui", "../zig/imgui.zig");
         //exe.addCSourceFile("extern_c/stb/stb_image.c", [_][]const u8{ "-std=c99", "-DSTB_IMAGE_IMPLEMENTATION=1" });
         if (std.os.windows.is_the_target) {
-            exe.linkSystemLibrary("lib/win/glfw3dll");
+            exe.linkSystemLibrary("lib/win/glfw3");
             exe.linkSystemLibrary("lib/win/vulkan-1");
             exe.linkSystemLibrary("../lib/win/cimguid");
+            exe.linkSystemLibrary("gdi32");
+            exe.linkSystemLibrary("shell32");
         } else {
             exe.linkSystemLibrary("glfw");
             exe.linkSystemLibrary("vulkan");
