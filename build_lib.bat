@@ -7,9 +7,9 @@
 	:: manual cl build
 	mkdir "%~dp0\cimgui\build\obj"
 	pushd "%~dp0\cimgui"
-	cl /I. /Iimgui /c /MTd /Od /RTC1 /DDEBUG /Zi /Fobuild\obj\cimguid.obj /Fdbuild\cimguid.pdb ../build_cl.cpp
+	cl /I. /Iimgui /c /MTd /Zi /Ob0 /Od /RTC1 /Fobuild\obj\cimguid.obj /Fdbuild\cimguid.pdb ../build_cl.cpp
 	lib /OUT:build\cimguid.lib build\obj\cimguid.obj
-	cl /I. /Iimgui /c /MT /O2 /Fobuild\obj\cimgui.obj ../build_cl.cpp
+	cl /I. /Iimgui /c /MT /O2 /Ob2 /DNDEBUG /Fobuild\obj\cimgui.obj ../build_cl.cpp
 	lib /OUT:build\cimgui.lib build\obj\cimgui.obj
 	popd
 	rd /S /Q "%~dp0\lib\win"
@@ -43,7 +43,7 @@
 
 :BUILD_NO_CL
 	echo "Couldn't find cl to build libraries."
-	goto DONE
+	exit /b 1
 
 :DONE
 	exit /b 0
