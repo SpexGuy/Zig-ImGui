@@ -7,6 +7,7 @@ pub const InputTextCallback = ?extern fn (data: *InputTextCallbackData) i32;
 pub const SizeCallback = ?extern fn (data: *SizeCallbackData) void;
 pub const TextureID = ?*c_void;
 pub const Wchar = u16;
+pub const DrawCallback_ResetRenderState = @intToPtr(DrawCallback, ~usize(0));
 
 pub const DrawCornerFlags = u32;
 pub const DrawCornerFlagBits = struct {

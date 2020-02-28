@@ -1,39 +1,70 @@
 const std = @import("std");
 const path = std.fs.path;
 const Builder = std.build.Builder;
+const LibExeObjStep = std.build.LibExeObjStep;
 
 const glslc_command = if (std.os.windows.is_the_target) "tools/win/glslc.exe" else "glslc";
 
 pub fn build(b: *Builder) void {
-    const mode = b.standardReleaseOptions();
     {
-        const exe = b.addExecutable("example_glfw_vulkan", "example_glfw_vulkan.zig");
-        exe.setBuildMode(mode);
-        exe.linkLibC();
-        exe.addPackagePath("imgui", "../zig/imgui.zig");
-        //exe.addCSourceFile("extern_c/stb/stb_image.c", [_][]const u8{ "-std=c99", "-DSTB_IMAGE_IMPLEMENTATION=1" });
-        if (std.os.windows.is_the_target) {
-            exe.linkSystemLibrary("lib/win/glfw3");
-            exe.linkSystemLibrary("lib/win/vulkan-1");
-            exe.linkSystemLibrary("../lib/win/cimguid");
-            exe.linkSystemLibrary("gdi32");
-            exe.linkSystemLibrary("shell32");
-        } else {
-            exe.linkSystemLibrary("glfw");
-            exe.linkSystemLibrary("vulkan");
-            // @TODO: Build and link cimgui
-        }
-
-        //b.default_step.dependOn(&exe.step);
-        exe.install();
-
-        const run_step = b.step("example_glfw_vulkan_run", "Run the app");
-        const run_cmd = exe.run();
-        run_step.dependOn(&run_cmd.step);
-
-        //try addShader(b, exe, "shader.vert", "vert.spv");
-        //try addShader(b, exe, "shader.frag", "frag.spv");
+        const exe = exampleExe(b, "example_glfw_vulkan");
+        linkGlfw(exe);
+        linkVulkan(exe);
     }
+    {
+        const exe = exampleExe(b, "example_glfw_opengl3");
+        linkGlfw(exe);
+        linkGlad(exe);
+    }
+}
+
+fn exampleExe(b: *Builder, comptime name: var) *LibExeObjStep {
+    const mode = b.standardReleaseOptions();
+    const exe = b.addExecutable(name, name ++ ".zig");
+    exe.setBuildMode(mode);
+    exe.linkLibC();
+    exe.addPackagePath("imgui", "../zig/imgui.zig");
+    if (std.os.windows.is_the_target) {
+        exe.linkSystemLibrary("../lib/win/cimguid");
+    } else {
+        @compileError("TODO: Build and link cimgui for non-windows platforms");
+    }
+    exe.install();
+
+    const run_step = b.step(name, "Run " ++ name);
+    const run_cmd = exe.run();
+    run_step.dependOn(&run_cmd.step);
+
+    return exe;
+}
+
+fn linkGlad(exe: *LibExeObjStep) void {
+    exe.addIncludeDir("include/c_include");
+    exe.addCSourceFile("c_src/glad.c", [_][]const u8{"-std=c99"});
+    //exe.linkSystemLibrary("opengl");
+}
+
+fn linkGlfw(exe: *LibExeObjStep) void {
+    if (std.os.windows.is_the_target) {
+        exe.linkSystemLibrary("lib/win/glfw3");
+        exe.linkSystemLibrary("gdi32");
+        exe.linkSystemLibrary("shell32");
+    } else {
+        exe.linkSystemLibrary("glfw");
+    }
+}
+
+fn linkVulkan(exe: *LibExeObjStep) void {
+    if (std.os.windows.is_the_target) {
+        exe.linkSystemLibrary("lib/win/vulkan-1");
+    } else {
+        exe.linkSystemLibrary("vulkan");
+    }
+}
+
+fn linkStbImage(exe: *LibExeObjStep) void {
+    @compileError("This file hasn't actually been added to the project yet.");
+    exe.addCSourceFile("c_src/stb_image.c", [_][]const u8{ "-std=c99", "-DSTB_IMAGE_IMPLEMENTATION=1" });
 }
 
 fn addShader(b: *Builder, exe: var, in_file: []const u8, out_file: []const u8) !void {
