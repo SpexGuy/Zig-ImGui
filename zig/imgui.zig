@@ -2136,8 +2136,8 @@ pub const raw = struct {
     pub extern fn ImFontAtlas_GetGlyphRangesThai(self: *FontAtlas) [*]const Wchar;
     pub extern fn ImFontAtlas_GetGlyphRangesVietnamese(self: *FontAtlas) [*]const Wchar;
     pub extern fn ImFontAtlas_GetMouseCursorTexData(self: *FontAtlas, cursor: MouseCursor, out_offset: *Vec2, out_size: *Vec2, out_uv_border: *[2]Vec2, out_uv_fill: *[2]Vec2) bool;
-    pub extern fn ImFontAtlas_GetTexDataAsAlpha8(self: *FontAtlas, out_pixels: *[*c]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: *i32) void;
-    pub extern fn ImFontAtlas_GetTexDataAsRGBA32(self: *FontAtlas, out_pixels: *[*c]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: *i32) void;
+    pub extern fn ImFontAtlas_GetTexDataAsAlpha8(self: *FontAtlas, out_pixels: *[*]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: *i32) void;
+    pub extern fn ImFontAtlas_GetTexDataAsRGBA32(self: *FontAtlas, out_pixels: *[*]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: *i32) void;
     pub extern fn ImFontAtlas_ImFontAtlas(self: *FontAtlas) void;
     pub extern fn ImFontAtlas_IsBuilt(self: *const FontAtlas) bool;
     pub extern fn ImFontAtlas_SetTexID(self: *FontAtlas, id: TextureID) void;

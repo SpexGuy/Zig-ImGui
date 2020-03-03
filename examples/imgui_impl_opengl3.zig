@@ -316,7 +316,7 @@ fn CreateFontsTexture() bool {
     var width: i32 = undefined;
     var height: i32 = undefined;
     var bpp: i32 = undefined;
-    io.Fonts.GetTexDataAsRGBA32(@ptrCast(*[*c]u8, &pixels), &width, &height, &bpp); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+    io.Fonts.GetTexDataAsRGBA32(&pixels, &width, &height, &bpp); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
 
     // Upload texture to graphics system
     var last_texture: gl.GLint = undefined;
