@@ -47,7 +47,6 @@
 const imgui = @import("imgui");
 const std = @import("std");
 const vk = @import("include/vk.zig");
-const warn = std.debug.warn;
 
 pub const InitInfo = struct {
     Instance: vk.Instance,
@@ -650,7 +649,6 @@ fn CreateDeviceObjects() !void {
             .pCode = &__glsl_shader_frag_spv,
         };
         frag_module = try vk.CreateShaderModule(v.Device, frag_info, v.VkAllocator);
-        std.debug.warn("Created vert with {} bytes, frag with {} bytes.\n", vert_info.codeSize, frag_info.codeSize);
     }
 
     if (g_FontSampler == null) {
@@ -1054,19 +1052,15 @@ fn GetMinImageCountFromPresentMode(present_mode: vk.PresentModeKHR) u32 {
 
 // Also destroy old swap chain and in-flight frames data, if any.
 fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, wd: *Window, allocator: ?*const vk.AllocationCallbacks, w: u32, h: u32, min_image_count_in: u32) !void {
-    warn("CreateWindowSwapChain\n");
     const old_swapchain = wd.Swapchain;
-    warn("old_swapchain = {}\n", old_swapchain);
 
     try vk.DeviceWaitIdle(device);
 
     // We don't use DestroyWindow() because we want to preserve the old swapchain to create the new one.
     // Destroy old Framebuffer
     if (wd.ImageCount > 0) {
-        warn("Destroying old images\n");
         var i = u32(0);
         while (i < wd.ImageCount) : (i += 1) {
-            warn("Destroy frame {}\n", i);
             DestroyFrame(device, &wd.Frames[i], allocator);
             DestroyFrameSemaphores(device, &wd.FrameSemaphores[i], allocator);
         }
@@ -1078,7 +1072,6 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
     }
 
     if (wd.RenderPass != null) {
-        warn("Destroying render pass\n");
         vk.DestroyRenderPass(device, wd.RenderPass, allocator);
     }
 

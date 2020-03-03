@@ -1,5 +1,4 @@
 const std = @import("std");
-const warn = std.debug.warn;
 
 const imgui = @import("imgui");
 const glfw = @import("include/glfw.zig");
@@ -160,13 +159,11 @@ fn SetupVulkan(extensions: []const [*]const u8, allocator: *std.mem.Allocator) !
 // All the ImGui_ImplVulkanH_XXX structures/functions are optional helpers used by the demo.
 // Your real engine/app may not use them.
 fn SetupVulkanWindow(wd: *impl_vulkan.Window, surface: vk.SurfaceKHR, width: u32, height: u32, allocator: *std.mem.Allocator) !void {
-    warn("SetupVulkanWindow(\n    {},\n    {},\n    {},\n);", surface, width, height);
     wd.Surface = surface;
     wd.Allocator = allocator;
 
     var res = try vk.GetPhysicalDeviceSurfaceSupportKHR(g_PhysicalDevice, g_QueueFamily, surface);
     if (res != vk.TRUE) {
-        std.debug.warn("Error no WSI support on physical device 0\n");
         return error.NoWSISupport;
     }
 
@@ -274,7 +271,7 @@ fn FramePresent(wd: *impl_vulkan.Window) !void {
 }
 
 extern fn glfw_error_callback(err: c_int, description: ?[*]const u8) void {
-    std.debug.warn("Glfw Error {}: {}\n", err, description);
+    std.debug.warn("Glfw Error {}: {}\n", err, std.mem.toSliceConst(u8, description.?));
 }
 
 extern fn glfw_resize_callback(window: ?*glfw.GLFWwindow, w: c_int, h: c_int) void {
@@ -296,7 +293,6 @@ pub fn main() !void {
 
     // Setup Vulkan
     if (glfw.glfwVulkanSupported() == 0) {
-        std.debug.warn("GLFW: Vulkan Not Supported\n");
         return error.VulkanNotSupported;
     }
     var extensions_count: u32 = 0;
@@ -311,7 +307,6 @@ pub fn main() !void {
     }
 
     // Create Framebuffers
-    warn("Create framebuffers\n");
     var w: c_int = 0;
     var h: c_int = 0;
     glfw.glfwGetFramebufferSize(window, &w, &h);
@@ -348,7 +343,6 @@ pub fn main() !void {
         .MSAASamples = 0,
         .ImageCount = wd.ImageCount,
     };
-    warn("Init renderPass {}\n", wd.RenderPass);
     try impl_vulkan.Init(&init_info, wd.RenderPass);
 
     // Load Fonts
