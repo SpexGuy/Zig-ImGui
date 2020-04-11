@@ -19,7 +19,7 @@ const GlfwClientApi = enum {
 
 var g_Window: ?*glfw.GLFWwindow = null;
 var g_ClientApi = GlfwClientApi.Unknown;
-var g_Time = f64(0.0);
+var g_Time: f64 = 0.0;
 var g_MouseJustPressed = [_]bool{ false, false, false, false, false };
 var g_MouseCursors = [_]?*glfw.GLFWcursor{null} ** imgui.MouseCursor.COUNT;
 var g_InstalledCallbacks = false;
@@ -57,7 +57,7 @@ pub fn Shutdown() void {
 pub fn NewFrame() void {
     const io = imgui.GetIO();
     // "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame()."
-    std.debug.assert(io.Fonts.IsBuilt());
+    std.debug.assert(io.Fonts.?.IsBuilt());
 
     // Setup display size (every frame to accommodate for window resizing)
     var w: c_int = undefined;
@@ -90,7 +90,7 @@ fn Init(window: *glfw.GLFWwindow, install_callbacks: bool, client_api: GlfwClien
     var io = imgui.GetIO();
     io.BackendFlags |= imgui.BackendFlagBits.HasMouseCursors; // We can honor GetMouseCursor() values (optional)
     io.BackendFlags |= imgui.BackendFlagBits.HasSetMousePos; // We can honor io.WantSetMousePos requests (optional, rarely used)
-    io.BackendPlatformName = c"imgui_impl_glfw";
+    io.BackendPlatformName = "imgui_impl_glfw";
 
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array.
     io.KeyMap[@enumToInt(imgui.Key.Tab)] = glfw.GLFW_KEY_TAB;
@@ -116,10 +116,10 @@ fn Init(window: *glfw.GLFWwindow, install_callbacks: bool, client_api: GlfwClien
     io.KeyMap[@enumToInt(imgui.Key.Y)] = glfw.GLFW_KEY_Y;
     io.KeyMap[@enumToInt(imgui.Key.Z)] = glfw.GLFW_KEY_Z;
 
-    io.SetClipboardTextFn = @ptrCast(@typeOf(io.SetClipboardTextFn), SetClipboardText);
-    io.GetClipboardTextFn = @ptrCast(@typeOf(io.GetClipboardTextFn), GetClipboardText);
+    io.SetClipboardTextFn = @ptrCast(@TypeOf(io.SetClipboardTextFn), SetClipboardText);
+    io.GetClipboardTextFn = @ptrCast(@TypeOf(io.GetClipboardTextFn), GetClipboardText);
     io.ClipboardUserData = g_Window;
-    if (std.os.windows.is_the_target) {
+    if (std.builtin.os.tag == .windows) {
         io.ImeWindowHandle = glfw.glfwGetWin32Window(g_Window);
     }
 
@@ -254,15 +254,15 @@ fn UpdateGamepads() void {
     }
 }
 
-extern fn GetClipboardText(user_data: ?*c_void) ?[*]const u8 {
+fn GetClipboardText(user_data: ?*c_void) callconv(.C) ?[*:0]const u8 {
     return glfw.glfwGetClipboardString(@ptrCast(?*glfw.GLFWwindow, user_data));
 }
 
-extern fn SetClipboardText(user_data: ?*c_void, text: ?[*]const u8) void {
+fn SetClipboardText(user_data: ?*c_void, text: ?[*:0]const u8) callconv(.C) void {
     glfw.glfwSetClipboardString(@ptrCast(?*glfw.GLFWwindow, user_data), text);
 }
 
-extern fn MouseButtonCallback(window: ?*glfw.GLFWwindow, button: c_int, action: c_int, mods: c_int) void {
+fn MouseButtonCallback(window: ?*glfw.GLFWwindow, button: c_int, action: c_int, mods: c_int) callconv(.C) void {
     if (g_PrevUserCallbackMousebutton) |fnPtr| {
         fnPtr(window, button, action, mods);
     }
@@ -271,7 +271,7 @@ extern fn MouseButtonCallback(window: ?*glfw.GLFWwindow, button: c_int, action: 
         g_MouseJustPressed[@intCast(usize, button)] = true;
 }
 
-extern fn ScrollCallback(window: ?*glfw.GLFWwindow, xoffset: f64, yoffset: f64) void {
+fn ScrollCallback(window: ?*glfw.GLFWwindow, xoffset: f64, yoffset: f64) callconv(.C) void {
     if (g_PrevUserCallbackScroll) |fnPtr| {
         fnPtr(window, xoffset, yoffset);
     }
@@ -281,7 +281,7 @@ extern fn ScrollCallback(window: ?*glfw.GLFWwindow, xoffset: f64, yoffset: f64) 
     io.MouseWheel += @floatCast(f32, yoffset);
 }
 
-extern fn KeyCallback(window: ?*glfw.GLFWwindow, key: c_int, scancode: c_int, action: c_int, mods: c_int) void {
+fn KeyCallback(window: ?*glfw.GLFWwindow, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.C) void {
     if (g_PrevUserCallbackKey) |fnPtr| {
         fnPtr(window, key, scancode, action, mods);
     }
@@ -296,14 +296,14 @@ extern fn KeyCallback(window: ?*glfw.GLFWwindow, key: c_int, scancode: c_int, ac
     io.KeyCtrl = io.KeysDown[glfw.GLFW_KEY_LEFT_CONTROL] or io.KeysDown[glfw.GLFW_KEY_RIGHT_CONTROL];
     io.KeyShift = io.KeysDown[glfw.GLFW_KEY_LEFT_SHIFT] or io.KeysDown[glfw.GLFW_KEY_RIGHT_SHIFT];
     io.KeyAlt = io.KeysDown[glfw.GLFW_KEY_LEFT_ALT] or io.KeysDown[glfw.GLFW_KEY_RIGHT_ALT];
-    if (std.os.windows.is_the_target) {
+    if (std.builtin.os.tag == .windows) {
         io.KeySuper = false;
     } else {
         io.KeySuper = io.KeysDown[glfw.GLFW_KEY_LEFT_SUPER] or io.KeysDown[glfw.GLFW_KEY_RIGHT_SUPER];
     }
 }
 
-extern fn CharCallback(window: ?*glfw.GLFWwindow, c: c_uint) void {
+fn CharCallback(window: ?*glfw.GLFWwindow, c: c_uint) callconv(.C) void {
     if (g_PrevUserCallbackChar) |fnPtr| {
         fnPtr(window, c);
     }

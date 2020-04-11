@@ -9,8 +9,13 @@ const impl_gl3 = @import("imgui_impl_opengl3.zig");
 const glfw = @import("include/glfw.zig");
 const gl = @import("include/gl.zig");
 
-extern fn glfw_error_callback(err: c_int, description: ?[*]const u8) void {
-    std.debug.warn("Glfw Error {}: {}\n", err, description);
+const is_darwin = switch (std.builtin.os.tag) {
+    .macosx, .ios, .watchos, .tvos => true,
+    else => false,
+};
+
+fn glfw_error_callback(err: c_int, description: ?[*:0]const u8) callconv(.C) void {
+    std.debug.warn("Glfw Error {}: {}\n", .{ err, description });
 }
 
 pub fn main() !void {
@@ -20,8 +25,8 @@ pub fn main() !void {
         return error.GlfwInitFailed;
 
     // Decide GL+GLSL versions
-    const glsl_version = if (std.os.darwin.is_the_target) "#version 150" else "#version 130";
-    if (std.os.darwin.is_the_target) {
+    const glsl_version = if (is_darwin) "#version 150" else "#version 130";
+    if (is_darwin) {
         // GL 3.2 + GLSL 150
         glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -36,7 +41,7 @@ pub fn main() !void {
     }
 
     // Create window with graphics context
-    const window = glfw.glfwCreateWindow(1280, 720, c"Dear ImGui GLFW+OpenGL3 example", null, null);
+    const window = glfw.glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", null, null);
     if (window == null)
         return error.GlfwCreateWindowFailed;
     glfw.glfwMakeContextCurrent(window);
@@ -69,11 +74,11 @@ pub fn main() !void {
     // - Read 'docs/FONTS.txt' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
     //io.Fonts.AddFontDefault();
-    //io.Fonts.AddFontFromFileTTF(c"../../misc/fonts/Roboto-Medium.ttf", 16.0);
-    //io.Fonts.AddFontFromFileTTF(c"../../misc/fonts/Cousine-Regular.ttf", 15.0);
-    //io.Fonts.AddFontFromFileTTF(c"../../misc/fonts/DroidSans.ttf", 16.0);
-    //io.Fonts.AddFontFromFileTTF(c"../../misc/fonts/ProggyTiny.ttf", 10.0);
-    //ImFont* font = io.Fonts.AddFontFromFileTTF(c"c:\\Windows\\Fonts\\ArialUni.ttf", 18.0, null, io.Fonts->GetGlyphRangesJapanese());
+    //io.Fonts.AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0);
+    //io.Fonts.AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0);
+    //io.Fonts.AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0);
+    //io.Fonts.AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0);
+    //ImFont* font = io.Fonts.AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0, null, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
 
     // Our state
@@ -103,29 +108,29 @@ pub fn main() !void {
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
-            _ = imgui.Begin(c"Hello, world!", null, 0); // Create a window called "Hello, world!" and append into it.
+            _ = imgui.Begin("Hello, world!", null, 0); // Create a window called "Hello, world!" and append into it.
 
-            imgui.Text(c"This is some useful text."); // Display some text (you can use a format strings too)
-            _ = imgui.Checkbox(c"Demo Window", &show_demo_window); // Edit bools storing our window open/close state
-            _ = imgui.Checkbox(c"Another Window", &show_another_window);
+            imgui.Text("This is some useful text."); // Display some text (you can use a format strings too)
+            _ = imgui.Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
+            _ = imgui.Checkbox("Another Window", &show_another_window);
 
-            _ = imgui.SliderFloat(c"float", &slider_value, 0.0, 1.0, null, 1); // Edit 1 float using a slider from 0.0 to 1.0
-            _ = imgui.ColorEdit3(c"clear color", @ptrCast(*[3]f32, &clear_color), 0); // Edit 3 floats representing a color
+            _ = imgui.SliderFloat("float", &slider_value, 0.0, 1.0, null, 1); // Edit 1 float using a slider from 0.0 to 1.0
+            _ = imgui.ColorEdit3("clear color", @ptrCast(*[3]f32, &clear_color), 0); // Edit 3 floats representing a color
 
-            if (imgui.Button(c"Button", imgui.Vec2{ .x = 0, .y = 0 })) // Buttons return true when clicked (most widgets return true when edited/activated)
+            if (imgui.Button("Button", imgui.Vec2{ .x = 0, .y = 0 })) // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter += 1;
             imgui.SameLine(0, -1);
-            imgui.Text(c"counter = %d", counter);
+            imgui.Text("counter = %d", counter);
 
-            imgui.Text(c"Application average %.3f ms/frame (%.1f FPS)", 1000.0 / imgui.GetIO().Framerate, imgui.GetIO().Framerate);
+            imgui.Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0 / imgui.GetIO().Framerate, imgui.GetIO().Framerate);
             imgui.End();
         }
 
         // 3. Show another simple window.
         if (show_another_window) {
-            _ = imgui.Begin(c"Another Window", &show_another_window, 0); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            imgui.Text(c"Hello from another window!");
-            if (imgui.Button(c"Close Me", imgui.Vec2{ .x = 0, .y = 0 }))
+            _ = imgui.Begin("Another Window", &show_another_window, 0); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            imgui.Text("Hello from another window!");
+            if (imgui.Button("Close Me", imgui.Vec2{ .x = 0, .y = 0 }))
                 show_another_window = false;
             imgui.End();
         }

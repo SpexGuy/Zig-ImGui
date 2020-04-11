@@ -22,7 +22,7 @@
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
-//  2019-08-01: Vulkan: Added support for specifying multisample count. Set InitInfo::MSAASamples to one of the vk.SampleCountFlagBits values to use, default is non-multisampled as before.
+//  2019-08-01: Vulkan: Added support for specifying multisample count. Set InitInfo::MSAASamples to one of the vk.SampleCountFlags values to use, default is non-multisampled as before.
 //  2019-05-29: Vulkan: Added support for large mesh (64K+ vertices), enable ImGuiBackendFlags_RendererHasVtxOffset flag.
 //  2019-04-30: Vulkan: Added support for special ImDrawCallback_ResetRenderState callback to reset render state.
 //  2019-04-04: *BREAKING CHANGE*: Vulkan: Added ImageCount/MinImageCount fields in InitInfo, required for initialization (was previously a hard #define IMGUI_VK_QUEUED_FRAMES 2). Added SetMinImageCount().
@@ -116,7 +116,7 @@ const WindowRenderBuffers = struct {
 var g_VulkanInitInfo: InitInfo = undefined;
 var g_RenderPass: ?vk.RenderPass = null;
 var g_BufferMemoryAlignment: vk.DeviceSize = 256;
-var g_PipelineCreateFlags: vk.PipelineCreateFlags = 0x00;
+var g_PipelineCreateFlags = vk.PipelineCreateFlags{};
 var g_DescriptorSetLayout: ?vk.DescriptorSetLayout = null;
 var g_PipelineLayout: ?vk.PipelineLayout = null;
 var g_DescriptorSet: ?vk.DescriptorSet = null;
@@ -248,7 +248,7 @@ fn MemoryType(properties: vk.MemoryPropertyFlags, type_bits: u32) ?u32 {
     var v = &g_VulkanInitInfo;
     var prop = vk.GetPhysicalDeviceMemoryProperties(v.PhysicalDevice);
     for (prop.memoryTypes[0..prop.memoryTypeCount]) |memType, i|
-        if ((memType.propertyFlags & properties) == properties and type_bits & (u32(1) << @intCast(u5, i)) != 0)
+        if (memType.propertyFlags.hasAllSet(properties) and type_bits & (@as(u32, 1) << @intCast(u5, i)) != 0)
             return @intCast(u32, i);
     return null; // Unable to find memoryType
 }
@@ -272,7 +272,7 @@ fn CreateOrResizeBuffer(buffer: *?vk.Buffer, buffer_memory: *?vk.DeviceMemory, p
     g_BufferMemoryAlignment = if (g_BufferMemoryAlignment > req.alignment) g_BufferMemoryAlignment else req.alignment;
     var alloc_info = vk.MemoryAllocateInfo{
         .allocationSize = req.size,
-        .memoryTypeIndex = MemoryType(vk.MemoryPropertyFlagBits.HOST_VISIBLE_BIT, req.memoryTypeBits).?,
+        .memoryTypeIndex = MemoryType(.{ .hostVisible=true }, req.memoryTypeBits).?,
     };
     buffer_memory.* = try vk.AllocateMemory(v.Device, alloc_info, v.VkAllocator);
 
@@ -321,8 +321,8 @@ fn SetupRenderState(draw_data: *imgui.DrawData, command_buffer: vk.CommandBuffer
             -1.0 - draw_data.DisplayPos.x * scale[0],
             -1.0 - draw_data.DisplayPos.y * scale[1],
         };
-        vk.CmdPushConstants(command_buffer, g_PipelineLayout.?, vk.ShaderStageFlagBits.VERTEX_BIT, @sizeOf(f32) * 0, std.mem.asBytes(&scale));
-        vk.CmdPushConstants(command_buffer, g_PipelineLayout.?, vk.ShaderStageFlagBits.VERTEX_BIT, @sizeOf(f32) * 2, std.mem.asBytes(&translate));
+        vk.CmdPushConstants(command_buffer, g_PipelineLayout.?, .{ .vertex=true }, @sizeOf(f32) * 0, std.mem.asBytes(&scale));
+        vk.CmdPushConstants(command_buffer, g_PipelineLayout.?, .{ .vertex=true }, @sizeOf(f32) * 2, std.mem.asBytes(&translate));
     }
 }
 
@@ -354,19 +354,19 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData, command_buffer: vk.CommandBuff
     var vertex_size = @intCast(usize, draw_data.TotalVtxCount) * @sizeOf(imgui.DrawVert);
     var index_size = @intCast(usize, draw_data.TotalIdxCount) * @sizeOf(imgui.DrawIdx);
     if (rb.VertexBuffer == null or rb.VertexBufferSize < vertex_size)
-        try CreateOrResizeBuffer(&rb.VertexBuffer, &rb.VertexBufferMemory, &rb.VertexBufferSize, vertex_size, vk.BufferUsageFlagBits.VERTEX_BUFFER_BIT);
+        try CreateOrResizeBuffer(&rb.VertexBuffer, &rb.VertexBufferMemory, &rb.VertexBufferSize, vertex_size, .{ .vertexBuffer=true });
     if (rb.IndexBuffer == null or rb.IndexBufferSize < index_size)
-        try CreateOrResizeBuffer(&rb.IndexBuffer, &rb.IndexBufferMemory, &rb.IndexBufferSize, index_size, vk.BufferUsageFlagBits.INDEX_BUFFER_BIT);
+        try CreateOrResizeBuffer(&rb.IndexBuffer, &rb.IndexBufferMemory, &rb.IndexBufferSize, index_size, .{ .indexBuffer=true });
 
     // Upload vertex/index data into a single contiguous GPU buffer
     {
         var vtx_dst: [*]imgui.DrawVert = undefined;
         var idx_dst: [*]imgui.DrawIdx = undefined;
-        try vk.MapMemory(v.Device, rb.VertexBufferMemory.?, 0, vertex_size, 0, @ptrCast(**c_void, &vtx_dst));
-        try vk.MapMemory(v.Device, rb.IndexBufferMemory.?, 0, index_size, 0, @ptrCast(**c_void, &idx_dst));
+        try vk.MapMemory(v.Device, rb.VertexBufferMemory.?, 0, vertex_size, .{}, @ptrCast(**c_void, &vtx_dst));
+        try vk.MapMemory(v.Device, rb.IndexBufferMemory.?, 0, index_size, .{}, @ptrCast(**c_void, &idx_dst));
         var n: i32 = 0;
         while (n < draw_data.CmdListsCount) : (n += 1) {
-            const cmd_list = draw_data.CmdLists[@intCast(u32, n)];
+            const cmd_list = draw_data.CmdLists.?[@intCast(u32, n)];
             std.mem.copy(imgui.DrawVert, vtx_dst[0..@intCast(u32, cmd_list.VtxBuffer.len)], cmd_list.VtxBuffer.items[0..@intCast(u32, cmd_list.VtxBuffer.len)]);
             std.mem.copy(imgui.DrawIdx, idx_dst[0..@intCast(u32, cmd_list.IdxBuffer.len)], cmd_list.IdxBuffer.items[0..@intCast(u32, cmd_list.IdxBuffer.len)]);
             vtx_dst += @intCast(u32, cmd_list.VtxBuffer.len);
@@ -400,11 +400,11 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData, command_buffer: vk.CommandBuff
 
     // Render command lists
     // (Because we merged all buffers into a single one, we maintain our own offset into them)
-    var global_vtx_offset = u32(0);
-    var global_idx_offset = u32(0);
+    var global_vtx_offset = @as(u32, 0);
+    var global_idx_offset = @as(u32, 0);
     var n: usize = 0;
     while (n < @intCast(usize, draw_data.CmdListsCount)) : (n += 1) {
-        const cmd_list = draw_data.CmdLists[n];
+        const cmd_list = draw_data.CmdLists.?[n];
         var cmd_i: usize = 0;
         while (cmd_i < @intCast(usize, cmd_list.CmdBuffer.len)) : (cmd_i += 1) {
             const pcmd = &cmd_list.CmdBuffer.items[cmd_i];
@@ -461,11 +461,11 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
     var v = &g_VulkanInitInfo;
     var io = imgui.GetIO();
 
-    var pixels: [*]u8 = undefined;
+    var pixels: ?[*]u8 = undefined;
     var width: i32 = 0;
     var height: i32 = 0;
     var bpp: i32 = 0;
-    io.Fonts.GetTexDataAsRGBA32(&pixels, &width, &height, &bpp);
+    io.Fonts.?.GetTexDataAsRGBA32(&pixels, &width, &height, &bpp);
     var upload_size = @intCast(usize, width * height * 4);
 
     // Create the Image:
@@ -480,9 +480,9 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             },
             .mipLevels = 1,
             .arrayLayers = 1,
-            .samples = vk.SampleCountFlagBits.T_1_BIT,
+            .samples = .{ .t1=true },
             .tiling = .OPTIMAL,
-            .usage = vk.ImageUsageFlagBits.SAMPLED_BIT | vk.ImageUsageFlagBits.TRANSFER_DST_BIT,
+            .usage = .{ .sampled=true, .transferDst=true },
             .sharingMode = .EXCLUSIVE,
             .initialLayout = .UNDEFINED,
         };
@@ -490,7 +490,7 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
         var req = vk.GetImageMemoryRequirements(v.Device, g_FontImage.?);
         var alloc_info = vk.MemoryAllocateInfo{
             .allocationSize = req.size,
-            .memoryTypeIndex = MemoryType(vk.MemoryPropertyFlagBits.DEVICE_LOCAL_BIT, req.memoryTypeBits).?,
+            .memoryTypeIndex = MemoryType(.{.deviceLocal=true}, req.memoryTypeBits).?,
         };
         g_FontMemory = try vk.AllocateMemory(v.Device, alloc_info, v.VkAllocator);
         try vk.BindImageMemory(v.Device, g_FontImage.?, g_FontMemory.?, 0);
@@ -503,7 +503,7 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             .viewType = .T_2D,
             .format = .R8G8B8A8_UNORM,
             .subresourceRange = vk.ImageSubresourceRange{
-                .aspectMask = vk.ImageAspectFlagBits.COLOR_BIT,
+                .aspectMask = .{ .color=true },
                 .levelCount = 1,
                 .layerCount = 1,
                 .baseMipLevel = 0,
@@ -537,14 +537,14 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             .pBufferInfo = undefined,
             .pTexelBufferView = undefined,
         }};
-        vk.UpdateDescriptorSets(v.Device, write_desc, &[_]vk.CopyDescriptorSet{});
+        vk.UpdateDescriptorSets(v.Device, &write_desc, &[_]vk.CopyDescriptorSet{});
     }
 
     // Create the Upload Buffer:
     {
         var buffer_info = vk.BufferCreateInfo{
             .size = upload_size,
-            .usage = vk.BufferUsageFlagBits.TRANSFER_SRC_BIT,
+            .usage = .{ .transferSrc=true },
             .sharingMode = .EXCLUSIVE,
         };
         g_UploadBuffer = try vk.CreateBuffer(v.Device, buffer_info, v.VkAllocator);
@@ -554,7 +554,7 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
         }
         var alloc_info = vk.MemoryAllocateInfo{
             .allocationSize = req.size,
-            .memoryTypeIndex = MemoryType(vk.MemoryPropertyFlagBits.HOST_VISIBLE_BIT, req.memoryTypeBits).?,
+            .memoryTypeIndex = MemoryType(.{ .hostVisible=true }, req.memoryTypeBits).?,
         };
         g_UploadBufferMemory = try vk.AllocateMemory(v.Device, alloc_info, v.VkAllocator);
         try vk.BindBufferMemory(v.Device, g_UploadBuffer.?, g_UploadBufferMemory.?, 0);
@@ -563,8 +563,8 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
     // Upload to Buffer:
     {
         var map: [*]u8 = undefined;
-        try vk.MapMemory(v.Device, g_UploadBufferMemory.?, 0, upload_size, 0, @ptrCast(**c_void, &map));
-        std.mem.copy(u8, map[0..upload_size], pixels[0..upload_size]);
+        try vk.MapMemory(v.Device, g_UploadBufferMemory.?, 0, upload_size, .{}, @ptrCast(**c_void, &map));
+        std.mem.copy(u8, map[0..upload_size], pixels.?[0..upload_size]);
         var range = [_]vk.MappedMemoryRange{vk.MappedMemoryRange{
             .memory = g_UploadBufferMemory.?,
             .size = upload_size,
@@ -577,26 +577,26 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
     // Copy to Image:
     {
         var copy_barrier = [1]vk.ImageMemoryBarrier{vk.ImageMemoryBarrier{
-            .srcAccessMask = 0,
-            .dstAccessMask = vk.AccessFlagBits.TRANSFER_WRITE_BIT,
+            .srcAccessMask = .{},
+            .dstAccessMask = .{ .transferWrite=true },
             .oldLayout = .UNDEFINED,
             .newLayout = .TRANSFER_DST_OPTIMAL,
             .srcQueueFamilyIndex = vk.QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = vk.QUEUE_FAMILY_IGNORED,
             .image = g_FontImage.?,
             .subresourceRange = vk.ImageSubresourceRange{
-                .aspectMask = vk.ImageAspectFlagBits.COLOR_BIT,
+                .aspectMask = .{ .color=true },
                 .levelCount = 1,
                 .layerCount = 1,
                 .baseMipLevel = 0,
                 .baseArrayLayer = 0,
             },
         }};
-        vk.CmdPipelineBarrier(command_buffer, vk.PipelineStageFlagBits.HOST_BIT, vk.PipelineStageFlagBits.TRANSFER_BIT, 0, &[_]vk.MemoryBarrier{}, &[_]vk.BufferMemoryBarrier{}, &copy_barrier);
+        vk.CmdPipelineBarrier(command_buffer, .{ .host=true }, .{ .transfer=true }, .{}, &[_]vk.MemoryBarrier{}, &[_]vk.BufferMemoryBarrier{}, &copy_barrier);
 
         var region = [_]vk.BufferImageCopy{vk.BufferImageCopy{
             .imageSubresource = vk.ImageSubresourceLayers{
-                .aspectMask = vk.ImageAspectFlagBits.COLOR_BIT,
+                .aspectMask = .{ .color=true },
                 .mipLevel = 0,
                 .baseArrayLayer = 0,
                 .layerCount = 1,
@@ -610,26 +610,26 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
         vk.CmdCopyBufferToImage(command_buffer, g_UploadBuffer.?, g_FontImage.?, .TRANSFER_DST_OPTIMAL, &region);
 
         var use_barrier = [_]vk.ImageMemoryBarrier{vk.ImageMemoryBarrier{
-            .srcAccessMask = vk.AccessFlagBits.TRANSFER_WRITE_BIT,
-            .dstAccessMask = vk.AccessFlagBits.SHADER_READ_BIT,
+            .srcAccessMask = .{ .transferWrite=true },
+            .dstAccessMask = .{ .shaderRead=true },
             .oldLayout = .TRANSFER_DST_OPTIMAL,
             .newLayout = .SHADER_READ_ONLY_OPTIMAL,
             .srcQueueFamilyIndex = vk.QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = vk.QUEUE_FAMILY_IGNORED,
             .image = g_FontImage.?,
             .subresourceRange = vk.ImageSubresourceRange{
-                .aspectMask = vk.ImageAspectFlagBits.COLOR_BIT,
+                .aspectMask = .{ .color=true },
                 .levelCount = 1,
                 .layerCount = 1,
                 .baseMipLevel = 0,
                 .baseArrayLayer = 0,
             },
         }};
-        vk.CmdPipelineBarrier(command_buffer, vk.PipelineStageFlagBits.TRANSFER_BIT, vk.PipelineStageFlagBits.FRAGMENT_SHADER_BIT, 0, &[_]vk.MemoryBarrier{}, &[_]vk.BufferMemoryBarrier{}, &use_barrier);
+        vk.CmdPipelineBarrier(command_buffer, .{ .transfer=true }, .{ .fragmentShader=true }, .{}, &[_]vk.MemoryBarrier{}, &[_]vk.BufferMemoryBarrier{}, &use_barrier);
     }
 
     // Store our identifier
-    io.Fonts.TexID = @ptrCast(imgui.TextureID, g_FontImage.?);
+    io.Fonts.?.TexID = @ptrCast(imgui.TextureID, g_FontImage.?);
 }
 fn CreateDeviceObjects() !void {
     const v = &g_VulkanInitInfo;
@@ -639,13 +639,13 @@ fn CreateDeviceObjects() !void {
     // Create The Shader Modules:
     {
         const vert_info = vk.ShaderModuleCreateInfo{
-            .codeSize = @sizeOf(@typeOf(__glsl_shader_vert_spv)),
+            .codeSize = @sizeOf(@TypeOf(__glsl_shader_vert_spv)),
             .pCode = &__glsl_shader_vert_spv,
         };
         vert_module = try vk.CreateShaderModule(v.Device, vert_info, v.VkAllocator);
 
         const frag_info = vk.ShaderModuleCreateInfo{
-            .codeSize = @sizeOf(@typeOf(__glsl_shader_frag_spv)),
+            .codeSize = @sizeOf(@TypeOf(__glsl_shader_frag_spv)),
             .pCode = &__glsl_shader_frag_spv,
         };
         frag_module = try vk.CreateShaderModule(v.Device, frag_info, v.VkAllocator);
@@ -679,7 +679,7 @@ fn CreateDeviceObjects() !void {
             .binding = 0,
             .descriptorType = .COMBINED_IMAGE_SAMPLER,
             .descriptorCount = 1,
-            .stageFlags = vk.ShaderStageFlagBits.FRAGMENT_BIT,
+            .stageFlags = .{ .fragment=true },
             .pImmutableSamplers = &sampler,
         }};
         const info = vk.DescriptorSetLayoutCreateInfo{
@@ -704,7 +704,7 @@ fn CreateDeviceObjects() !void {
     if (g_PipelineLayout == null) {
         // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
         const push_constants = [_]vk.PushConstantRange{vk.PushConstantRange{
-            .stageFlags = vk.ShaderStageFlagBits.VERTEX_BIT,
+            .stageFlags = .{ .vertex=true },
             .offset = 0 * @sizeOf(f32),
             .size = 4 * @sizeOf(f32),
         }};
@@ -720,14 +720,14 @@ fn CreateDeviceObjects() !void {
 
     const stage = [_]vk.PipelineShaderStageCreateInfo{
         vk.PipelineShaderStageCreateInfo{
-            .stage = vk.ShaderStageFlagBits.VERTEX_BIT,
+            .stage = .{ .vertex=true },
             .module = vert_module,
-            .pName = c"main",
+            .pName = "main",
         },
         vk.PipelineShaderStageCreateInfo{
-            .stage = vk.ShaderStageFlagBits.FRAGMENT_BIT,
+            .stage = .{ .fragment=true },
             .module = frag_module,
-            .pName = c"main",
+            .pName = "main",
         },
     };
 
@@ -777,7 +777,7 @@ fn CreateDeviceObjects() !void {
 
     const raster_info = vk.PipelineRasterizationStateCreateInfo{
         .polygonMode = .FILL,
-        .cullMode = vk.CullModeFlagBits.NONE,
+        .cullMode = vk.CullModeFlags.none,
         .frontFace = .COUNTER_CLOCKWISE,
         .lineWidth = 1.0,
 
@@ -790,7 +790,7 @@ fn CreateDeviceObjects() !void {
     };
 
     const ms_info = vk.PipelineMultisampleStateCreateInfo{
-        .rasterizationSamples = if (v.MSAASamples != 0) v.MSAASamples else vk.SampleCountFlagBits.T_1_BIT,
+        .rasterizationSamples = if (!v.MSAASamples.isEmpty()) v.MSAASamples else .{ .t1=true },
 
         .sampleShadingEnable = vk.FALSE,
         .minSampleShading = 0,
@@ -806,7 +806,7 @@ fn CreateDeviceObjects() !void {
         .srcAlphaBlendFactor = .ONE_MINUS_SRC_ALPHA,
         .dstAlphaBlendFactor = .ZERO,
         .alphaBlendOp = .ADD,
-        .colorWriteMask = vk.ColorComponentFlagBits.R_BIT | vk.ColorComponentFlagBits.G_BIT | vk.ColorComponentFlagBits.B_BIT | vk.ColorComponentFlagBits.A_BIT,
+        .colorWriteMask = .{ .r=true, .g=true, .b=true, .a=true },
     }};
 
     const depth_info = vk.PipelineDepthStencilStateCreateInfo{
@@ -910,7 +910,7 @@ fn DestroyDeviceObjects() void {
 pub fn Init(info: *InitInfo, render_pass: ?vk.RenderPass) !void {
     // Setup back-end capabilities flags
     const io = imgui.GetIO();
-    io.BackendRendererName = c"imgui_impl_vulkan";
+    io.BackendRendererName = "imgui_impl_vulkan";
     io.BackendFlags |= imgui.BackendFlagBits.RendererHasVtxOffset; // We can honor the imgui.DrawCmd::VtxOffset field, allowing for large meshes.
 
     if (info.MinImageCount < 2) return error.FailedStuff;
@@ -1007,13 +1007,13 @@ pub fn SelectPresentMode(physical_device: vk.PhysicalDevice, surface: vk.Surface
 
 fn CreateWindowCommandBuffers(physical_device: vk.PhysicalDevice, device: vk.Device, wd: *Window, queue_family: u32, allocator: ?*const vk.AllocationCallbacks) !void {
     // Create Command Buffers
-    var i = u32(0);
+    var i = @as(u32, 0);
     while (i < wd.ImageCount) : (i += 1) {
         const fd = &wd.Frames[i];
         const fsd = &wd.FrameSemaphores[i];
         {
             const info = vk.CommandPoolCreateInfo{
-                .flags = vk.CommandPoolCreateFlagBits.RESET_COMMAND_BUFFER_BIT,
+                .flags = .{ .resetCommandBuffer=true },
                 .queueFamilyIndex = queue_family,
             };
             fd.CommandPool = try vk.CreateCommandPool(device, info, allocator);
@@ -1028,7 +1028,7 @@ fn CreateWindowCommandBuffers(physical_device: vk.PhysicalDevice, device: vk.Dev
         }
         {
             const info = vk.FenceCreateInfo{
-                .flags = vk.FenceCreateFlagBits.SIGNALED_BIT,
+                .flags = .{ .signaled=true },
             };
             fd.Fence = try vk.CreateFence(device, info, allocator);
         }
@@ -1059,7 +1059,7 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
     // We don't use DestroyWindow() because we want to preserve the old swapchain to create the new one.
     // Destroy old Framebuffer
     if (wd.ImageCount > 0) {
-        var i = u32(0);
+        var i = @as(u32, 0);
         while (i < wd.ImageCount) : (i += 1) {
             DestroyFrame(device, &wd.Frames[i], allocator);
             DestroyFrameSemaphores(device, &wd.FrameSemaphores[i], allocator);
@@ -1088,11 +1088,11 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
             .imageFormat = wd.SurfaceFormat.format,
             .imageColorSpace = wd.SurfaceFormat.colorSpace,
             .imageArrayLayers = 1,
-            .imageUsage = vk.ImageUsageFlagBits.COLOR_ATTACHMENT_BIT,
+            .imageUsage = .{ .colorAttachment=true },
             .imageExtent = undefined, // we will fill this in later
             .imageSharingMode = .EXCLUSIVE, // Assume that graphics family == present family
-            .preTransform = vk.SurfaceTransformFlagBitsKHR.IDENTITY_BIT,
-            .compositeAlpha = vk.CompositeAlphaFlagBitsKHR.OPAQUE_BIT,
+            .preTransform = .{ .identity=true },
+            .compositeAlpha = .{ .opaque=true },
             .presentMode = wd.PresentMode,
             .clipped = vk.TRUE,
             .oldSwapchain = old_swapchain,
@@ -1136,7 +1136,7 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
     {
         const attachment = vk.AttachmentDescription{
             .format = wd.SurfaceFormat.format,
-            .samples = vk.SampleCountFlagBits.T_1_BIT,
+            .samples = .{ .t1=true },
             .loadOp = .CLEAR,
             .storeOp = .STORE,
             .stencilLoadOp = .DONT_CARE,
@@ -1157,10 +1157,10 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
         const dependency = vk.SubpassDependency{
             .srcSubpass = vk.SUBPASS_EXTERNAL,
             .dstSubpass = 0,
-            .srcStageMask = vk.PipelineStageFlagBits.COLOR_ATTACHMENT_OUTPUT_BIT,
-            .dstStageMask = vk.PipelineStageFlagBits.COLOR_ATTACHMENT_OUTPUT_BIT,
-            .srcAccessMask = 0,
-            .dstAccessMask = vk.AccessFlagBits.COLOR_ATTACHMENT_WRITE_BIT,
+            .srcStageMask = .{ .colorAttachmentOutput=true },
+            .dstStageMask = .{ .colorAttachmentOutput=true },
+            .srcAccessMask = .{},
+            .dstAccessMask = .{ .colorAttachmentWrite=true },
         };
         const info = vk.RenderPassCreateInfo{
             .attachmentCount = 1,
@@ -1186,7 +1186,7 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
                 .a = .IDENTITY,
             },
             .subresourceRange = vk.ImageSubresourceRange{
-                .aspectMask = vk.ImageAspectFlagBits.COLOR_BIT,
+                .aspectMask = .{ .color=true },
                 .baseMipLevel = 0,
                 .levelCount = 1,
                 .baseArrayLayer = 0,
@@ -1300,6 +1300,6 @@ fn arrayPtrType(comptime ptrType: type) type {
     }
 }
 
-fn arrayPtr(ptr: var) arrayPtrType(@typeOf(ptr)) {
-    return @ptrCast(arrayPtrType(@typeOf(ptr)), ptr);
+fn arrayPtr(ptr: var) arrayPtrType(@TypeOf(ptr)) {
+    return @ptrCast(arrayPtrType(@TypeOf(ptr)), ptr);
 }

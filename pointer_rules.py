@@ -212,6 +212,8 @@ Rules = {
         ]),
         (StartsWith("Im"), [
             ([EndsWith('Ptr')], '?[*]'),
+            (['igGetIO', 'return'], '*'),
+            (['igGetDrawData', 'return'], '*'),
             ([Not(EndsWith('s'))], '?*'),
         ]),
         (Always(), [

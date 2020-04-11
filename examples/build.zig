@@ -3,7 +3,7 @@ const path = std.fs.path;
 const Builder = std.build.Builder;
 const LibExeObjStep = std.build.LibExeObjStep;
 
-const glslc_command = if (std.os.windows.is_the_target) "tools/win/glslc.exe" else "glslc";
+const glslc_command = if (std.builtin.os.tag == .windows) "tools/win/glslc.exe" else "glslc";
 
 pub fn build(b: *Builder) void {
     {
@@ -24,7 +24,7 @@ fn exampleExe(b: *Builder, comptime name: var) *LibExeObjStep {
     exe.setBuildMode(mode);
     exe.linkLibC();
     exe.addPackagePath("imgui", "../zig/imgui.zig");
-    if (std.os.windows.is_the_target) {
+    if (std.builtin.os.tag == .windows) {
         exe.linkSystemLibrary("../lib/win/cimguid");
     } else {
         @compileError("TODO: Build and link cimgui for non-windows platforms");
@@ -40,12 +40,12 @@ fn exampleExe(b: *Builder, comptime name: var) *LibExeObjStep {
 
 fn linkGlad(exe: *LibExeObjStep) void {
     exe.addIncludeDir("include/c_include");
-    exe.addCSourceFile("c_src/glad.c", [_][]const u8{"-std=c99"});
+    exe.addCSourceFile("c_src/glad.c", &[_][]const u8{"-std=c99"});
     //exe.linkSystemLibrary("opengl");
 }
 
 fn linkGlfw(exe: *LibExeObjStep) void {
-    if (std.os.windows.is_the_target) {
+    if (std.builtin.os.tag == .windows) {
         exe.linkSystemLibrary("lib/win/glfw3");
         exe.linkSystemLibrary("gdi32");
         exe.linkSystemLibrary("shell32");
@@ -55,7 +55,7 @@ fn linkGlfw(exe: *LibExeObjStep) void {
 }
 
 fn linkVulkan(exe: *LibExeObjStep) void {
-    if (std.os.windows.is_the_target) {
+    if (std.builtin.os.tag == .windows) {
         exe.linkSystemLibrary("lib/win/vulkan-1");
     } else {
         exe.linkSystemLibrary("vulkan");

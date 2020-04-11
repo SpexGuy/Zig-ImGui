@@ -20,7 +20,36 @@
 //
 
 const assert = @import("std").debug.assert;
-pub const CString = [*]const u8;
+pub const CString = [*:0]const u8;
+pub fn FlagsMixin(comptime FlagType: type) type {
+    comptime assert(@sizeOf(FlagType) == 4);
+    return struct {
+        pub fn toInt(self: FlagType) Flags {
+            return @bitCast(Flags, self);
+        }
+        pub fn fromInt(value: Flags) FlagType {
+            return @bitCast(FlagType, value);
+        }
+        pub fn with(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) | toInt(b));
+        }
+        pub fn only(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) & toInt(b));
+        }
+        pub fn without(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) & ~toInt(b));
+        }
+        pub fn hasAllSet(a: FlagType, b: FlagType) bool {
+            return (toInt(a) & toInt(b)) == toInt(b);
+        }
+        pub fn hasAnySet(a: FlagType, b: FlagType) bool {
+            return (toInt(a) & toInt(b)) != 0;
+        }
+        pub fn isEmpty(a: FlagType) bool {
+            return toInt(a) == 0;
+        }
+    };
+}
 
 pub const VERSION_1_0 = 1;
 pub fn MAKE_VERSION(major: u32, minor: u32, patch: u32) u32 { return @shlExact(major, 22) | @shlExact(minor, 12) | patch; }
@@ -69,15 +98,15 @@ pub const DescriptorSet = *@OpaqueType();
 pub const Framebuffer = *@OpaqueType();
 pub const CommandPool = *@OpaqueType();
 
-pub const LOD_CLAMP_NONE = f32(1000.0);
-pub const REMAINING_MIP_LEVELS = (~u32(0));
-pub const REMAINING_ARRAY_LAYERS = (~u32(0));
-pub const WHOLE_SIZE = (~u64(0));
-pub const ATTACHMENT_UNUSED = (~u32(0));
+pub const LOD_CLAMP_NONE = @as(f32, 1000.0);
+pub const REMAINING_MIP_LEVELS = (~@as(u32, 0));
+pub const REMAINING_ARRAY_LAYERS = (~@as(u32, 0));
+pub const WHOLE_SIZE = (~@as(u64, 0));
+pub const ATTACHMENT_UNUSED = (~@as(u32, 0));
 pub const TRUE = 1;
 pub const FALSE = 0;
-pub const QUEUE_FAMILY_IGNORED = (~u32(0));
-pub const SUBPASS_EXTERNAL = (~u32(0));
+pub const QUEUE_FAMILY_IGNORED = (~@as(u32, 0));
+pub const SUBPASS_EXTERNAL = (~@as(u32, 0));
 pub const MAX_PHYSICAL_DEVICE_NAME_SIZE = 256;
 pub const UUID_SIZE = 16;
 pub const MAX_MEMORY_TYPES = 32;
@@ -85,11 +114,12 @@ pub const MAX_MEMORY_HEAPS = 16;
 pub const MAX_EXTENSION_NAME_SIZE = 256;
 pub const MAX_DESCRIPTION_SIZE = 256;
 
-pub const PipelineCacheHeaderVersion = extern enum {
+pub const PipelineCacheHeaderVersion = extern enum(i32) {
     ONE = 1,
+    _,
 };
 
-pub const Result = extern enum {
+pub const Result = extern enum(i32) {
     SUCCESS = 0,
     NOT_READY = 1,
     TIMEOUT = 2,
@@ -123,6 +153,7 @@ pub const Result = extern enum {
     ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT = -1000158000,
     ERROR_NOT_PERMITTED_EXT = -1000174001,
     ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT = -1000255000,
+    _,
 
     const Self = @This();
     pub const ERROR_OUT_OF_POOL_MEMORY_KHR = Self.ERROR_OUT_OF_POOL_MEMORY;
@@ -132,7 +163,7 @@ pub const Result = extern enum {
     pub const ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR = Self.ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS;
 };
 
-pub const StructureType = extern enum {
+pub const StructureType = extern enum(i32) {
     APPLICATION_INFO = 0,
     INSTANCE_CREATE_INFO = 1,
     DEVICE_QUEUE_CREATE_INFO = 2,
@@ -533,6 +564,7 @@ pub const StructureType = extern enum {
     PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT = 1000276000,
     PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT = 1000281000,
     PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT = 1000281001,
+    _,
 
     const Self = @This();
     pub const PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES = Self.PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES;
@@ -650,19 +682,21 @@ pub const StructureType = extern enum {
     pub const PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT = Self.PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES;
 };
 
-pub const SystemAllocationScope = extern enum {
+pub const SystemAllocationScope = extern enum(i32) {
     COMMAND = 0,
     OBJECT = 1,
     CACHE = 2,
     DEVICE = 3,
     INSTANCE = 4,
+    _,
 };
 
-pub const InternalAllocationType = extern enum {
+pub const InternalAllocationType = extern enum(i32) {
     EXECUTABLE = 0,
+    _,
 };
 
-pub const Format = extern enum {
+pub const Format = extern enum(i32) {
     UNDEFINED = 0,
     R4G4_UNORM_PACK8 = 1,
     R4G4B4A4_UNORM_PACK16 = 2,
@@ -904,6 +938,7 @@ pub const Format = extern enum {
     ASTC_10x10_SFLOAT_BLOCK_EXT = 1000066011,
     ASTC_12x10_SFLOAT_BLOCK_EXT = 1000066012,
     ASTC_12x12_SFLOAT_BLOCK_EXT = 1000066013,
+    _,
 
     const Self = @This();
     pub const G8B8G8R8_422_UNORM_KHR = Self.G8B8G8R8_422_UNORM;
@@ -942,27 +977,30 @@ pub const Format = extern enum {
     pub const G16_B16_R16_3PLANE_444_UNORM_KHR = Self.G16_B16_R16_3PLANE_444_UNORM;
 };
 
-pub const ImageType = extern enum {
+pub const ImageType = extern enum(i32) {
     T_1D = 0,
     T_2D = 1,
     T_3D = 2,
+    _,
 };
 
-pub const ImageTiling = extern enum {
+pub const ImageTiling = extern enum(i32) {
     OPTIMAL = 0,
     LINEAR = 1,
     DRM_FORMAT_MODIFIER_EXT = 1000158000,
+    _,
 };
 
-pub const PhysicalDeviceType = extern enum {
+pub const PhysicalDeviceType = extern enum(i32) {
     OTHER = 0,
     INTEGRATED_GPU = 1,
     DISCRETE_GPU = 2,
     VIRTUAL_GPU = 3,
     CPU = 4,
+    _,
 };
 
-pub const QueryType = extern enum {
+pub const QueryType = extern enum(i32) {
     OCCLUSION = 0,
     PIPELINE_STATISTICS = 1,
     TIMESTAMP = 2,
@@ -970,14 +1008,16 @@ pub const QueryType = extern enum {
     PERFORMANCE_QUERY_KHR = 1000116000,
     ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV = 1000165000,
     PERFORMANCE_QUERY_INTEL = 1000210000,
+    _,
 };
 
-pub const SharingMode = extern enum {
+pub const SharingMode = extern enum(i32) {
     EXCLUSIVE = 0,
     CONCURRENT = 1,
+    _,
 };
 
-pub const ImageLayout = extern enum {
+pub const ImageLayout = extern enum(i32) {
     UNDEFINED = 0,
     GENERAL = 1,
     COLOR_ATTACHMENT_OPTIMAL = 2,
@@ -997,6 +1037,7 @@ pub const ImageLayout = extern enum {
     SHARED_PRESENT_KHR = 1000111000,
     SHADING_RATE_OPTIMAL_NV = 1000164003,
     FRAGMENT_DENSITY_MAP_OPTIMAL_EXT = 1000218000,
+    _,
 
     const Self = @This();
     pub const DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL_KHR = Self.DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
@@ -1007,7 +1048,7 @@ pub const ImageLayout = extern enum {
     pub const STENCIL_READ_ONLY_OPTIMAL_KHR = Self.STENCIL_READ_ONLY_OPTIMAL;
 };
 
-pub const ImageViewType = extern enum {
+pub const ImageViewType = extern enum(i32) {
     T_1D = 0,
     T_2D = 1,
     T_3D = 2,
@@ -1015,9 +1056,10 @@ pub const ImageViewType = extern enum {
     T_1D_ARRAY = 4,
     T_2D_ARRAY = 5,
     CUBE_ARRAY = 6,
+    _,
 };
 
-pub const ComponentSwizzle = extern enum {
+pub const ComponentSwizzle = extern enum(i32) {
     IDENTITY = 0,
     ZERO = 1,
     ONE = 2,
@@ -1025,14 +1067,16 @@ pub const ComponentSwizzle = extern enum {
     G = 4,
     B = 5,
     A = 6,
+    _,
 };
 
-pub const VertexInputRate = extern enum {
+pub const VertexInputRate = extern enum(i32) {
     VERTEX = 0,
     INSTANCE = 1,
+    _,
 };
 
-pub const PrimitiveTopology = extern enum {
+pub const PrimitiveTopology = extern enum(i32) {
     POINT_LIST = 0,
     LINE_LIST = 1,
     LINE_STRIP = 2,
@@ -1044,21 +1088,24 @@ pub const PrimitiveTopology = extern enum {
     TRIANGLE_LIST_WITH_ADJACENCY = 8,
     TRIANGLE_STRIP_WITH_ADJACENCY = 9,
     PATCH_LIST = 10,
+    _,
 };
 
-pub const PolygonMode = extern enum {
+pub const PolygonMode = extern enum(i32) {
     FILL = 0,
     LINE = 1,
     POINT = 2,
     FILL_RECTANGLE_NV = 1000153000,
+    _,
 };
 
-pub const FrontFace = extern enum {
+pub const FrontFace = extern enum(i32) {
     COUNTER_CLOCKWISE = 0,
     CLOCKWISE = 1,
+    _,
 };
 
-pub const CompareOp = extern enum {
+pub const CompareOp = extern enum(i32) {
     NEVER = 0,
     LESS = 1,
     EQUAL = 2,
@@ -1067,9 +1114,10 @@ pub const CompareOp = extern enum {
     NOT_EQUAL = 5,
     GREATER_OR_EQUAL = 6,
     ALWAYS = 7,
+    _,
 };
 
-pub const StencilOp = extern enum {
+pub const StencilOp = extern enum(i32) {
     KEEP = 0,
     ZERO = 1,
     REPLACE = 2,
@@ -1078,9 +1126,10 @@ pub const StencilOp = extern enum {
     INVERT = 5,
     INCREMENT_AND_WRAP = 6,
     DECREMENT_AND_WRAP = 7,
+    _,
 };
 
-pub const LogicOp = extern enum {
+pub const LogicOp = extern enum(i32) {
     CLEAR = 0,
     AND = 1,
     AND_REVERSE = 2,
@@ -1097,9 +1146,10 @@ pub const LogicOp = extern enum {
     OR_INVERTED = 13,
     NAND = 14,
     SET = 15,
+    _,
 };
 
-pub const BlendFactor = extern enum {
+pub const BlendFactor = extern enum(i32) {
     ZERO = 0,
     ONE = 1,
     SRC_COLOR = 2,
@@ -1119,9 +1169,10 @@ pub const BlendFactor = extern enum {
     ONE_MINUS_SRC1_COLOR = 16,
     SRC1_ALPHA = 17,
     ONE_MINUS_SRC1_ALPHA = 18,
+    _,
 };
 
-pub const BlendOp = extern enum {
+pub const BlendOp = extern enum(i32) {
     ADD = 0,
     SUBTRACT = 1,
     REVERSE_SUBTRACT = 2,
@@ -1173,9 +1224,10 @@ pub const BlendOp = extern enum {
     RED_EXT = 1000148043,
     GREEN_EXT = 1000148044,
     BLUE_EXT = 1000148045,
+    _,
 };
 
-pub const DynamicState = extern enum {
+pub const DynamicState = extern enum(i32) {
     VIEWPORT = 0,
     SCISSOR = 1,
     LINE_WIDTH = 2,
@@ -1192,43 +1244,48 @@ pub const DynamicState = extern enum {
     VIEWPORT_COARSE_SAMPLE_ORDER_NV = 1000164006,
     EXCLUSIVE_SCISSOR_NV = 1000205001,
     LINE_STIPPLE_EXT = 1000259000,
+    _,
 };
 
-pub const Filter = extern enum {
+pub const Filter = extern enum(i32) {
     NEAREST = 0,
     LINEAR = 1,
     CUBIC_IMG = 1000015000,
+    _,
 
     const Self = @This();
     pub const CUBIC_EXT = Self.CUBIC_IMG;
 };
 
-pub const SamplerMipmapMode = extern enum {
+pub const SamplerMipmapMode = extern enum(i32) {
     NEAREST = 0,
     LINEAR = 1,
+    _,
 };
 
-pub const SamplerAddressMode = extern enum {
+pub const SamplerAddressMode = extern enum(i32) {
     REPEAT = 0,
     MIRRORED_REPEAT = 1,
     CLAMP_TO_EDGE = 2,
     CLAMP_TO_BORDER = 3,
     MIRROR_CLAMP_TO_EDGE = 4,
+    _,
 
     const Self = @This();
     pub const MIRROR_CLAMP_TO_EDGE_KHR = Self.MIRROR_CLAMP_TO_EDGE;
 };
 
-pub const BorderColor = extern enum {
+pub const BorderColor = extern enum(i32) {
     FLOAT_TRANSPARENT_BLACK = 0,
     INT_TRANSPARENT_BLACK = 1,
     FLOAT_OPAQUE_BLACK = 2,
     INT_OPAQUE_BLACK = 3,
     FLOAT_OPAQUE_WHITE = 4,
     INT_OPAQUE_WHITE = 5,
+    _,
 };
 
-pub const DescriptorType = extern enum {
+pub const DescriptorType = extern enum(i32) {
     SAMPLER = 0,
     COMBINED_IMAGE_SAMPLER = 1,
     SAMPLED_IMAGE = 2,
@@ -1242,43 +1299,50 @@ pub const DescriptorType = extern enum {
     INPUT_ATTACHMENT = 10,
     INLINE_UNIFORM_BLOCK_EXT = 1000138000,
     ACCELERATION_STRUCTURE_NV = 1000165000,
+    _,
 };
 
-pub const AttachmentLoadOp = extern enum {
+pub const AttachmentLoadOp = extern enum(i32) {
     LOAD = 0,
     CLEAR = 1,
     DONT_CARE = 2,
+    _,
 };
 
-pub const AttachmentStoreOp = extern enum {
+pub const AttachmentStoreOp = extern enum(i32) {
     STORE = 0,
     DONT_CARE = 1,
+    _,
 };
 
-pub const PipelineBindPoint = extern enum {
+pub const PipelineBindPoint = extern enum(i32) {
     GRAPHICS = 0,
     COMPUTE = 1,
     RAY_TRACING_NV = 1000165000,
+    _,
 };
 
-pub const CommandBufferLevel = extern enum {
+pub const CommandBufferLevel = extern enum(i32) {
     PRIMARY = 0,
     SECONDARY = 1,
+    _,
 };
 
-pub const IndexType = extern enum {
+pub const IndexType = extern enum(i32) {
     UINT16 = 0,
     UINT32 = 1,
     NONE_NV = 1000165000,
     UINT8_EXT = 1000265000,
+    _,
 };
 
-pub const SubpassContents = extern enum {
+pub const SubpassContents = extern enum(i32) {
     INLINE = 0,
     SECONDARY_COMMAND_BUFFERS = 1,
+    _,
 };
 
-pub const ObjectType = extern enum {
+pub const ObjectType = extern enum(i32) {
     UNKNOWN = 0,
     INSTANCE = 1,
     PHYSICAL_DEVICE = 2,
@@ -1318,528 +1382,1620 @@ pub const ObjectType = extern enum {
     VALIDATION_CACHE_EXT = 1000160000,
     ACCELERATION_STRUCTURE_NV = 1000165000,
     PERFORMANCE_CONFIGURATION_INTEL = 1000210000,
+    _,
 
     const Self = @This();
     pub const DESCRIPTOR_UPDATE_TEMPLATE_KHR = Self.DESCRIPTOR_UPDATE_TEMPLATE;
     pub const SAMPLER_YCBCR_CONVERSION_KHR = Self.SAMPLER_YCBCR_CONVERSION;
 };
 
-pub const VendorId = extern enum {
+pub const VendorId = extern enum(i32) {
     VIV = 0x10001,
     VSI = 0x10002,
     KAZAN = 0x10003,
+    _,
 };
 
-pub const InstanceCreateFlags = Flags;
-
-pub const FormatFeatureFlags = Flags;
-pub const FormatFeatureFlagBits = struct {
-    pub const SAMPLED_IMAGE_BIT: FormatFeatureFlags = 0x00000001;
-    pub const STORAGE_IMAGE_BIT: FormatFeatureFlags = 0x00000002;
-    pub const STORAGE_IMAGE_ATOMIC_BIT: FormatFeatureFlags = 0x00000004;
-    pub const UNIFORM_TEXEL_BUFFER_BIT: FormatFeatureFlags = 0x00000008;
-    pub const STORAGE_TEXEL_BUFFER_BIT: FormatFeatureFlags = 0x00000010;
-    pub const STORAGE_TEXEL_BUFFER_ATOMIC_BIT: FormatFeatureFlags = 0x00000020;
-    pub const VERTEX_BUFFER_BIT: FormatFeatureFlags = 0x00000040;
-    pub const COLOR_ATTACHMENT_BIT: FormatFeatureFlags = 0x00000080;
-    pub const COLOR_ATTACHMENT_BLEND_BIT: FormatFeatureFlags = 0x00000100;
-    pub const DEPTH_STENCIL_ATTACHMENT_BIT: FormatFeatureFlags = 0x00000200;
-    pub const BLIT_SRC_BIT: FormatFeatureFlags = 0x00000400;
-    pub const BLIT_DST_BIT: FormatFeatureFlags = 0x00000800;
-    pub const SAMPLED_IMAGE_FILTER_LINEAR_BIT: FormatFeatureFlags = 0x00001000;
-    pub const TRANSFER_SRC_BIT: FormatFeatureFlags = 0x00004000;
-    pub const TRANSFER_DST_BIT: FormatFeatureFlags = 0x00008000;
-    pub const MIDPOINT_CHROMA_SAMPLES_BIT: FormatFeatureFlags = 0x00020000;
-    pub const SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT: FormatFeatureFlags = 0x00040000;
-    pub const SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT: FormatFeatureFlags = 0x00080000;
-    pub const SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT: FormatFeatureFlags = 0x00100000;
-    pub const SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT: FormatFeatureFlags = 0x00200000;
-    pub const DISJOINT_BIT: FormatFeatureFlags = 0x00400000;
-    pub const COSITED_CHROMA_SAMPLES_BIT: FormatFeatureFlags = 0x00800000;
-    pub const SAMPLED_IMAGE_FILTER_MINMAX_BIT: FormatFeatureFlags = 0x00010000;
-    pub const SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG: FormatFeatureFlags = 0x00002000;
-    pub const RESERVED_27_BIT_KHR: FormatFeatureFlags = 0x08000000;
-    pub const RESERVED_28_BIT_KHR: FormatFeatureFlags = 0x10000000;
-    pub const RESERVED_25_BIT_KHR: FormatFeatureFlags = 0x02000000;
-    pub const RESERVED_26_BIT_KHR: FormatFeatureFlags = 0x04000000;
-    pub const RESERVED_29_BIT_NV: FormatFeatureFlags = 0x20000000;
-    pub const FRAGMENT_DENSITY_MAP_BIT_EXT: FormatFeatureFlags = 0x01000000;
-
-    pub const TRANSFER_SRC_BIT_KHR = TRANSFER_SRC_BIT;
-    pub const TRANSFER_DST_BIT_KHR = TRANSFER_DST_BIT;
-    pub const SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT = SAMPLED_IMAGE_FILTER_MINMAX_BIT;
-    pub const MIDPOINT_CHROMA_SAMPLES_BIT_KHR = MIDPOINT_CHROMA_SAMPLES_BIT;
-    pub const SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT_KHR = SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT;
-    pub const SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT_KHR = SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT;
-    pub const SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT_KHR = SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT;
-    pub const SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT_KHR = SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT;
-    pub const DISJOINT_BIT_KHR = DISJOINT_BIT;
-    pub const COSITED_CHROMA_SAMPLES_BIT_KHR = COSITED_CHROMA_SAMPLES_BIT;
-    pub const SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT = SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG;
+pub const InstanceCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const ImageUsageFlags = Flags;
-pub const ImageUsageFlagBits = struct {
-    pub const TRANSFER_SRC_BIT: ImageUsageFlags = 0x00000001;
-    pub const TRANSFER_DST_BIT: ImageUsageFlags = 0x00000002;
-    pub const SAMPLED_BIT: ImageUsageFlags = 0x00000004;
-    pub const STORAGE_BIT: ImageUsageFlags = 0x00000008;
-    pub const COLOR_ATTACHMENT_BIT: ImageUsageFlags = 0x00000010;
-    pub const DEPTH_STENCIL_ATTACHMENT_BIT: ImageUsageFlags = 0x00000020;
-    pub const TRANSIENT_ATTACHMENT_BIT: ImageUsageFlags = 0x00000040;
-    pub const INPUT_ATTACHMENT_BIT: ImageUsageFlags = 0x00000080;
-    pub const RESERVED_13_BIT_KHR: ImageUsageFlags = 0x00002000;
-    pub const RESERVED_14_BIT_KHR: ImageUsageFlags = 0x00004000;
-    pub const RESERVED_15_BIT_KHR: ImageUsageFlags = 0x00008000;
-    pub const RESERVED_10_BIT_KHR: ImageUsageFlags = 0x00000400;
-    pub const RESERVED_11_BIT_KHR: ImageUsageFlags = 0x00000800;
-    pub const RESERVED_12_BIT_KHR: ImageUsageFlags = 0x00001000;
-    pub const SHADING_RATE_IMAGE_BIT_NV: ImageUsageFlags = 0x00000100;
-    pub const RESERVED_16_BIT_QCOM: ImageUsageFlags = 0x00010000;
-    pub const RESERVED_17_BIT_QCOM: ImageUsageFlags = 0x00020000;
-    pub const FRAGMENT_DENSITY_MAP_BIT_EXT: ImageUsageFlags = 0x00000200;
+pub const FormatFeatureFlags = packed struct {
+    sampledImage: bool = false,
+    storageImage: bool = false,
+    storageImageAtomic: bool = false,
+    uniformTexelBuffer: bool = false,
+    storageTexelBuffer: bool = false,
+    storageTexelBufferAtomic: bool = false,
+    vertexBuffer: bool = false,
+    colorAttachment: bool = false,
+    colorAttachmentBlend: bool = false,
+    depthStencilAttachment: bool = false,
+    blitSrc: bool = false,
+    blitDst: bool = false,
+    sampledImageFilterLinear: bool = false,
+    sampledImageFilterCubicIMG: bool = false,
+    transferSrc: bool = false,
+    transferDst: bool = false,
+    sampledImageFilterMinmax: bool = false,
+    midpointChromaSamples: bool = false,
+    sampledImageYcbcrConversionLinearFilter: bool = false,
+    sampledImageYcbcrConversionSeparateReconstructionFilter: bool = false,
+    sampledImageYcbcrConversionChromaReconstructionExplicit: bool = false,
+    sampledImageYcbcrConversionChromaReconstructionExplicitForceable: bool = false,
+    disjoint: bool = false,
+    cositedChromaSamples: bool = false,
+    fragmentDensityMapEXT: bool = false,
+    reserved25KHR: bool = false,
+    reserved26KHR: bool = false,
+    reserved27KHR: bool = false,
+    reserved28KHR: bool = false,
+    reserved29NV: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const transferSrcKHR = Self{ .transferSrc = true };
+    pub const transferDstKHR = Self{ .transferDst = true };
+    pub const sampledImageFilterMinmaxEXT = Self{ .sampledImageFilterMinmax = true };
+    pub const midpointChromaSamplesKHR = Self{ .midpointChromaSamples = true };
+    pub const sampledImageYcbcrConversionLinearFilterKHR = Self{ .sampledImageYcbcrConversionLinearFilter = true };
+    pub const sampledImageYcbcrConversionSeparateReconstructionFilterKHR = Self{ .sampledImageYcbcrConversionSeparateReconstructionFilter = true };
+    pub const sampledImageYcbcrConversionChromaReconstructionExplicitKHR = Self{ .sampledImageYcbcrConversionChromaReconstructionExplicit = true };
+    pub const sampledImageYcbcrConversionChromaReconstructionExplicitForceableKHR = Self{ .sampledImageYcbcrConversionChromaReconstructionExplicitForceable = true };
+    pub const disjointKHR = Self{ .disjoint = true };
+    pub const cositedChromaSamplesKHR = Self{ .cositedChromaSamples = true };
+    pub const sampledImageFilterCubicEXT = Self{ .sampledImageFilterCubicIMG = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const ImageCreateFlags = Flags;
-pub const ImageCreateFlagBits = struct {
-    pub const SPARSE_BINDING_BIT: ImageCreateFlags = 0x00000001;
-    pub const SPARSE_RESIDENCY_BIT: ImageCreateFlags = 0x00000002;
-    pub const SPARSE_ALIASED_BIT: ImageCreateFlags = 0x00000004;
-    pub const MUTABLE_FORMAT_BIT: ImageCreateFlags = 0x00000008;
-    pub const CUBE_COMPATIBLE_BIT: ImageCreateFlags = 0x00000010;
-    pub const ALIAS_BIT: ImageCreateFlags = 0x00000400;
-    pub const SPLIT_INSTANCE_BIND_REGIONS_BIT: ImageCreateFlags = 0x00000040;
-    pub const T_2D_ARRAY_COMPATIBLE_BIT: ImageCreateFlags = 0x00000020;
-    pub const BLOCK_TEXEL_VIEW_COMPATIBLE_BIT: ImageCreateFlags = 0x00000080;
-    pub const EXTENDED_USAGE_BIT: ImageCreateFlags = 0x00000100;
-    pub const PROTECTED_BIT: ImageCreateFlags = 0x00000800;
-    pub const DISJOINT_BIT: ImageCreateFlags = 0x00000200;
-    pub const CORNER_SAMPLED_BIT_NV: ImageCreateFlags = 0x00002000;
-    pub const SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT: ImageCreateFlags = 0x00001000;
-    pub const SUBSAMPLED_BIT_EXT: ImageCreateFlags = 0x00004000;
+pub const ImageUsageFlags = packed struct {
+    transferSrc: bool = false,
+    transferDst: bool = false,
+    sampled: bool = false,
+    storage: bool = false,
+    colorAttachment: bool = false,
+    depthStencilAttachment: bool = false,
+    transientAttachment: bool = false,
+    inputAttachment: bool = false,
+    shadingRateImageNV: bool = false,
+    fragmentDensityMapEXT: bool = false,
+    reserved10KHR: bool = false,
+    reserved11KHR: bool = false,
+    reserved12KHR: bool = false,
+    reserved13KHR: bool = false,
+    reserved14KHR: bool = false,
+    reserved15KHR: bool = false,
+    reserved16QCOM: bool = false,
+    reserved17QCOM: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR = SPLIT_INSTANCE_BIND_REGIONS_BIT;
-    pub const T_2D_ARRAY_COMPATIBLE_BIT_KHR = T_2D_ARRAY_COMPATIBLE_BIT;
-    pub const BLOCK_TEXEL_VIEW_COMPATIBLE_BIT_KHR = BLOCK_TEXEL_VIEW_COMPATIBLE_BIT;
-    pub const EXTENDED_USAGE_BIT_KHR = EXTENDED_USAGE_BIT;
-    pub const DISJOINT_BIT_KHR = DISJOINT_BIT;
-    pub const ALIAS_BIT_KHR = ALIAS_BIT;
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const SampleCountFlags = Flags;
-pub const SampleCountFlagBits = struct {
-    pub const T_1_BIT: SampleCountFlags = 0x00000001;
-    pub const T_2_BIT: SampleCountFlags = 0x00000002;
-    pub const T_4_BIT: SampleCountFlags = 0x00000004;
-    pub const T_8_BIT: SampleCountFlags = 0x00000008;
-    pub const T_16_BIT: SampleCountFlags = 0x00000010;
-    pub const T_32_BIT: SampleCountFlags = 0x00000020;
-    pub const T_64_BIT: SampleCountFlags = 0x00000040;
+pub const ImageCreateFlags = packed struct {
+    sparseBinding: bool = false,
+    sparseResidency: bool = false,
+    sparseAliased: bool = false,
+    mutableFormat: bool = false,
+    cubeCompatible: bool = false,
+    t2DArrayCompatible: bool = false,
+    splitInstanceBindRegions: bool = false,
+    blockTexelViewCompatible: bool = false,
+    extendedUsage: bool = false,
+    disjoint: bool = false,
+    alias: bool = false,
+    protected: bool = false,
+    sampleLocationsCompatibleDepthEXT: bool = false,
+    cornerSampledNV: bool = false,
+    subsampledEXT: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const splitInstanceBindRegionsKHR = Self{ .splitInstanceBindRegions = true };
+    pub const t2DArrayCompatibleKHR = Self{ .t2DArrayCompatible = true };
+    pub const blockTexelViewCompatibleKHR = Self{ .blockTexelViewCompatible = true };
+    pub const extendedUsageKHR = Self{ .extendedUsage = true };
+    pub const disjointKHR = Self{ .disjoint = true };
+    pub const aliasKHR = Self{ .alias = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const QueueFlags = Flags;
-pub const QueueFlagBits = struct {
-    pub const GRAPHICS_BIT: QueueFlags = 0x00000001;
-    pub const COMPUTE_BIT: QueueFlags = 0x00000002;
-    pub const TRANSFER_BIT: QueueFlags = 0x00000004;
-    pub const SPARSE_BINDING_BIT: QueueFlags = 0x00000008;
-    pub const PROTECTED_BIT: QueueFlags = 0x00000010;
-    pub const RESERVED_6_BIT_KHR: QueueFlags = 0x00000040;
-    pub const RESERVED_5_BIT_KHR: QueueFlags = 0x00000020;
+pub const SampleCountFlags = packed struct {
+    t1: bool = false,
+    t2: bool = false,
+    t4: bool = false,
+    t8: bool = false,
+    t16: bool = false,
+    t32: bool = false,
+    t64: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const MemoryPropertyFlags = Flags;
-pub const MemoryPropertyFlagBits = struct {
-    pub const DEVICE_LOCAL_BIT: MemoryPropertyFlags = 0x00000001;
-    pub const HOST_VISIBLE_BIT: MemoryPropertyFlags = 0x00000002;
-    pub const HOST_COHERENT_BIT: MemoryPropertyFlags = 0x00000004;
-    pub const HOST_CACHED_BIT: MemoryPropertyFlags = 0x00000008;
-    pub const LAZILY_ALLOCATED_BIT: MemoryPropertyFlags = 0x00000010;
-    pub const PROTECTED_BIT: MemoryPropertyFlags = 0x00000020;
-    pub const DEVICE_COHERENT_BIT_AMD: MemoryPropertyFlags = 0x00000040;
-    pub const DEVICE_UNCACHED_BIT_AMD: MemoryPropertyFlags = 0x00000080;
+pub const QueueFlags = packed struct {
+    graphics: bool = false,
+    compute: bool = false,
+    transfer: bool = false,
+    sparseBinding: bool = false,
+    protected: bool = false,
+    reserved5KHR: bool = false,
+    reserved6KHR: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const MemoryHeapFlags = Flags;
-pub const MemoryHeapFlagBits = struct {
-    pub const DEVICE_LOCAL_BIT: MemoryHeapFlags = 0x00000001;
-    pub const MULTI_INSTANCE_BIT: MemoryHeapFlags = 0x00000002;
-    pub const RESERVED_2_BIT_KHR: MemoryHeapFlags = 0x00000004;
+pub const MemoryPropertyFlags = packed struct {
+    deviceLocal: bool = false,
+    hostVisible: bool = false,
+    hostCoherent: bool = false,
+    hostCached: bool = false,
+    lazilyAllocated: bool = false,
+    protected: bool = false,
+    deviceCoherentAMD: bool = false,
+    deviceUncachedAMD: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const MULTI_INSTANCE_BIT_KHR = MULTI_INSTANCE_BIT;
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const DeviceCreateFlags = Flags;
+pub const MemoryHeapFlags = packed struct {
+    deviceLocal: bool = false,
+    multiInstance: bool = false,
+    reserved2KHR: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-pub const DeviceQueueCreateFlags = Flags;
-pub const DeviceQueueCreateFlagBits = struct {
-    pub const PROTECTED_BIT: DeviceQueueCreateFlags = 0x00000001;
+    const Self = @This();
+    pub const multiInstanceKHR = Self{ .multiInstance = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const PipelineStageFlags = Flags;
-pub const PipelineStageFlagBits = struct {
-    pub const TOP_OF_PIPE_BIT: PipelineStageFlags = 0x00000001;
-    pub const DRAW_INDIRECT_BIT: PipelineStageFlags = 0x00000002;
-    pub const VERTEX_INPUT_BIT: PipelineStageFlags = 0x00000004;
-    pub const VERTEX_SHADER_BIT: PipelineStageFlags = 0x00000008;
-    pub const TESSELLATION_CONTROL_SHADER_BIT: PipelineStageFlags = 0x00000010;
-    pub const TESSELLATION_EVALUATION_SHADER_BIT: PipelineStageFlags = 0x00000020;
-    pub const GEOMETRY_SHADER_BIT: PipelineStageFlags = 0x00000040;
-    pub const FRAGMENT_SHADER_BIT: PipelineStageFlags = 0x00000080;
-    pub const EARLY_FRAGMENT_TESTS_BIT: PipelineStageFlags = 0x00000100;
-    pub const LATE_FRAGMENT_TESTS_BIT: PipelineStageFlags = 0x00000200;
-    pub const COLOR_ATTACHMENT_OUTPUT_BIT: PipelineStageFlags = 0x00000400;
-    pub const COMPUTE_SHADER_BIT: PipelineStageFlags = 0x00000800;
-    pub const TRANSFER_BIT: PipelineStageFlags = 0x00001000;
-    pub const BOTTOM_OF_PIPE_BIT: PipelineStageFlags = 0x00002000;
-    pub const HOST_BIT: PipelineStageFlags = 0x00004000;
-    pub const ALL_GRAPHICS_BIT: PipelineStageFlags = 0x00008000;
-    pub const ALL_COMMANDS_BIT: PipelineStageFlags = 0x00010000;
-    pub const RESERVED_27_BIT_KHR: PipelineStageFlags = 0x08000000;
-    pub const RESERVED_26_BIT_KHR: PipelineStageFlags = 0x04000000;
-    pub const TRANSFORM_FEEDBACK_BIT_EXT: PipelineStageFlags = 0x01000000;
-    pub const CONDITIONAL_RENDERING_BIT_EXT: PipelineStageFlags = 0x00040000;
-    pub const COMMAND_PROCESS_BIT_NVX: PipelineStageFlags = 0x00020000;
-    pub const SHADING_RATE_IMAGE_BIT_NV: PipelineStageFlags = 0x00400000;
-    pub const RAY_TRACING_SHADER_BIT_NV: PipelineStageFlags = 0x00200000;
-    pub const ACCELERATION_STRUCTURE_BUILD_BIT_NV: PipelineStageFlags = 0x02000000;
-    pub const TASK_SHADER_BIT_NV: PipelineStageFlags = 0x00080000;
-    pub const MESH_SHADER_BIT_NV: PipelineStageFlags = 0x00100000;
-    pub const FRAGMENT_DENSITY_PROCESS_BIT_EXT: PipelineStageFlags = 0x00800000;
+pub const DeviceCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const MemoryMapFlags = Flags;
+pub const DeviceQueueCreateFlags = packed struct {
+    protected: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-pub const ImageAspectFlags = Flags;
-pub const ImageAspectFlagBits = struct {
-    pub const COLOR_BIT: ImageAspectFlags = 0x00000001;
-    pub const DEPTH_BIT: ImageAspectFlags = 0x00000002;
-    pub const STENCIL_BIT: ImageAspectFlags = 0x00000004;
-    pub const METADATA_BIT: ImageAspectFlags = 0x00000008;
-    pub const PLANE_0_BIT: ImageAspectFlags = 0x00000010;
-    pub const PLANE_1_BIT: ImageAspectFlags = 0x00000020;
-    pub const PLANE_2_BIT: ImageAspectFlags = 0x00000040;
-    pub const MEMORY_PLANE_0_BIT_EXT: ImageAspectFlags = 0x00000080;
-    pub const MEMORY_PLANE_1_BIT_EXT: ImageAspectFlags = 0x00000100;
-    pub const MEMORY_PLANE_2_BIT_EXT: ImageAspectFlags = 0x00000200;
-    pub const MEMORY_PLANE_3_BIT_EXT: ImageAspectFlags = 0x00000400;
-
-    pub const PLANE_0_BIT_KHR = PLANE_0_BIT;
-    pub const PLANE_1_BIT_KHR = PLANE_1_BIT;
-    pub const PLANE_2_BIT_KHR = PLANE_2_BIT;
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const SparseImageFormatFlags = Flags;
-pub const SparseImageFormatFlagBits = struct {
-    pub const SINGLE_MIPTAIL_BIT: SparseImageFormatFlags = 0x00000001;
-    pub const ALIGNED_MIP_SIZE_BIT: SparseImageFormatFlags = 0x00000002;
-    pub const NONSTANDARD_BLOCK_SIZE_BIT: SparseImageFormatFlags = 0x00000004;
+pub const PipelineStageFlags = packed struct {
+    topOfPipe: bool = false,
+    drawIndirect: bool = false,
+    vertexInput: bool = false,
+    vertexShader: bool = false,
+    tessellationControlShader: bool = false,
+    tessellationEvaluationShader: bool = false,
+    geometryShader: bool = false,
+    fragmentShader: bool = false,
+    earlyFragmentTests: bool = false,
+    lateFragmentTests: bool = false,
+    colorAttachmentOutput: bool = false,
+    computeShader: bool = false,
+    transfer: bool = false,
+    bottomOfPipe: bool = false,
+    host: bool = false,
+    allGraphics: bool = false,
+    allCommands: bool = false,
+    commandProcessNVX: bool = false,
+    conditionalRenderingEXT: bool = false,
+    taskShaderNV: bool = false,
+    meshShaderNV: bool = false,
+    rayTracingShaderNV: bool = false,
+    shadingRateImageNV: bool = false,
+    fragmentDensityProcessEXT: bool = false,
+    transformFeedbackEXT: bool = false,
+    accelerationStructureBuildNV: bool = false,
+    reserved26KHR: bool = false,
+    reserved27KHR: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const SparseMemoryBindFlags = Flags;
-pub const SparseMemoryBindFlagBits = struct {
-    pub const METADATA_BIT: SparseMemoryBindFlags = 0x00000001;
+pub const MemoryMapFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const FenceCreateFlags = Flags;
-pub const FenceCreateFlagBits = struct {
-    pub const SIGNALED_BIT: FenceCreateFlags = 0x00000001;
+pub const ImageAspectFlags = packed struct {
+    color: bool = false,
+    depth: bool = false,
+    stencil: bool = false,
+    metadata: bool = false,
+    plane0: bool = false,
+    plane1: bool = false,
+    plane2: bool = false,
+    memoryPlane0EXT: bool = false,
+    memoryPlane1EXT: bool = false,
+    memoryPlane2EXT: bool = false,
+    memoryPlane3EXT: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const plane0KHR = Self{ .plane0 = true };
+    pub const plane1KHR = Self{ .plane1 = true };
+    pub const plane2KHR = Self{ .plane2 = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const SemaphoreCreateFlags = Flags;
-pub const EventCreateFlags = Flags;
-pub const QueryPoolCreateFlags = Flags;
+pub const SparseImageFormatFlags = packed struct {
+    singleMiptail: bool = false,
+    alignedMipSize: bool = false,
+    nonstandardBlockSize: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-pub const QueryPipelineStatisticFlags = Flags;
-pub const QueryPipelineStatisticFlagBits = struct {
-    pub const INPUT_ASSEMBLY_VERTICES_BIT: QueryPipelineStatisticFlags = 0x00000001;
-    pub const INPUT_ASSEMBLY_PRIMITIVES_BIT: QueryPipelineStatisticFlags = 0x00000002;
-    pub const VERTEX_SHADER_INVOCATIONS_BIT: QueryPipelineStatisticFlags = 0x00000004;
-    pub const GEOMETRY_SHADER_INVOCATIONS_BIT: QueryPipelineStatisticFlags = 0x00000008;
-    pub const GEOMETRY_SHADER_PRIMITIVES_BIT: QueryPipelineStatisticFlags = 0x00000010;
-    pub const CLIPPING_INVOCATIONS_BIT: QueryPipelineStatisticFlags = 0x00000020;
-    pub const CLIPPING_PRIMITIVES_BIT: QueryPipelineStatisticFlags = 0x00000040;
-    pub const FRAGMENT_SHADER_INVOCATIONS_BIT: QueryPipelineStatisticFlags = 0x00000080;
-    pub const TESSELLATION_CONTROL_SHADER_PATCHES_BIT: QueryPipelineStatisticFlags = 0x00000100;
-    pub const TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT: QueryPipelineStatisticFlags = 0x00000200;
-    pub const COMPUTE_SHADER_INVOCATIONS_BIT: QueryPipelineStatisticFlags = 0x00000400;
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const QueryResultFlags = Flags;
-pub const QueryResultFlagBits = struct {
-    pub const T_64_BIT: QueryResultFlags = 0x00000001;
-    pub const WAIT_BIT: QueryResultFlags = 0x00000002;
-    pub const WITH_AVAILABILITY_BIT: QueryResultFlags = 0x00000004;
-    pub const PARTIAL_BIT: QueryResultFlags = 0x00000008;
+pub const SparseMemoryBindFlags = packed struct {
+    metadata: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const BufferCreateFlags = Flags;
-pub const BufferCreateFlagBits = struct {
-    pub const SPARSE_BINDING_BIT: BufferCreateFlags = 0x00000001;
-    pub const SPARSE_RESIDENCY_BIT: BufferCreateFlags = 0x00000002;
-    pub const SPARSE_ALIASED_BIT: BufferCreateFlags = 0x00000004;
-    pub const PROTECTED_BIT: BufferCreateFlags = 0x00000008;
-    pub const DEVICE_ADDRESS_CAPTURE_REPLAY_BIT: BufferCreateFlags = 0x00000010;
+pub const FenceCreateFlags = packed struct {
+    signaled: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT = DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
-    pub const DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR = DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const BufferUsageFlags = Flags;
-pub const BufferUsageFlagBits = struct {
-    pub const TRANSFER_SRC_BIT: BufferUsageFlags = 0x00000001;
-    pub const TRANSFER_DST_BIT: BufferUsageFlags = 0x00000002;
-    pub const UNIFORM_TEXEL_BUFFER_BIT: BufferUsageFlags = 0x00000004;
-    pub const STORAGE_TEXEL_BUFFER_BIT: BufferUsageFlags = 0x00000008;
-    pub const UNIFORM_BUFFER_BIT: BufferUsageFlags = 0x00000010;
-    pub const STORAGE_BUFFER_BIT: BufferUsageFlags = 0x00000020;
-    pub const INDEX_BUFFER_BIT: BufferUsageFlags = 0x00000040;
-    pub const VERTEX_BUFFER_BIT: BufferUsageFlags = 0x00000080;
-    pub const INDIRECT_BUFFER_BIT: BufferUsageFlags = 0x00000100;
-    pub const SHADER_DEVICE_ADDRESS_BIT: BufferUsageFlags = 0x00020000;
-    pub const RESERVED_15_BIT_KHR: BufferUsageFlags = 0x00008000;
-    pub const RESERVED_16_BIT_KHR: BufferUsageFlags = 0x00010000;
-    pub const RESERVED_13_BIT_KHR: BufferUsageFlags = 0x00002000;
-    pub const RESERVED_14_BIT_KHR: BufferUsageFlags = 0x00004000;
-    pub const TRANSFORM_FEEDBACK_BUFFER_BIT_EXT: BufferUsageFlags = 0x00000800;
-    pub const TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT: BufferUsageFlags = 0x00001000;
-    pub const CONDITIONAL_RENDERING_BIT_EXT: BufferUsageFlags = 0x00000200;
-    pub const RAY_TRACING_BIT_NV: BufferUsageFlags = 0x00000400;
-    pub const RESERVED_18_BIT_QCOM: BufferUsageFlags = 0x00040000;
-
-    pub const SHADER_DEVICE_ADDRESS_BIT_EXT = SHADER_DEVICE_ADDRESS_BIT;
-    pub const SHADER_DEVICE_ADDRESS_BIT_KHR = SHADER_DEVICE_ADDRESS_BIT;
+pub const SemaphoreCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const BufferViewCreateFlags = Flags;
-
-pub const ImageViewCreateFlags = Flags;
-pub const ImageViewCreateFlagBits = struct {
-    pub const FRAGMENT_DENSITY_MAP_DYNAMIC_BIT_EXT: ImageViewCreateFlags = 0x00000001;
+pub const EventCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const ShaderModuleCreateFlags = Flags;
-pub const ShaderModuleCreateFlagBits = struct {
-    pub const RESERVED_0_BIT_NV: ShaderModuleCreateFlags = 0x00000001;
+pub const QueryPoolCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const PipelineCacheCreateFlags = Flags;
+pub const QueryPipelineStatisticFlags = packed struct {
+    inputAssemblyVertices: bool = false,
+    inputAssemblyPrimitives: bool = false,
+    vertexShaderInvocations: bool = false,
+    geometryShaderInvocations: bool = false,
+    geometryShaderPrimitives: bool = false,
+    clippingInvocations: bool = false,
+    clippingPrimitives: bool = false,
+    fragmentShaderInvocations: bool = false,
+    tessellationControlShaderPatches: bool = false,
+    tessellationEvaluationShaderInvocations: bool = false,
+    computeShaderInvocations: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-pub const PipelineCreateFlags = Flags;
-pub const PipelineCreateFlagBits = struct {
-    pub const DISABLE_OPTIMIZATION_BIT: PipelineCreateFlags = 0x00000001;
-    pub const ALLOW_DERIVATIVES_BIT: PipelineCreateFlags = 0x00000002;
-    pub const DERIVATIVE_BIT: PipelineCreateFlags = 0x00000004;
-    pub const VIEW_INDEX_FROM_DEVICE_INDEX_BIT: PipelineCreateFlags = 0x00000008;
-    pub const DISPATCH_BASE_BIT: PipelineCreateFlags = 0x00000010;
-    pub const EXTENSION_151_BIT0_NV: PipelineCreateFlags = 0x00000800;
-    pub const EXTENSION_151_BIT1_NV: PipelineCreateFlags = 0x00004000;
-    pub const EXTENSION_151_BIT2_NV: PipelineCreateFlags = 0x00008000;
-    pub const EXTENSION_151_BIT3_NV: PipelineCreateFlags = 0x00010000;
-    pub const EXTENSION_151_BIT4_NV: PipelineCreateFlags = 0x00020000;
-    pub const DEFER_COMPILE_BIT_NV: PipelineCreateFlags = 0x00000020;
-    pub const CAPTURE_STATISTICS_BIT_KHR: PipelineCreateFlags = 0x00000040;
-    pub const CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR: PipelineCreateFlags = 0x00000080;
-    pub const EXTENSION_291_BIT0_NV: PipelineCreateFlags = 0x00001000;
-    pub const EXTENSION_291_BIT1_NV: PipelineCreateFlags = 0x00002000;
-    pub const RESERVED_8_BIT_EXT: PipelineCreateFlags = 0x00000100;
-    pub const RESERVED_9_BIT_EXT: PipelineCreateFlags = 0x00000200;
-    pub const RESERVED_10_BIT_EXT: PipelineCreateFlags = 0x00000400;
-
-    pub const DISPATCH_BASE = DISPATCH_BASE_BIT;
-    pub const VIEW_INDEX_FROM_DEVICE_INDEX_BIT_KHR = VIEW_INDEX_FROM_DEVICE_INDEX_BIT;
-    pub const DISPATCH_BASE_KHR = DISPATCH_BASE;
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const PipelineShaderStageCreateFlags = Flags;
-pub const PipelineShaderStageCreateFlagBits = struct {
-    pub const RESERVED_2_BIT_NV: PipelineShaderStageCreateFlags = 0x00000004;
-    pub const ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT: PipelineShaderStageCreateFlags = 0x00000001;
-    pub const REQUIRE_FULL_SUBGROUPS_BIT_EXT: PipelineShaderStageCreateFlags = 0x00000002;
-    pub const RESERVED_3_BIT_KHR: PipelineShaderStageCreateFlags = 0x00000008;
+pub const QueryResultFlags = packed struct {
+    t64: bool = false,
+    wait: bool = false,
+    withAvailability: bool = false,
+    partial: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const ShaderStageFlags = Flags;
-pub const ShaderStageFlagBits = struct {
-    pub const VERTEX_BIT: ShaderStageFlags = 0x00000001;
-    pub const TESSELLATION_CONTROL_BIT: ShaderStageFlags = 0x00000002;
-    pub const TESSELLATION_EVALUATION_BIT: ShaderStageFlags = 0x00000004;
-    pub const GEOMETRY_BIT: ShaderStageFlags = 0x00000008;
-    pub const FRAGMENT_BIT: ShaderStageFlags = 0x00000010;
-    pub const COMPUTE_BIT: ShaderStageFlags = 0x00000020;
-    pub const ALL_GRAPHICS: ShaderStageFlags = 0x0000001F;
-    pub const ALL: ShaderStageFlags = 0x7FFFFFFF;
-    pub const RAYGEN_BIT_NV: ShaderStageFlags = 0x00000100;
-    pub const ANY_HIT_BIT_NV: ShaderStageFlags = 0x00000200;
-    pub const CLOSEST_HIT_BIT_NV: ShaderStageFlags = 0x00000400;
-    pub const MISS_BIT_NV: ShaderStageFlags = 0x00000800;
-    pub const INTERSECTION_BIT_NV: ShaderStageFlags = 0x00001000;
-    pub const CALLABLE_BIT_NV: ShaderStageFlags = 0x00002000;
-    pub const TASK_BIT_NV: ShaderStageFlags = 0x00000040;
-    pub const MESH_BIT_NV: ShaderStageFlags = 0x00000080;
+pub const BufferCreateFlags = packed struct {
+    sparseBinding: bool = false,
+    sparseResidency: bool = false,
+    sparseAliased: bool = false,
+    protected: bool = false,
+    deviceAddressCaptureReplay: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const deviceAddressCaptureReplayEXT = Self{ .deviceAddressCaptureReplay = true };
+    pub const deviceAddressCaptureReplayKHR = Self{ .deviceAddressCaptureReplay = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const PipelineVertexInputStateCreateFlags = Flags;
-pub const PipelineInputAssemblyStateCreateFlags = Flags;
-pub const PipelineTessellationStateCreateFlags = Flags;
-pub const PipelineViewportStateCreateFlags = Flags;
-pub const PipelineRasterizationStateCreateFlags = Flags;
+pub const BufferUsageFlags = packed struct {
+    transferSrc: bool = false,
+    transferDst: bool = false,
+    uniformTexelBuffer: bool = false,
+    storageTexelBuffer: bool = false,
+    uniformBuffer: bool = false,
+    storageBuffer: bool = false,
+    indexBuffer: bool = false,
+    vertexBuffer: bool = false,
+    indirectBuffer: bool = false,
+    conditionalRenderingEXT: bool = false,
+    rayTracingNV: bool = false,
+    transformFeedbackBufferEXT: bool = false,
+    transformFeedbackCounterBufferEXT: bool = false,
+    reserved13KHR: bool = false,
+    reserved14KHR: bool = false,
+    reserved15KHR: bool = false,
+    reserved16KHR: bool = false,
+    shaderDeviceAddress: bool = false,
+    reserved18QCOM: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-pub const CullModeFlags = Flags;
-pub const CullModeFlagBits = struct {
-    pub const NONE: CullModeFlags = 0;
-    pub const FRONT_BIT: CullModeFlags = 0x00000001;
-    pub const BACK_BIT: CullModeFlags = 0x00000002;
-    pub const FRONT_AND_BACK: CullModeFlags = 0x00000003;
+    const Self = @This();
+    pub const shaderDeviceAddressEXT = Self{ .shaderDeviceAddress = true };
+    pub const shaderDeviceAddressKHR = Self{ .shaderDeviceAddress = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const PipelineMultisampleStateCreateFlags = Flags;
-pub const PipelineDepthStencilStateCreateFlags = Flags;
-pub const PipelineColorBlendStateCreateFlags = Flags;
-
-pub const ColorComponentFlags = Flags;
-pub const ColorComponentFlagBits = struct {
-    pub const R_BIT: ColorComponentFlags = 0x00000001;
-    pub const G_BIT: ColorComponentFlags = 0x00000002;
-    pub const B_BIT: ColorComponentFlags = 0x00000004;
-    pub const A_BIT: ColorComponentFlags = 0x00000008;
+pub const BufferViewCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const PipelineDynamicStateCreateFlags = Flags;
-pub const PipelineLayoutCreateFlags = Flags;
+pub const ImageViewCreateFlags = packed struct {
+    fragmentDensityMapDynamicEXT: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-pub const SamplerCreateFlags = Flags;
-pub const SamplerCreateFlagBits = struct {
-    pub const SUBSAMPLED_BIT_EXT: SamplerCreateFlags = 0x00000001;
-    pub const SUBSAMPLED_COARSE_RECONSTRUCTION_BIT_EXT: SamplerCreateFlags = 0x00000002;
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const DescriptorSetLayoutCreateFlags = Flags;
-pub const DescriptorSetLayoutCreateFlagBits = struct {
-    pub const UPDATE_AFTER_BIND_POOL_BIT: DescriptorSetLayoutCreateFlags = 0x00000002;
-    pub const PUSH_DESCRIPTOR_BIT_KHR: DescriptorSetLayoutCreateFlags = 0x00000001;
+pub const ShaderModuleCreateFlags = packed struct {
+    reserved0NV: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const UPDATE_AFTER_BIND_POOL_BIT_EXT = UPDATE_AFTER_BIND_POOL_BIT;
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const DescriptorPoolCreateFlags = Flags;
-pub const DescriptorPoolCreateFlagBits = struct {
-    pub const FREE_DESCRIPTOR_SET_BIT: DescriptorPoolCreateFlags = 0x00000001;
-    pub const UPDATE_AFTER_BIND_BIT: DescriptorPoolCreateFlags = 0x00000002;
-
-    pub const UPDATE_AFTER_BIND_BIT_EXT = UPDATE_AFTER_BIND_BIT;
+pub const PipelineCacheCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const DescriptorPoolResetFlags = Flags;
+pub const PipelineCreateFlags = packed struct {
+    disableOptimization: bool = false,
+    allowDerivatives: bool = false,
+    derivative: bool = false,
+    viewIndexFromDeviceIndex: bool = false,
+    dispatchBase: bool = false,
+    deferCompileNV: bool = false,
+    captureStatisticsKHR: bool = false,
+    captureInternalRepresentationsKHR: bool = false,
+    reserved8EXT: bool = false,
+    reserved9EXT: bool = false,
+    reserved10EXT: bool = false,
+    extension1510_NV: bool = false,
+    extension2910_NV: bool = false,
+    extension2911_NV: bool = false,
+    extension1511_NV: bool = false,
+    extension1512_NV: bool = false,
+    extension1513_NV: bool = false,
+    extension1514_NV: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-pub const FramebufferCreateFlags = Flags;
-pub const FramebufferCreateFlagBits = struct {
-    pub const IMAGELESS_BIT: FramebufferCreateFlags = 0x00000001;
+    const Self = @This();
+    pub const viewIndexFromDeviceIndexKHR = Self{ .viewIndexFromDeviceIndex = true };
+    pub const dispatchBaseKhr = Self{ .dispatchBase = true };
 
-    pub const IMAGELESS_BIT_KHR = IMAGELESS_BIT;
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const RenderPassCreateFlags = Flags;
-pub const RenderPassCreateFlagBits = struct {
-    pub const RESERVED_0_BIT_KHR: RenderPassCreateFlags = 0x00000001;
-    pub const RENDER_PASS_RESERVED_BIT_1_QCOM: RenderPassCreateFlags = 0x00000002;
+pub const PipelineShaderStageCreateFlags = packed struct {
+    allowVaryingSubgroupSizeEXT: bool = false,
+    requireFullSubgroupsEXT: bool = false,
+    reserved2NV: bool = false,
+    reserved3KHR: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const AttachmentDescriptionFlags = Flags;
-pub const AttachmentDescriptionFlagBits = struct {
-    pub const MAY_ALIAS_BIT: AttachmentDescriptionFlags = 0x00000001;
+pub const ShaderStageFlags = packed struct {
+    vertex: bool = false,
+    tessellationControl: bool = false,
+    tessellationEvaluation: bool = false,
+    geometry: bool = false,
+    fragment: bool = false,
+    compute: bool = false,
+    taskNV: bool = false,
+    meshNV: bool = false,
+    raygenNV: bool = false,
+    anyHitNV: bool = false,
+    closestHitNV: bool = false,
+    missNV: bool = false,
+    intersectionNV: bool = false,
+    callableNV: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub const allGraphics = fromInt(0x0000001F);
+    pub const all = fromInt(0x7FFFFFFF);
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const SubpassDescriptionFlags = Flags;
-pub const SubpassDescriptionFlagBits = struct {
-    pub const PER_VIEW_ATTRIBUTES_BIT_NVX: SubpassDescriptionFlags = 0x00000001;
-    pub const PER_VIEW_POSITION_X_ONLY_BIT_NVX: SubpassDescriptionFlags = 0x00000002;
-    pub const RESERVED_2_BIT_QCOM: SubpassDescriptionFlags = 0x00000004;
-    pub const RESERVED_3_BIT_QCOM: SubpassDescriptionFlags = 0x00000008;
+pub const PipelineVertexInputStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const AccessFlags = Flags;
-pub const AccessFlagBits = struct {
-    pub const INDIRECT_COMMAND_READ_BIT: AccessFlags = 0x00000001;
-    pub const INDEX_READ_BIT: AccessFlags = 0x00000002;
-    pub const VERTEX_ATTRIBUTE_READ_BIT: AccessFlags = 0x00000004;
-    pub const UNIFORM_READ_BIT: AccessFlags = 0x00000008;
-    pub const INPUT_ATTACHMENT_READ_BIT: AccessFlags = 0x00000010;
-    pub const SHADER_READ_BIT: AccessFlags = 0x00000020;
-    pub const SHADER_WRITE_BIT: AccessFlags = 0x00000040;
-    pub const COLOR_ATTACHMENT_READ_BIT: AccessFlags = 0x00000080;
-    pub const COLOR_ATTACHMENT_WRITE_BIT: AccessFlags = 0x00000100;
-    pub const DEPTH_STENCIL_ATTACHMENT_READ_BIT: AccessFlags = 0x00000200;
-    pub const DEPTH_STENCIL_ATTACHMENT_WRITE_BIT: AccessFlags = 0x00000400;
-    pub const TRANSFER_READ_BIT: AccessFlags = 0x00000800;
-    pub const TRANSFER_WRITE_BIT: AccessFlags = 0x00001000;
-    pub const HOST_READ_BIT: AccessFlags = 0x00002000;
-    pub const HOST_WRITE_BIT: AccessFlags = 0x00004000;
-    pub const MEMORY_READ_BIT: AccessFlags = 0x00008000;
-    pub const MEMORY_WRITE_BIT: AccessFlags = 0x00010000;
-    pub const RESERVED_30_BIT_KHR: AccessFlags = 0x40000000;
-    pub const RESERVED_31_BIT_KHR: AccessFlags = 0x80000000;
-    pub const RESERVED_28_BIT_KHR: AccessFlags = 0x10000000;
-    pub const RESERVED_29_BIT_KHR: AccessFlags = 0x20000000;
-    pub const TRANSFORM_FEEDBACK_WRITE_BIT_EXT: AccessFlags = 0x02000000;
-    pub const TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT: AccessFlags = 0x04000000;
-    pub const TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT: AccessFlags = 0x08000000;
-    pub const CONDITIONAL_RENDERING_READ_BIT_EXT: AccessFlags = 0x00100000;
-    pub const COMMAND_PROCESS_READ_BIT_NVX: AccessFlags = 0x00020000;
-    pub const COMMAND_PROCESS_WRITE_BIT_NVX: AccessFlags = 0x00040000;
-    pub const COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT: AccessFlags = 0x00080000;
-    pub const SHADING_RATE_IMAGE_READ_BIT_NV: AccessFlags = 0x00800000;
-    pub const ACCELERATION_STRUCTURE_READ_BIT_NV: AccessFlags = 0x00200000;
-    pub const ACCELERATION_STRUCTURE_WRITE_BIT_NV: AccessFlags = 0x00400000;
-    pub const FRAGMENT_DENSITY_MAP_READ_BIT_EXT: AccessFlags = 0x01000000;
+pub const PipelineInputAssemblyStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const DependencyFlags = Flags;
-pub const DependencyFlagBits = struct {
-    pub const BY_REGION_BIT: DependencyFlags = 0x00000001;
-    pub const DEVICE_GROUP_BIT: DependencyFlags = 0x00000004;
-    pub const VIEW_LOCAL_BIT: DependencyFlags = 0x00000002;
-
-    pub const VIEW_LOCAL_BIT_KHR = VIEW_LOCAL_BIT;
-    pub const DEVICE_GROUP_BIT_KHR = DEVICE_GROUP_BIT;
+pub const PipelineTessellationStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const CommandPoolCreateFlags = Flags;
-pub const CommandPoolCreateFlagBits = struct {
-    pub const TRANSIENT_BIT: CommandPoolCreateFlags = 0x00000001;
-    pub const RESET_COMMAND_BUFFER_BIT: CommandPoolCreateFlags = 0x00000002;
-    pub const PROTECTED_BIT: CommandPoolCreateFlags = 0x00000004;
+pub const PipelineViewportStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const CommandPoolResetFlags = Flags;
-pub const CommandPoolResetFlagBits = struct {
-    pub const RELEASE_RESOURCES_BIT: CommandPoolResetFlags = 0x00000001;
+pub const PipelineRasterizationStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const CommandBufferUsageFlags = Flags;
-pub const CommandBufferUsageFlagBits = struct {
-    pub const ONE_TIME_SUBMIT_BIT: CommandBufferUsageFlags = 0x00000001;
-    pub const RENDER_PASS_CONTINUE_BIT: CommandBufferUsageFlags = 0x00000002;
-    pub const SIMULTANEOUS_USE_BIT: CommandBufferUsageFlags = 0x00000004;
+pub const CullModeFlags = packed struct {
+    front: bool = false,
+    back: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub const none = fromInt(0);
+    pub const frontAndBack = fromInt(0x00000003);
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const QueryControlFlags = Flags;
-pub const QueryControlFlagBits = struct {
-    pub const PRECISE_BIT: QueryControlFlags = 0x00000001;
+pub const PipelineMultisampleStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const CommandBufferResetFlags = Flags;
-pub const CommandBufferResetFlagBits = struct {
-    pub const RELEASE_RESOURCES_BIT: CommandBufferResetFlags = 0x00000001;
+pub const PipelineDepthStencilStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const StencilFaceFlags = Flags;
-pub const StencilFaceFlagBits = struct {
-    pub const FRONT_BIT: StencilFaceFlags = 0x00000001;
-    pub const BACK_BIT: StencilFaceFlags = 0x00000002;
-    pub const FRONT_AND_BACK: StencilFaceFlags = 0x00000003;
+pub const PipelineColorBlendStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
-    pub const STENCIL_FRONT_AND_BACK = FRONT_AND_BACK;
+pub const ColorComponentFlags = packed struct {
+    r: bool = false,
+    g: bool = false,
+    b: bool = false,
+    a: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const PipelineDynamicStateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const PipelineLayoutCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const SamplerCreateFlags = packed struct {
+    subsampledEXT: bool = false,
+    subsampledCoarseReconstructionEXT: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const DescriptorSetLayoutCreateFlags = packed struct {
+    pushDescriptorKHR: bool = false,
+    updateAfterBindPool: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const updateAfterBindPoolEXT = Self{ .updateAfterBindPool = true };
+
+    pub usingnamespace FlagsMixin(Self);
+};
+
+pub const DescriptorPoolCreateFlags = packed struct {
+    freeDescriptorSet: bool = false,
+    updateAfterBind: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const updateAfterBindEXT = Self{ .updateAfterBind = true };
+
+    pub usingnamespace FlagsMixin(Self);
+};
+
+pub const DescriptorPoolResetFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const FramebufferCreateFlags = packed struct {
+    imageless: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const imagelessKHR = Self{ .imageless = true };
+
+    pub usingnamespace FlagsMixin(Self);
+};
+
+pub const RenderPassCreateFlags = packed struct {
+    reserved0KHR: bool = false,
+    renderPassReserved1_QCOM: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const AttachmentDescriptionFlags = packed struct {
+    mayAlias: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const SubpassDescriptionFlags = packed struct {
+    perViewAttributesNVX: bool = false,
+    perViewPositionXOnlyNVX: bool = false,
+    reserved2QCOM: bool = false,
+    reserved3QCOM: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const AccessFlags = packed struct {
+    indirectCommandRead: bool = false,
+    indexRead: bool = false,
+    vertexAttributeRead: bool = false,
+    uniformRead: bool = false,
+    inputAttachmentRead: bool = false,
+    shaderRead: bool = false,
+    shaderWrite: bool = false,
+    colorAttachmentRead: bool = false,
+    colorAttachmentWrite: bool = false,
+    depthStencilAttachmentRead: bool = false,
+    depthStencilAttachmentWrite: bool = false,
+    transferRead: bool = false,
+    transferWrite: bool = false,
+    hostRead: bool = false,
+    hostWrite: bool = false,
+    memoryRead: bool = false,
+    memoryWrite: bool = false,
+    commandProcessReadNVX: bool = false,
+    commandProcessWriteNVX: bool = false,
+    colorAttachmentReadNoncoherentEXT: bool = false,
+    conditionalRenderingReadEXT: bool = false,
+    accelerationStructureReadNV: bool = false,
+    accelerationStructureWriteNV: bool = false,
+    shadingRateImageReadNV: bool = false,
+    fragmentDensityMapReadEXT: bool = false,
+    transformFeedbackWriteEXT: bool = false,
+    transformFeedbackCounterReadEXT: bool = false,
+    transformFeedbackCounterWriteEXT: bool = false,
+    reserved28KHR: bool = false,
+    reserved29KHR: bool = false,
+    reserved30KHR: bool = false,
+    reserved31KHR: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const DependencyFlags = packed struct {
+    byRegion: bool = false,
+    viewLocal: bool = false,
+    deviceGroup: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const viewLocalKHR = Self{ .viewLocal = true };
+    pub const deviceGroupKHR = Self{ .deviceGroup = true };
+
+    pub usingnamespace FlagsMixin(Self);
+};
+
+pub const CommandPoolCreateFlags = packed struct {
+    transient: bool = false,
+    resetCommandBuffer: bool = false,
+    protected: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const CommandPoolResetFlags = packed struct {
+    releaseResources: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const CommandBufferUsageFlags = packed struct {
+    oneTimeSubmit: bool = false,
+    renderPassContinue: bool = false,
+    simultaneousUse: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const QueryControlFlags = packed struct {
+    precise: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const CommandBufferResetFlags = packed struct {
+    releaseResources: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const StencilFaceFlags = packed struct {
+    front: bool = false,
+    back: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const frontAndBack = fromInt(0x00000003);
+    pub const stencilFrontAndBack = Self{ .frontAndBack = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
 pub const ApplicationInfo = extern struct {
@@ -1855,7 +3011,7 @@ pub const ApplicationInfo = extern struct {
 pub const InstanceCreateInfo = extern struct {
     sType: StructureType = .INSTANCE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: InstanceCreateFlags = 0,
+    flags: InstanceCreateFlags align(4) = InstanceCreateFlags{},
     pApplicationInfo: ?*const ApplicationInfo = null,
     enabledLayerCount: u32 = 0,
     ppEnabledLayerNames: [*]const CString = undefined,
@@ -1965,9 +3121,9 @@ pub const PhysicalDeviceFeatures = extern struct {
 };
 
 pub const FormatProperties = extern struct {
-    linearTilingFeatures: FormatFeatureFlags = 0,
-    optimalTilingFeatures: FormatFeatureFlags = 0,
-    bufferFeatures: FormatFeatureFlags = 0,
+    linearTilingFeatures: FormatFeatureFlags align(4) = FormatFeatureFlags{},
+    optimalTilingFeatures: FormatFeatureFlags align(4) = FormatFeatureFlags{},
+    bufferFeatures: FormatFeatureFlags align(4) = FormatFeatureFlags{},
 };
 
 pub const Extent3D = extern struct {
@@ -1980,7 +3136,7 @@ pub const ImageFormatProperties = extern struct {
     maxExtent: Extent3D,
     maxMipLevels: u32,
     maxArrayLayers: u32,
-    sampleCounts: SampleCountFlags = 0,
+    sampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
     maxResourceSize: DeviceSize,
 };
 
@@ -2065,16 +3221,16 @@ pub const PhysicalDeviceLimits = extern struct {
     maxFramebufferWidth: u32,
     maxFramebufferHeight: u32,
     maxFramebufferLayers: u32,
-    framebufferColorSampleCounts: SampleCountFlags = 0,
-    framebufferDepthSampleCounts: SampleCountFlags = 0,
-    framebufferStencilSampleCounts: SampleCountFlags = 0,
-    framebufferNoAttachmentsSampleCounts: SampleCountFlags = 0,
+    framebufferColorSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
+    framebufferDepthSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
+    framebufferStencilSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
+    framebufferNoAttachmentsSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
     maxColorAttachments: u32,
-    sampledImageColorSampleCounts: SampleCountFlags = 0,
-    sampledImageIntegerSampleCounts: SampleCountFlags = 0,
-    sampledImageDepthSampleCounts: SampleCountFlags = 0,
-    sampledImageStencilSampleCounts: SampleCountFlags = 0,
-    storageImageSampleCounts: SampleCountFlags = 0,
+    sampledImageColorSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
+    sampledImageIntegerSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
+    sampledImageDepthSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
+    sampledImageStencilSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
+    storageImageSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
     maxSampleMaskWords: u32,
     timestampComputeAndGraphics: Bool32,
     timestampPeriod: f32,
@@ -2107,27 +3263,27 @@ pub const PhysicalDeviceProperties = extern struct {
     vendorID: u32,
     deviceID: u32,
     deviceType: PhysicalDeviceType,
-    deviceName: [MAX_PHYSICAL_DEVICE_NAME_SIZE]u8,
+    deviceName: [MAX_PHYSICAL_DEVICE_NAME_SIZE-1:0]u8,
     pipelineCacheUUID: [UUID_SIZE]u8,
     limits: PhysicalDeviceLimits,
     sparseProperties: PhysicalDeviceSparseProperties,
 };
 
 pub const QueueFamilyProperties = extern struct {
-    queueFlags: QueueFlags = 0,
+    queueFlags: QueueFlags align(4) = QueueFlags{},
     queueCount: u32,
     timestampValidBits: u32,
     minImageTransferGranularity: Extent3D,
 };
 
 pub const MemoryType = extern struct {
-    propertyFlags: MemoryPropertyFlags = 0,
+    propertyFlags: MemoryPropertyFlags align(4) = MemoryPropertyFlags{},
     heapIndex: u32,
 };
 
 pub const MemoryHeap = extern struct {
     size: DeviceSize,
-    flags: MemoryHeapFlags = 0,
+    flags: MemoryHeapFlags align(4) = MemoryHeapFlags{},
 };
 
 pub const PhysicalDeviceMemoryProperties = extern struct {
@@ -2142,7 +3298,7 @@ pub const PFN_VoidFunction = extern fn () void;
 pub const DeviceQueueCreateInfo = extern struct {
     sType: StructureType = .DEVICE_QUEUE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: DeviceQueueCreateFlags = 0,
+    flags: DeviceQueueCreateFlags align(4) = DeviceQueueCreateFlags{},
     queueFamilyIndex: u32,
     queueCount: u32,
     pQueuePriorities: [*]const f32,
@@ -2151,7 +3307,7 @@ pub const DeviceQueueCreateInfo = extern struct {
 pub const DeviceCreateInfo = extern struct {
     sType: StructureType = .DEVICE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: DeviceCreateFlags = 0,
+    flags: DeviceCreateFlags align(4) = DeviceCreateFlags{},
     queueCreateInfoCount: u32,
     pQueueCreateInfos: [*]const DeviceQueueCreateInfo,
     enabledLayerCount: u32 = 0,
@@ -2162,15 +3318,15 @@ pub const DeviceCreateInfo = extern struct {
 };
 
 pub const ExtensionProperties = extern struct {
-    extensionName: [MAX_EXTENSION_NAME_SIZE]u8,
+    extensionName: [MAX_EXTENSION_NAME_SIZE-1:0]u8,
     specVersion: u32,
 };
 
 pub const LayerProperties = extern struct {
-    layerName: [MAX_EXTENSION_NAME_SIZE]u8,
+    layerName: [MAX_EXTENSION_NAME_SIZE-1:0]u8,
     specVersion: u32,
     implementationVersion: u32,
-    description: [MAX_DESCRIPTION_SIZE]u8,
+    description: [MAX_DESCRIPTION_SIZE-1:0]u8,
 };
 
 pub const SubmitInfo = extern struct {
@@ -2178,7 +3334,7 @@ pub const SubmitInfo = extern struct {
     pNext: ?*const c_void = null,
     waitSemaphoreCount: u32 = 0,
     pWaitSemaphores: [*]const Semaphore = undefined,
-    pWaitDstStageMask: [*]const PipelineStageFlags = undefined,
+    pWaitDstStageMask: [*]align(4) const PipelineStageFlags = undefined,
     commandBufferCount: u32 = 0,
     pCommandBuffers: [*]const CommandBuffer = undefined,
     signalSemaphoreCount: u32 = 0,
@@ -2207,9 +3363,9 @@ pub const MemoryRequirements = extern struct {
 };
 
 pub const SparseImageFormatProperties = extern struct {
-    aspectMask: ImageAspectFlags = 0,
+    aspectMask: ImageAspectFlags align(4) = ImageAspectFlags{},
     imageGranularity: Extent3D,
-    flags: SparseImageFormatFlags = 0,
+    flags: SparseImageFormatFlags align(4) = SparseImageFormatFlags{},
 };
 
 pub const SparseImageMemoryRequirements = extern struct {
@@ -2225,7 +3381,7 @@ pub const SparseMemoryBind = extern struct {
     size: DeviceSize,
     memory: ?DeviceMemory = null,
     memoryOffset: DeviceSize,
-    flags: SparseMemoryBindFlags = 0,
+    flags: SparseMemoryBindFlags align(4) = SparseMemoryBindFlags{},
 };
 
 pub const SparseBufferMemoryBindInfo = extern struct {
@@ -2241,7 +3397,7 @@ pub const SparseImageOpaqueMemoryBindInfo = extern struct {
 };
 
 pub const ImageSubresource = extern struct {
-    aspectMask: ImageAspectFlags,
+    aspectMask: ImageAspectFlags align(4),
     mipLevel: u32,
     arrayLayer: u32,
 };
@@ -2258,7 +3414,7 @@ pub const SparseImageMemoryBind = extern struct {
     extent: Extent3D,
     memory: ?DeviceMemory = null,
     memoryOffset: DeviceSize,
-    flags: SparseMemoryBindFlags = 0,
+    flags: SparseMemoryBindFlags align(4) = SparseMemoryBindFlags{},
 };
 
 pub const SparseImageMemoryBindInfo = extern struct {
@@ -2285,36 +3441,36 @@ pub const BindSparseInfo = extern struct {
 pub const FenceCreateInfo = extern struct {
     sType: StructureType = .FENCE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: FenceCreateFlags = 0,
+    flags: FenceCreateFlags align(4) = FenceCreateFlags{},
 };
 
 pub const SemaphoreCreateInfo = extern struct {
     sType: StructureType = .SEMAPHORE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: SemaphoreCreateFlags = 0,
+    flags: SemaphoreCreateFlags align(4) = SemaphoreCreateFlags{},
 };
 
 pub const EventCreateInfo = extern struct {
     sType: StructureType = .EVENT_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: EventCreateFlags = 0,
+    flags: EventCreateFlags align(4) = EventCreateFlags{},
 };
 
 pub const QueryPoolCreateInfo = extern struct {
     sType: StructureType = .QUERY_POOL_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: QueryPoolCreateFlags = 0,
+    flags: QueryPoolCreateFlags align(4) = QueryPoolCreateFlags{},
     queryType: QueryType,
     queryCount: u32,
-    pipelineStatistics: QueryPipelineStatisticFlags = 0,
+    pipelineStatistics: QueryPipelineStatisticFlags align(4) = QueryPipelineStatisticFlags{},
 };
 
 pub const BufferCreateInfo = extern struct {
     sType: StructureType = .BUFFER_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: BufferCreateFlags = 0,
+    flags: BufferCreateFlags align(4) = BufferCreateFlags{},
     size: DeviceSize,
-    usage: BufferUsageFlags,
+    usage: BufferUsageFlags align(4),
     sharingMode: SharingMode,
     queueFamilyIndexCount: u32 = 0,
     pQueueFamilyIndices: [*]const u32 = undefined,
@@ -2323,7 +3479,7 @@ pub const BufferCreateInfo = extern struct {
 pub const BufferViewCreateInfo = extern struct {
     sType: StructureType = .BUFFER_VIEW_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: BufferViewCreateFlags = 0,
+    flags: BufferViewCreateFlags align(4) = BufferViewCreateFlags{},
     buffer: Buffer,
     format: Format,
     offset: DeviceSize,
@@ -2333,15 +3489,15 @@ pub const BufferViewCreateInfo = extern struct {
 pub const ImageCreateInfo = extern struct {
     sType: StructureType = .IMAGE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: ImageCreateFlags = 0,
+    flags: ImageCreateFlags align(4) = ImageCreateFlags{},
     imageType: ImageType,
     format: Format,
     extent: Extent3D,
     mipLevels: u32,
     arrayLayers: u32,
-    samples: SampleCountFlags,
+    samples: SampleCountFlags align(4),
     tiling: ImageTiling,
-    usage: ImageUsageFlags,
+    usage: ImageUsageFlags align(4),
     sharingMode: SharingMode,
     queueFamilyIndexCount: u32 = 0,
     pQueueFamilyIndices: [*]const u32 = undefined,
@@ -2364,7 +3520,7 @@ pub const ComponentMapping = extern struct {
 };
 
 pub const ImageSubresourceRange = extern struct {
-    aspectMask: ImageAspectFlags,
+    aspectMask: ImageAspectFlags align(4),
     baseMipLevel: u32,
     levelCount: u32,
     baseArrayLayer: u32,
@@ -2374,7 +3530,7 @@ pub const ImageSubresourceRange = extern struct {
 pub const ImageViewCreateInfo = extern struct {
     sType: StructureType = .IMAGE_VIEW_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: ImageViewCreateFlags = 0,
+    flags: ImageViewCreateFlags align(4) = ImageViewCreateFlags{},
     image: Image,
     viewType: ImageViewType,
     format: Format,
@@ -2385,7 +3541,7 @@ pub const ImageViewCreateInfo = extern struct {
 pub const ShaderModuleCreateInfo = extern struct {
     sType: StructureType = .SHADER_MODULE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: ShaderModuleCreateFlags = 0,
+    flags: ShaderModuleCreateFlags align(4) = ShaderModuleCreateFlags{},
     codeSize: usize,
     pCode: [*]const u32,
 };
@@ -2393,7 +3549,7 @@ pub const ShaderModuleCreateInfo = extern struct {
 pub const PipelineCacheCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_CACHE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineCacheCreateFlags = 0,
+    flags: PipelineCacheCreateFlags align(4) = PipelineCacheCreateFlags{},
     initialDataSize: usize = 0,
     pInitialData: ?*const c_void = undefined,
 };
@@ -2414,8 +3570,8 @@ pub const SpecializationInfo = extern struct {
 pub const PipelineShaderStageCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_SHADER_STAGE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineShaderStageCreateFlags = 0,
-    stage: ShaderStageFlags,
+    flags: PipelineShaderStageCreateFlags align(4) = PipelineShaderStageCreateFlags{},
+    stage: ShaderStageFlags align(4),
     module: ShaderModule,
     pName: CString,
     pSpecializationInfo: ?*const SpecializationInfo = null,
@@ -2437,7 +3593,7 @@ pub const VertexInputAttributeDescription = extern struct {
 pub const PipelineVertexInputStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineVertexInputStateCreateFlags = 0,
+    flags: PipelineVertexInputStateCreateFlags align(4) = PipelineVertexInputStateCreateFlags{},
     vertexBindingDescriptionCount: u32 = 0,
     pVertexBindingDescriptions: [*]const VertexInputBindingDescription = undefined,
     vertexAttributeDescriptionCount: u32 = 0,
@@ -2447,7 +3603,7 @@ pub const PipelineVertexInputStateCreateInfo = extern struct {
 pub const PipelineInputAssemblyStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineInputAssemblyStateCreateFlags = 0,
+    flags: PipelineInputAssemblyStateCreateFlags align(4) = PipelineInputAssemblyStateCreateFlags{},
     topology: PrimitiveTopology,
     primitiveRestartEnable: Bool32,
 };
@@ -2455,7 +3611,7 @@ pub const PipelineInputAssemblyStateCreateInfo = extern struct {
 pub const PipelineTessellationStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_TESSELLATION_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineTessellationStateCreateFlags = 0,
+    flags: PipelineTessellationStateCreateFlags align(4) = PipelineTessellationStateCreateFlags{},
     patchControlPoints: u32,
 };
 
@@ -2486,7 +3642,7 @@ pub const Rect2D = extern struct {
 pub const PipelineViewportStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_VIEWPORT_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineViewportStateCreateFlags = 0,
+    flags: PipelineViewportStateCreateFlags align(4) = PipelineViewportStateCreateFlags{},
     viewportCount: u32,
     pViewports: ?[*]const Viewport = null,
     scissorCount: u32,
@@ -2496,11 +3652,11 @@ pub const PipelineViewportStateCreateInfo = extern struct {
 pub const PipelineRasterizationStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineRasterizationStateCreateFlags = 0,
+    flags: PipelineRasterizationStateCreateFlags align(4) = PipelineRasterizationStateCreateFlags{},
     depthClampEnable: Bool32,
     rasterizerDiscardEnable: Bool32,
     polygonMode: PolygonMode,
-    cullMode: CullModeFlags = 0,
+    cullMode: CullModeFlags align(4) = CullModeFlags{},
     frontFace: FrontFace,
     depthBiasEnable: Bool32,
     depthBiasConstantFactor: f32,
@@ -2512,8 +3668,8 @@ pub const PipelineRasterizationStateCreateInfo = extern struct {
 pub const PipelineMultisampleStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineMultisampleStateCreateFlags = 0,
-    rasterizationSamples: SampleCountFlags,
+    flags: PipelineMultisampleStateCreateFlags align(4) = PipelineMultisampleStateCreateFlags{},
+    rasterizationSamples: SampleCountFlags align(4),
     sampleShadingEnable: Bool32,
     minSampleShading: f32,
     pSampleMask: ?[*]const SampleMask = null,
@@ -2534,7 +3690,7 @@ pub const StencilOpState = extern struct {
 pub const PipelineDepthStencilStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineDepthStencilStateCreateFlags = 0,
+    flags: PipelineDepthStencilStateCreateFlags align(4) = PipelineDepthStencilStateCreateFlags{},
     depthTestEnable: Bool32,
     depthWriteEnable: Bool32,
     depthCompareOp: CompareOp,
@@ -2554,13 +3710,13 @@ pub const PipelineColorBlendAttachmentState = extern struct {
     srcAlphaBlendFactor: BlendFactor,
     dstAlphaBlendFactor: BlendFactor,
     alphaBlendOp: BlendOp,
-    colorWriteMask: ColorComponentFlags = 0,
+    colorWriteMask: ColorComponentFlags align(4) = ColorComponentFlags{},
 };
 
 pub const PipelineColorBlendStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineColorBlendStateCreateFlags = 0,
+    flags: PipelineColorBlendStateCreateFlags align(4) = PipelineColorBlendStateCreateFlags{},
     logicOpEnable: Bool32,
     logicOp: LogicOp,
     attachmentCount: u32 = 0,
@@ -2571,7 +3727,7 @@ pub const PipelineColorBlendStateCreateInfo = extern struct {
 pub const PipelineDynamicStateCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_DYNAMIC_STATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineDynamicStateCreateFlags = 0,
+    flags: PipelineDynamicStateCreateFlags align(4) = PipelineDynamicStateCreateFlags{},
     dynamicStateCount: u32 = 0,
     pDynamicStates: [*]const DynamicState = undefined,
 };
@@ -2579,7 +3735,7 @@ pub const PipelineDynamicStateCreateInfo = extern struct {
 pub const GraphicsPipelineCreateInfo = extern struct {
     sType: StructureType = .GRAPHICS_PIPELINE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineCreateFlags = 0,
+    flags: PipelineCreateFlags align(4) = PipelineCreateFlags{},
     stageCount: u32,
     pStages: [*]const PipelineShaderStageCreateInfo,
     pVertexInputState: ?*const PipelineVertexInputStateCreateInfo = null,
@@ -2601,7 +3757,7 @@ pub const GraphicsPipelineCreateInfo = extern struct {
 pub const ComputePipelineCreateInfo = extern struct {
     sType: StructureType = .COMPUTE_PIPELINE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineCreateFlags = 0,
+    flags: PipelineCreateFlags align(4) = PipelineCreateFlags{},
     stage: PipelineShaderStageCreateInfo,
     layout: PipelineLayout,
     basePipelineHandle: ?Pipeline = null,
@@ -2609,7 +3765,7 @@ pub const ComputePipelineCreateInfo = extern struct {
 };
 
 pub const PushConstantRange = extern struct {
-    stageFlags: ShaderStageFlags,
+    stageFlags: ShaderStageFlags align(4),
     offset: u32,
     size: u32,
 };
@@ -2617,7 +3773,7 @@ pub const PushConstantRange = extern struct {
 pub const PipelineLayoutCreateInfo = extern struct {
     sType: StructureType = .PIPELINE_LAYOUT_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: PipelineLayoutCreateFlags = 0,
+    flags: PipelineLayoutCreateFlags align(4) = PipelineLayoutCreateFlags{},
     setLayoutCount: u32 = 0,
     pSetLayouts: [*]const DescriptorSetLayout = undefined,
     pushConstantRangeCount: u32 = 0,
@@ -2627,7 +3783,7 @@ pub const PipelineLayoutCreateInfo = extern struct {
 pub const SamplerCreateInfo = extern struct {
     sType: StructureType = .SAMPLER_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: SamplerCreateFlags = 0,
+    flags: SamplerCreateFlags align(4) = SamplerCreateFlags{},
     magFilter: Filter,
     minFilter: Filter,
     mipmapMode: SamplerMipmapMode,
@@ -2649,14 +3805,14 @@ pub const DescriptorSetLayoutBinding = extern struct {
     binding: u32,
     descriptorType: DescriptorType,
     descriptorCount: u32 = 0,
-    stageFlags: ShaderStageFlags,
+    stageFlags: ShaderStageFlags align(4),
     pImmutableSamplers: ?[*]const Sampler = null,
 };
 
 pub const DescriptorSetLayoutCreateInfo = extern struct {
     sType: StructureType = .DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: DescriptorSetLayoutCreateFlags = 0,
+    flags: DescriptorSetLayoutCreateFlags align(4) = DescriptorSetLayoutCreateFlags{},
     bindingCount: u32 = 0,
     pBindings: [*]const DescriptorSetLayoutBinding = undefined,
 };
@@ -2669,7 +3825,7 @@ pub const DescriptorPoolSize = extern struct {
 pub const DescriptorPoolCreateInfo = extern struct {
     sType: StructureType = .DESCRIPTOR_POOL_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: DescriptorPoolCreateFlags = 0,
+    flags: DescriptorPoolCreateFlags align(4) = DescriptorPoolCreateFlags{},
     maxSets: u32,
     poolSizeCount: u32,
     pPoolSizes: [*]const DescriptorPoolSize,
@@ -2723,7 +3879,7 @@ pub const CopyDescriptorSet = extern struct {
 pub const FramebufferCreateInfo = extern struct {
     sType: StructureType = .FRAMEBUFFER_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: FramebufferCreateFlags = 0,
+    flags: FramebufferCreateFlags align(4) = FramebufferCreateFlags{},
     renderPass: RenderPass,
     attachmentCount: u32 = 0,
     pAttachments: [*]const ImageView = undefined,
@@ -2733,9 +3889,9 @@ pub const FramebufferCreateInfo = extern struct {
 };
 
 pub const AttachmentDescription = extern struct {
-    flags: AttachmentDescriptionFlags = 0,
+    flags: AttachmentDescriptionFlags align(4) = AttachmentDescriptionFlags{},
     format: Format,
-    samples: SampleCountFlags,
+    samples: SampleCountFlags align(4),
     loadOp: AttachmentLoadOp,
     storeOp: AttachmentStoreOp,
     stencilLoadOp: AttachmentLoadOp,
@@ -2750,7 +3906,7 @@ pub const AttachmentReference = extern struct {
 };
 
 pub const SubpassDescription = extern struct {
-    flags: SubpassDescriptionFlags = 0,
+    flags: SubpassDescriptionFlags align(4) = SubpassDescriptionFlags{},
     pipelineBindPoint: PipelineBindPoint,
     inputAttachmentCount: u32 = 0,
     pInputAttachments: [*]const AttachmentReference = undefined,
@@ -2765,17 +3921,17 @@ pub const SubpassDescription = extern struct {
 pub const SubpassDependency = extern struct {
     srcSubpass: u32,
     dstSubpass: u32,
-    srcStageMask: PipelineStageFlags,
-    dstStageMask: PipelineStageFlags,
-    srcAccessMask: AccessFlags = 0,
-    dstAccessMask: AccessFlags = 0,
-    dependencyFlags: DependencyFlags = 0,
+    srcStageMask: PipelineStageFlags align(4),
+    dstStageMask: PipelineStageFlags align(4),
+    srcAccessMask: AccessFlags align(4) = AccessFlags{},
+    dstAccessMask: AccessFlags align(4) = AccessFlags{},
+    dependencyFlags: DependencyFlags align(4) = DependencyFlags{},
 };
 
 pub const RenderPassCreateInfo = extern struct {
     sType: StructureType = .RENDER_PASS_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: RenderPassCreateFlags = 0,
+    flags: RenderPassCreateFlags align(4) = RenderPassCreateFlags{},
     attachmentCount: u32 = 0,
     pAttachments: [*]const AttachmentDescription = undefined,
     subpassCount: u32,
@@ -2787,7 +3943,7 @@ pub const RenderPassCreateInfo = extern struct {
 pub const CommandPoolCreateInfo = extern struct {
     sType: StructureType = .COMMAND_POOL_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: CommandPoolCreateFlags = 0,
+    flags: CommandPoolCreateFlags align(4) = CommandPoolCreateFlags{},
     queueFamilyIndex: u32,
 };
 
@@ -2806,14 +3962,14 @@ pub const CommandBufferInheritanceInfo = extern struct {
     subpass: u32,
     framebuffer: ?Framebuffer = null,
     occlusionQueryEnable: Bool32,
-    queryFlags: QueryControlFlags = 0,
-    pipelineStatistics: QueryPipelineStatisticFlags = 0,
+    queryFlags: QueryControlFlags align(4) = QueryControlFlags{},
+    pipelineStatistics: QueryPipelineStatisticFlags align(4) = QueryPipelineStatisticFlags{},
 };
 
 pub const CommandBufferBeginInfo = extern struct {
     sType: StructureType = .COMMAND_BUFFER_BEGIN_INFO,
     pNext: ?*const c_void = null,
-    flags: CommandBufferUsageFlags = 0,
+    flags: CommandBufferUsageFlags align(4) = CommandBufferUsageFlags{},
     pInheritanceInfo: ?*const CommandBufferInheritanceInfo = null,
 };
 
@@ -2824,7 +3980,7 @@ pub const BufferCopy = extern struct {
 };
 
 pub const ImageSubresourceLayers = extern struct {
-    aspectMask: ImageAspectFlags,
+    aspectMask: ImageAspectFlags align(4),
     mipLevel: u32,
     baseArrayLayer: u32,
     layerCount: u32,
@@ -2871,7 +4027,7 @@ pub const ClearValue = extern union {
 };
 
 pub const ClearAttachment = extern struct {
-    aspectMask: ImageAspectFlags,
+    aspectMask: ImageAspectFlags align(4),
     colorAttachment: u32,
     clearValue: ClearValue,
 };
@@ -2893,15 +4049,15 @@ pub const ImageResolve = extern struct {
 pub const MemoryBarrier = extern struct {
     sType: StructureType = .MEMORY_BARRIER,
     pNext: ?*const c_void = null,
-    srcAccessMask: AccessFlags = 0,
-    dstAccessMask: AccessFlags = 0,
+    srcAccessMask: AccessFlags align(4) = AccessFlags{},
+    dstAccessMask: AccessFlags align(4) = AccessFlags{},
 };
 
 pub const BufferMemoryBarrier = extern struct {
     sType: StructureType = .BUFFER_MEMORY_BARRIER,
     pNext: ?*const c_void = null,
-    srcAccessMask: AccessFlags,
-    dstAccessMask: AccessFlags,
+    srcAccessMask: AccessFlags align(4),
+    dstAccessMask: AccessFlags align(4),
     srcQueueFamilyIndex: u32,
     dstQueueFamilyIndex: u32,
     buffer: Buffer,
@@ -2912,8 +4068,8 @@ pub const BufferMemoryBarrier = extern struct {
 pub const ImageMemoryBarrier = extern struct {
     sType: StructureType = .IMAGE_MEMORY_BARRIER,
     pNext: ?*const c_void = null,
-    srcAccessMask: AccessFlags,
-    dstAccessMask: AccessFlags,
+    srcAccessMask: AccessFlags align(4),
+    dstAccessMask: AccessFlags align(4),
     oldLayout: ImageLayout,
     newLayout: ImageLayout,
     srcQueueFamilyIndex: u32,
@@ -4965,32 +6121,35 @@ pub const DescriptorUpdateTemplate = *@OpaqueType();
 
 pub const MAX_DEVICE_GROUP_SIZE = 32;
 pub const LUID_SIZE = 8;
-pub const QUEUE_FAMILY_EXTERNAL = (~u32(0)-1);
+pub const QUEUE_FAMILY_EXTERNAL = (~@as(u32, 0)-1);
 
-pub const PointClippingBehavior = extern enum {
+pub const PointClippingBehavior = extern enum(i32) {
     ALL_CLIP_PLANES = 0,
     USER_CLIP_PLANES_ONLY = 1,
+    _,
 
     const Self = @This();
     pub const ALL_CLIP_PLANES_KHR = Self.ALL_CLIP_PLANES;
     pub const USER_CLIP_PLANES_ONLY_KHR = Self.USER_CLIP_PLANES_ONLY;
 };
 
-pub const TessellationDomainOrigin = extern enum {
+pub const TessellationDomainOrigin = extern enum(i32) {
     UPPER_LEFT = 0,
     LOWER_LEFT = 1,
+    _,
 
     const Self = @This();
     pub const UPPER_LEFT_KHR = Self.UPPER_LEFT;
     pub const LOWER_LEFT_KHR = Self.LOWER_LEFT;
 };
 
-pub const SamplerYcbcrModelConversion = extern enum {
+pub const SamplerYcbcrModelConversion = extern enum(i32) {
     RGB_IDENTITY = 0,
     YCBCR_IDENTITY = 1,
     YCBCR_709 = 2,
     YCBCR_601 = 3,
     YCBCR_2020 = 4,
+    _,
 
     const Self = @This();
     pub const RGB_IDENTITY_KHR = Self.RGB_IDENTITY;
@@ -5000,172 +6159,510 @@ pub const SamplerYcbcrModelConversion = extern enum {
     pub const YCBCR_2020_KHR = Self.YCBCR_2020;
 };
 
-pub const SamplerYcbcrRange = extern enum {
+pub const SamplerYcbcrRange = extern enum(i32) {
     ITU_FULL = 0,
     ITU_NARROW = 1,
+    _,
 
     const Self = @This();
     pub const ITU_FULL_KHR = Self.ITU_FULL;
     pub const ITU_NARROW_KHR = Self.ITU_NARROW;
 };
 
-pub const ChromaLocation = extern enum {
+pub const ChromaLocation = extern enum(i32) {
     COSITED_EVEN = 0,
     MIDPOINT = 1,
+    _,
 
     const Self = @This();
     pub const COSITED_EVEN_KHR = Self.COSITED_EVEN;
     pub const MIDPOINT_KHR = Self.MIDPOINT;
 };
 
-pub const DescriptorUpdateTemplateType = extern enum {
+pub const DescriptorUpdateTemplateType = extern enum(i32) {
     DESCRIPTOR_SET = 0,
     PUSH_DESCRIPTORS_KHR = 1,
+    _,
 
     const Self = @This();
     pub const DESCRIPTOR_SET_KHR = Self.DESCRIPTOR_SET;
 };
 
-pub const SubgroupFeatureFlags = Flags;
-pub const SubgroupFeatureFlagBits = struct {
-    pub const BASIC_BIT: SubgroupFeatureFlags = 0x00000001;
-    pub const VOTE_BIT: SubgroupFeatureFlags = 0x00000002;
-    pub const ARITHMETIC_BIT: SubgroupFeatureFlags = 0x00000004;
-    pub const BALLOT_BIT: SubgroupFeatureFlags = 0x00000008;
-    pub const SHUFFLE_BIT: SubgroupFeatureFlags = 0x00000010;
-    pub const SHUFFLE_RELATIVE_BIT: SubgroupFeatureFlags = 0x00000020;
-    pub const CLUSTERED_BIT: SubgroupFeatureFlags = 0x00000040;
-    pub const QUAD_BIT: SubgroupFeatureFlags = 0x00000080;
-    pub const PARTITIONED_BIT_NV: SubgroupFeatureFlags = 0x00000100;
+pub const SubgroupFeatureFlags = packed struct {
+    basic: bool = false,
+    vote: bool = false,
+    arithmetic: bool = false,
+    ballot: bool = false,
+    shuffle: bool = false,
+    shuffleRelative: bool = false,
+    clustered: bool = false,
+    quad: bool = false,
+    partitionedNV: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const PeerMemoryFeatureFlags = Flags;
-pub const PeerMemoryFeatureFlagBits = struct {
-    pub const COPY_SRC_BIT: PeerMemoryFeatureFlags = 0x00000001;
-    pub const COPY_DST_BIT: PeerMemoryFeatureFlags = 0x00000002;
-    pub const GENERIC_SRC_BIT: PeerMemoryFeatureFlags = 0x00000004;
-    pub const GENERIC_DST_BIT: PeerMemoryFeatureFlags = 0x00000008;
+pub const PeerMemoryFeatureFlags = packed struct {
+    copySrc: bool = false,
+    copyDst: bool = false,
+    genericSrc: bool = false,
+    genericDst: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const COPY_SRC_BIT_KHR = COPY_SRC_BIT;
-    pub const COPY_DST_BIT_KHR = COPY_DST_BIT;
-    pub const GENERIC_SRC_BIT_KHR = GENERIC_SRC_BIT;
-    pub const GENERIC_DST_BIT_KHR = GENERIC_DST_BIT;
+    const Self = @This();
+    pub const copySrcKHR = Self{ .copySrc = true };
+    pub const copyDstKHR = Self{ .copyDst = true };
+    pub const genericSrcKHR = Self{ .genericSrc = true };
+    pub const genericDstKHR = Self{ .genericDst = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const MemoryAllocateFlags = Flags;
-pub const MemoryAllocateFlagBits = struct {
-    pub const DEVICE_MASK_BIT: MemoryAllocateFlags = 0x00000001;
-    pub const DEVICE_ADDRESS_BIT: MemoryAllocateFlags = 0x00000002;
-    pub const DEVICE_ADDRESS_CAPTURE_REPLAY_BIT: MemoryAllocateFlags = 0x00000004;
+pub const MemoryAllocateFlags = packed struct {
+    deviceMask: bool = false,
+    deviceAddress: bool = false,
+    deviceAddressCaptureReplay: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const DEVICE_MASK_BIT_KHR = DEVICE_MASK_BIT;
-    pub const DEVICE_ADDRESS_BIT_KHR = DEVICE_ADDRESS_BIT;
-    pub const DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR = DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
+    const Self = @This();
+    pub const deviceMaskKHR = Self{ .deviceMask = true };
+    pub const deviceAddressKHR = Self{ .deviceAddress = true };
+    pub const deviceAddressCaptureReplayKHR = Self{ .deviceAddressCaptureReplay = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const CommandPoolTrimFlags = Flags;
-pub const DescriptorUpdateTemplateCreateFlags = Flags;
-
-pub const ExternalMemoryHandleTypeFlags = Flags;
-pub const ExternalMemoryHandleTypeFlagBits = struct {
-    pub const OPAQUE_FD_BIT: ExternalMemoryHandleTypeFlags = 0x00000001;
-    pub const OPAQUE_WIN32_BIT: ExternalMemoryHandleTypeFlags = 0x00000002;
-    pub const OPAQUE_WIN32_KMT_BIT: ExternalMemoryHandleTypeFlags = 0x00000004;
-    pub const D3D11_TEXTURE_BIT: ExternalMemoryHandleTypeFlags = 0x00000008;
-    pub const D3D11_TEXTURE_KMT_BIT: ExternalMemoryHandleTypeFlags = 0x00000010;
-    pub const D3D12_HEAP_BIT: ExternalMemoryHandleTypeFlags = 0x00000020;
-    pub const D3D12_RESOURCE_BIT: ExternalMemoryHandleTypeFlags = 0x00000040;
-    pub const DMA_BUF_BIT_EXT: ExternalMemoryHandleTypeFlags = 0x00000200;
-    pub const ANDROID_HARDWARE_BUFFER_BIT_ANDROID: ExternalMemoryHandleTypeFlags = 0x00000400;
-    pub const HOST_ALLOCATION_BIT_EXT: ExternalMemoryHandleTypeFlags = 0x00000080;
-    pub const HOST_MAPPED_FOREIGN_MEMORY_BIT_EXT: ExternalMemoryHandleTypeFlags = 0x00000100;
-
-    pub const OPAQUE_FD_BIT_KHR = OPAQUE_FD_BIT;
-    pub const OPAQUE_WIN32_BIT_KHR = OPAQUE_WIN32_BIT;
-    pub const OPAQUE_WIN32_KMT_BIT_KHR = OPAQUE_WIN32_KMT_BIT;
-    pub const D3D11_TEXTURE_BIT_KHR = D3D11_TEXTURE_BIT;
-    pub const D3D11_TEXTURE_KMT_BIT_KHR = D3D11_TEXTURE_KMT_BIT;
-    pub const D3D12_HEAP_BIT_KHR = D3D12_HEAP_BIT;
-    pub const D3D12_RESOURCE_BIT_KHR = D3D12_RESOURCE_BIT;
+pub const CommandPoolTrimFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const ExternalMemoryFeatureFlags = Flags;
-pub const ExternalMemoryFeatureFlagBits = struct {
-    pub const DEDICATED_ONLY_BIT: ExternalMemoryFeatureFlags = 0x00000001;
-    pub const EXPORTABLE_BIT: ExternalMemoryFeatureFlags = 0x00000002;
-    pub const IMPORTABLE_BIT: ExternalMemoryFeatureFlags = 0x00000004;
-
-    pub const DEDICATED_ONLY_BIT_KHR = DEDICATED_ONLY_BIT;
-    pub const EXPORTABLE_BIT_KHR = EXPORTABLE_BIT;
-    pub const IMPORTABLE_BIT_KHR = IMPORTABLE_BIT;
+pub const DescriptorUpdateTemplateCreateFlags = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const ExternalFenceHandleTypeFlags = Flags;
-pub const ExternalFenceHandleTypeFlagBits = struct {
-    pub const OPAQUE_FD_BIT: ExternalFenceHandleTypeFlags = 0x00000001;
-    pub const OPAQUE_WIN32_BIT: ExternalFenceHandleTypeFlags = 0x00000002;
-    pub const OPAQUE_WIN32_KMT_BIT: ExternalFenceHandleTypeFlags = 0x00000004;
-    pub const SYNC_FD_BIT: ExternalFenceHandleTypeFlags = 0x00000008;
+pub const ExternalMemoryHandleTypeFlags = packed struct {
+    opaqueFd: bool = false,
+    opaqueWin32: bool = false,
+    opaqueWin32Kmt: bool = false,
+    d3D11Texture: bool = false,
+    d3D11TextureKmt: bool = false,
+    d3D12Heap: bool = false,
+    d3D12Resource: bool = false,
+    hostAllocationEXT: bool = false,
+    hostMappedForeignMemoryEXT: bool = false,
+    dmaBufEXT: bool = false,
+    androidHardwareBufferANDROID: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const OPAQUE_FD_BIT_KHR = OPAQUE_FD_BIT;
-    pub const OPAQUE_WIN32_BIT_KHR = OPAQUE_WIN32_BIT;
-    pub const OPAQUE_WIN32_KMT_BIT_KHR = OPAQUE_WIN32_KMT_BIT;
-    pub const SYNC_FD_BIT_KHR = SYNC_FD_BIT;
+    const Self = @This();
+    pub const opaqueFdKHR = Self{ .opaqueFd = true };
+    pub const opaqueWin32KHR = Self{ .opaqueWin32 = true };
+    pub const opaqueWin32KmtKHR = Self{ .opaqueWin32Kmt = true };
+    pub const d3D11TextureKHR = Self{ .d3D11Texture = true };
+    pub const d3D11TextureKmtKHR = Self{ .d3D11TextureKmt = true };
+    pub const d3D12HeapKHR = Self{ .d3D12Heap = true };
+    pub const d3D12ResourceKHR = Self{ .d3D12Resource = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const ExternalFenceFeatureFlags = Flags;
-pub const ExternalFenceFeatureFlagBits = struct {
-    pub const EXPORTABLE_BIT: ExternalFenceFeatureFlags = 0x00000001;
-    pub const IMPORTABLE_BIT: ExternalFenceFeatureFlags = 0x00000002;
+pub const ExternalMemoryFeatureFlags = packed struct {
+    dedicatedOnly: bool = false,
+    exportable: bool = false,
+    importable: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const EXPORTABLE_BIT_KHR = EXPORTABLE_BIT;
-    pub const IMPORTABLE_BIT_KHR = IMPORTABLE_BIT;
+    const Self = @This();
+    pub const dedicatedOnlyKHR = Self{ .dedicatedOnly = true };
+    pub const exportableKHR = Self{ .exportable = true };
+    pub const importableKHR = Self{ .importable = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const FenceImportFlags = Flags;
-pub const FenceImportFlagBits = struct {
-    pub const TEMPORARY_BIT: FenceImportFlags = 0x00000001;
+pub const ExternalFenceHandleTypeFlags = packed struct {
+    opaqueFd: bool = false,
+    opaqueWin32: bool = false,
+    opaqueWin32Kmt: bool = false,
+    syncFd: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const TEMPORARY_BIT_KHR = TEMPORARY_BIT;
+    const Self = @This();
+    pub const opaqueFdKHR = Self{ .opaqueFd = true };
+    pub const opaqueWin32KHR = Self{ .opaqueWin32 = true };
+    pub const opaqueWin32KmtKHR = Self{ .opaqueWin32Kmt = true };
+    pub const syncFdKHR = Self{ .syncFd = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const SemaphoreImportFlags = Flags;
-pub const SemaphoreImportFlagBits = struct {
-    pub const TEMPORARY_BIT: SemaphoreImportFlags = 0x00000001;
+pub const ExternalFenceFeatureFlags = packed struct {
+    exportable: bool = false,
+    importable: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const TEMPORARY_BIT_KHR = TEMPORARY_BIT;
+    const Self = @This();
+    pub const exportableKHR = Self{ .exportable = true };
+    pub const importableKHR = Self{ .importable = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const ExternalSemaphoreHandleTypeFlags = Flags;
-pub const ExternalSemaphoreHandleTypeFlagBits = struct {
-    pub const OPAQUE_FD_BIT: ExternalSemaphoreHandleTypeFlags = 0x00000001;
-    pub const OPAQUE_WIN32_BIT: ExternalSemaphoreHandleTypeFlags = 0x00000002;
-    pub const OPAQUE_WIN32_KMT_BIT: ExternalSemaphoreHandleTypeFlags = 0x00000004;
-    pub const D3D12_FENCE_BIT: ExternalSemaphoreHandleTypeFlags = 0x00000008;
-    pub const SYNC_FD_BIT: ExternalSemaphoreHandleTypeFlags = 0x00000010;
+pub const FenceImportFlags = packed struct {
+    temporary: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const OPAQUE_FD_BIT_KHR = OPAQUE_FD_BIT;
-    pub const OPAQUE_WIN32_BIT_KHR = OPAQUE_WIN32_BIT;
-    pub const OPAQUE_WIN32_KMT_BIT_KHR = OPAQUE_WIN32_KMT_BIT;
-    pub const D3D12_FENCE_BIT_KHR = D3D12_FENCE_BIT;
-    pub const SYNC_FD_BIT_KHR = SYNC_FD_BIT;
+    const Self = @This();
+    pub const temporaryKHR = Self{ .temporary = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const ExternalSemaphoreFeatureFlags = Flags;
-pub const ExternalSemaphoreFeatureFlagBits = struct {
-    pub const EXPORTABLE_BIT: ExternalSemaphoreFeatureFlags = 0x00000001;
-    pub const IMPORTABLE_BIT: ExternalSemaphoreFeatureFlags = 0x00000002;
+pub const SemaphoreImportFlags = packed struct {
+    temporary: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const EXPORTABLE_BIT_KHR = EXPORTABLE_BIT;
-    pub const IMPORTABLE_BIT_KHR = IMPORTABLE_BIT;
+    const Self = @This();
+    pub const temporaryKHR = Self{ .temporary = true };
+
+    pub usingnamespace FlagsMixin(Self);
+};
+
+pub const ExternalSemaphoreHandleTypeFlags = packed struct {
+    opaqueFd: bool = false,
+    opaqueWin32: bool = false,
+    opaqueWin32Kmt: bool = false,
+    d3D12Fence: bool = false,
+    syncFd: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const opaqueFdKHR = Self{ .opaqueFd = true };
+    pub const opaqueWin32KHR = Self{ .opaqueWin32 = true };
+    pub const opaqueWin32KmtKHR = Self{ .opaqueWin32Kmt = true };
+    pub const d3D12FenceKHR = Self{ .d3D12Fence = true };
+    pub const syncFdKHR = Self{ .syncFd = true };
+
+    pub usingnamespace FlagsMixin(Self);
+};
+
+pub const ExternalSemaphoreFeatureFlags = packed struct {
+    exportable: bool = false,
+    importable: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const exportableKHR = Self{ .exportable = true };
+    pub const importableKHR = Self{ .importable = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
 pub const PhysicalDeviceSubgroupProperties = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SUBGROUP_PROPERTIES,
     pNext: ?*c_void = null,
     subgroupSize: u32,
-    supportedStages: ShaderStageFlags,
-    supportedOperations: SubgroupFeatureFlags,
+    supportedStages: ShaderStageFlags align(4),
+    supportedOperations: SubgroupFeatureFlags align(4),
     quadOperationsInAllStages: Bool32,
 };
 
@@ -5211,7 +6708,7 @@ pub const MemoryDedicatedAllocateInfo = extern struct {
 pub const MemoryAllocateFlagsInfo = extern struct {
     sType: StructureType = .MEMORY_ALLOCATE_FLAGS_INFO,
     pNext: ?*const c_void = null,
-    flags: MemoryAllocateFlags = 0,
+    flags: MemoryAllocateFlags align(4) = MemoryAllocateFlags{},
     deviceMask: u32,
 };
 
@@ -5340,8 +6837,8 @@ pub const PhysicalDeviceImageFormatInfo2 = extern struct {
     format: Format,
     inType: ImageType,
     tiling: ImageTiling,
-    usage: ImageUsageFlags,
-    flags: ImageCreateFlags = 0,
+    usage: ImageUsageFlags align(4),
+    flags: ImageCreateFlags align(4) = ImageCreateFlags{},
 };
 
 pub const QueueFamilyProperties2 = extern struct {
@@ -5367,8 +6864,8 @@ pub const PhysicalDeviceSparseImageFormatInfo2 = extern struct {
     pNext: ?*const c_void = null,
     format: Format,
     inType: ImageType,
-    samples: SampleCountFlags,
-    usage: ImageUsageFlags,
+    samples: SampleCountFlags align(4),
+    usage: ImageUsageFlags align(4),
     tiling: ImageTiling,
 };
 
@@ -5381,7 +6878,7 @@ pub const PhysicalDevicePointClippingProperties = extern struct {
 pub const InputAttachmentAspectReference = extern struct {
     subpass: u32,
     inputAttachmentIndex: u32,
-    aspectMask: ImageAspectFlags,
+    aspectMask: ImageAspectFlags align(4),
 };
 
 pub const RenderPassInputAttachmentAspectCreateInfo = extern struct {
@@ -5394,7 +6891,7 @@ pub const RenderPassInputAttachmentAspectCreateInfo = extern struct {
 pub const ImageViewUsageCreateInfo = extern struct {
     sType: StructureType = .IMAGE_VIEW_USAGE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    usage: ImageUsageFlags,
+    usage: ImageUsageFlags align(4),
 };
 
 pub const PipelineTessellationDomainOriginStateCreateInfo = extern struct {
@@ -5453,7 +6950,7 @@ pub const PhysicalDeviceProtectedMemoryProperties = extern struct {
 pub const DeviceQueueInfo2 = extern struct {
     sType: StructureType = .DEVICE_QUEUE_INFO_2,
     pNext: ?*const c_void = null,
-    flags: DeviceQueueCreateFlags = 0,
+    flags: DeviceQueueCreateFlags align(4) = DeviceQueueCreateFlags{},
     queueFamilyIndex: u32,
     queueIndex: u32,
 };
@@ -5486,13 +6983,13 @@ pub const SamplerYcbcrConversionInfo = extern struct {
 pub const BindImagePlaneMemoryInfo = extern struct {
     sType: StructureType = .BIND_IMAGE_PLANE_MEMORY_INFO,
     pNext: ?*const c_void = null,
-    planeAspect: ImageAspectFlags,
+    planeAspect: ImageAspectFlags align(4),
 };
 
 pub const ImagePlaneMemoryRequirementsInfo = extern struct {
     sType: StructureType = .IMAGE_PLANE_MEMORY_REQUIREMENTS_INFO,
     pNext: ?*const c_void = null,
-    planeAspect: ImageAspectFlags,
+    planeAspect: ImageAspectFlags align(4),
 };
 
 pub const PhysicalDeviceSamplerYcbcrConversionFeatures = extern struct {
@@ -5519,7 +7016,7 @@ pub const DescriptorUpdateTemplateEntry = extern struct {
 pub const DescriptorUpdateTemplateCreateInfo = extern struct {
     sType: StructureType = .DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    flags: DescriptorUpdateTemplateCreateFlags = 0,
+    flags: DescriptorUpdateTemplateCreateFlags align(4) = DescriptorUpdateTemplateCreateFlags{},
     descriptorUpdateEntryCount: u32,
     pDescriptorUpdateEntries: [*]const DescriptorUpdateTemplateEntry,
     templateType: DescriptorUpdateTemplateType,
@@ -5530,15 +7027,15 @@ pub const DescriptorUpdateTemplateCreateInfo = extern struct {
 };
 
 pub const ExternalMemoryProperties = extern struct {
-    externalMemoryFeatures: ExternalMemoryFeatureFlags,
-    exportFromImportedHandleTypes: ExternalMemoryHandleTypeFlags = 0,
-    compatibleHandleTypes: ExternalMemoryHandleTypeFlags,
+    externalMemoryFeatures: ExternalMemoryFeatureFlags align(4),
+    exportFromImportedHandleTypes: ExternalMemoryHandleTypeFlags align(4) = ExternalMemoryHandleTypeFlags{},
+    compatibleHandleTypes: ExternalMemoryHandleTypeFlags align(4),
 };
 
 pub const PhysicalDeviceExternalImageFormatInfo = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,
     pNext: ?*const c_void = null,
-    handleType: ExternalMemoryHandleTypeFlags = 0,
+    handleType: ExternalMemoryHandleTypeFlags align(4) = ExternalMemoryHandleTypeFlags{},
 };
 
 pub const ExternalImageFormatProperties = extern struct {
@@ -5550,9 +7047,9 @@ pub const ExternalImageFormatProperties = extern struct {
 pub const PhysicalDeviceExternalBufferInfo = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_EXTERNAL_BUFFER_INFO,
     pNext: ?*const c_void = null,
-    flags: BufferCreateFlags = 0,
-    usage: BufferUsageFlags,
-    handleType: ExternalMemoryHandleTypeFlags,
+    flags: BufferCreateFlags align(4) = BufferCreateFlags{},
+    usage: BufferUsageFlags align(4),
+    handleType: ExternalMemoryHandleTypeFlags align(4),
 };
 
 pub const ExternalBufferProperties = extern struct {
@@ -5574,59 +7071,59 @@ pub const PhysicalDeviceIDProperties = extern struct {
 pub const ExternalMemoryImageCreateInfo = extern struct {
     sType: StructureType = .EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    handleTypes: ExternalMemoryHandleTypeFlags,
+    handleTypes: ExternalMemoryHandleTypeFlags align(4),
 };
 
 pub const ExternalMemoryBufferCreateInfo = extern struct {
     sType: StructureType = .EXTERNAL_MEMORY_BUFFER_CREATE_INFO,
     pNext: ?*const c_void = null,
-    handleTypes: ExternalMemoryHandleTypeFlags = 0,
+    handleTypes: ExternalMemoryHandleTypeFlags align(4) = ExternalMemoryHandleTypeFlags{},
 };
 
 pub const ExportMemoryAllocateInfo = extern struct {
     sType: StructureType = .EXPORT_MEMORY_ALLOCATE_INFO,
     pNext: ?*const c_void = null,
-    handleTypes: ExternalMemoryHandleTypeFlags = 0,
+    handleTypes: ExternalMemoryHandleTypeFlags align(4) = ExternalMemoryHandleTypeFlags{},
 };
 
 pub const PhysicalDeviceExternalFenceInfo = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO,
     pNext: ?*const c_void = null,
-    handleType: ExternalFenceHandleTypeFlags,
+    handleType: ExternalFenceHandleTypeFlags align(4),
 };
 
 pub const ExternalFenceProperties = extern struct {
     sType: StructureType = .EXTERNAL_FENCE_PROPERTIES,
     pNext: ?*c_void = null,
-    exportFromImportedHandleTypes: ExternalFenceHandleTypeFlags,
-    compatibleHandleTypes: ExternalFenceHandleTypeFlags,
-    externalFenceFeatures: ExternalFenceFeatureFlags = 0,
+    exportFromImportedHandleTypes: ExternalFenceHandleTypeFlags align(4),
+    compatibleHandleTypes: ExternalFenceHandleTypeFlags align(4),
+    externalFenceFeatures: ExternalFenceFeatureFlags align(4) = ExternalFenceFeatureFlags{},
 };
 
 pub const ExportFenceCreateInfo = extern struct {
     sType: StructureType = .EXPORT_FENCE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    handleTypes: ExternalFenceHandleTypeFlags = 0,
+    handleTypes: ExternalFenceHandleTypeFlags align(4) = ExternalFenceHandleTypeFlags{},
 };
 
 pub const ExportSemaphoreCreateInfo = extern struct {
     sType: StructureType = .EXPORT_SEMAPHORE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    handleTypes: ExternalSemaphoreHandleTypeFlags = 0,
+    handleTypes: ExternalSemaphoreHandleTypeFlags align(4) = ExternalSemaphoreHandleTypeFlags{},
 };
 
 pub const PhysicalDeviceExternalSemaphoreInfo = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO,
     pNext: ?*const c_void = null,
-    handleType: ExternalSemaphoreHandleTypeFlags,
+    handleType: ExternalSemaphoreHandleTypeFlags align(4),
 };
 
 pub const ExternalSemaphoreProperties = extern struct {
     sType: StructureType = .EXTERNAL_SEMAPHORE_PROPERTIES,
     pNext: ?*c_void = null,
-    exportFromImportedHandleTypes: ExternalSemaphoreHandleTypeFlags,
-    compatibleHandleTypes: ExternalSemaphoreHandleTypeFlags,
-    externalSemaphoreFeatures: ExternalSemaphoreFeatureFlags = 0,
+    exportFromImportedHandleTypes: ExternalSemaphoreHandleTypeFlags align(4),
+    compatibleHandleTypes: ExternalSemaphoreHandleTypeFlags align(4),
+    externalSemaphoreFeatures: ExternalSemaphoreFeatureFlags align(4) = ExternalSemaphoreFeatureFlags{},
 };
 
 pub const PhysicalDeviceMaintenance3Properties = extern struct {
@@ -5669,7 +7166,7 @@ pub extern fn vkGetDeviceGroupPeerMemoryFeatures(
     heapIndex: u32,
     localDeviceIndex: u32,
     remoteDeviceIndex: u32,
-    pPeerMemoryFeatures: *PeerMemoryFeatureFlags,
+    pPeerMemoryFeatures: *align(4) PeerMemoryFeatureFlags,
 ) void;
 
 pub extern fn vkCmdSetDeviceMask(
@@ -5854,7 +7351,7 @@ pub inline fn BindImageMemory2(device: Device, bindInfos: []const BindImageMemor
 }
 
 pub inline fn GetDeviceGroupPeerMemoryFeatures(device: Device, heapIndex: u32, localDeviceIndex: u32, remoteDeviceIndex: u32) PeerMemoryFeatureFlags {
-    var out_peerMemoryFeatures: PeerMemoryFeatureFlags = undefined;
+    var out_peerMemoryFeatures: PeerMemoryFeatureFlags align(4) = undefined;
     vkGetDeviceGroupPeerMemoryFeatures(device, heapIndex, localDeviceIndex, remoteDeviceIndex, &out_peerMemoryFeatures);
     return out_peerMemoryFeatures;
 }
@@ -6058,7 +7555,7 @@ pub const DeviceAddress = u64;
 pub const MAX_DRIVER_NAME_SIZE = 256;
 pub const MAX_DRIVER_INFO_SIZE = 256;
 
-pub const DriverId = extern enum {
+pub const DriverId = extern enum(i32) {
     AMD_PROPRIETARY = 1,
     AMD_OPEN_SOURCE = 2,
     MESA_RADV = 3,
@@ -6071,6 +7568,7 @@ pub const DriverId = extern enum {
     GOOGLE_SWIFTSHADER = 10,
     GGP_PROPRIETARY = 11,
     BROADCOM_PROPRIETARY = 12,
+    _,
 
     const Self = @This();
     pub const AMD_PROPRIETARY_KHR = Self.AMD_PROPRIETARY;
@@ -6087,10 +7585,11 @@ pub const DriverId = extern enum {
     pub const BROADCOM_PROPRIETARY_KHR = Self.BROADCOM_PROPRIETARY;
 };
 
-pub const ShaderFloatControlsIndependence = extern enum {
+pub const ShaderFloatControlsIndependence = extern enum(i32) {
     T_32_BIT_ONLY = 0,
     ALL = 1,
     NONE = 2,
+    _,
 
     const Self = @This();
     pub const T_32_BIT_ONLY_KHR = Self.T_32_BIT_ONLY;
@@ -6098,10 +7597,11 @@ pub const ShaderFloatControlsIndependence = extern enum {
     pub const NONE_KHR = Self.NONE;
 };
 
-pub const SamplerReductionMode = extern enum {
+pub const SamplerReductionMode = extern enum(i32) {
     WEIGHTED_AVERAGE = 0,
     MIN = 1,
     MAX = 2,
+    _,
 
     const Self = @This();
     pub const WEIGHTED_AVERAGE_EXT = Self.WEIGHTED_AVERAGE;
@@ -6109,48 +7609,142 @@ pub const SamplerReductionMode = extern enum {
     pub const MAX_EXT = Self.MAX;
 };
 
-pub const SemaphoreType = extern enum {
+pub const SemaphoreType = extern enum(i32) {
     BINARY = 0,
     TIMELINE = 1,
+    _,
 
     const Self = @This();
     pub const BINARY_KHR = Self.BINARY;
     pub const TIMELINE_KHR = Self.TIMELINE;
 };
 
-pub const ResolveModeFlags = Flags;
-pub const ResolveModeFlagBits = struct {
-    pub const NONE: ResolveModeFlags = 0;
-    pub const SAMPLE_ZERO_BIT: ResolveModeFlags = 0x00000001;
-    pub const AVERAGE_BIT: ResolveModeFlags = 0x00000002;
-    pub const MIN_BIT: ResolveModeFlags = 0x00000004;
-    pub const MAX_BIT: ResolveModeFlags = 0x00000008;
+pub const ResolveModeFlags = packed struct {
+    sampleZero: bool = false,
+    average: bool = false,
+    min: bool = false,
+    max: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const NONE_KHR = NONE;
-    pub const SAMPLE_ZERO_BIT_KHR = SAMPLE_ZERO_BIT;
-    pub const AVERAGE_BIT_KHR = AVERAGE_BIT;
-    pub const MIN_BIT_KHR = MIN_BIT;
-    pub const MAX_BIT_KHR = MAX_BIT;
+    const Self = @This();
+    pub const none = fromInt(0);
+    pub const noneKhr = Self{ .none = true };
+    pub const sampleZeroKHR = Self{ .sampleZero = true };
+    pub const averageKHR = Self{ .average = true };
+    pub const minKHR = Self{ .min = true };
+    pub const maxKHR = Self{ .max = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const DescriptorBindingFlags = Flags;
-pub const DescriptorBindingFlagBits = struct {
-    pub const UPDATE_AFTER_BIND_BIT: DescriptorBindingFlags = 0x00000001;
-    pub const UPDATE_UNUSED_WHILE_PENDING_BIT: DescriptorBindingFlags = 0x00000002;
-    pub const PARTIALLY_BOUND_BIT: DescriptorBindingFlags = 0x00000004;
-    pub const VARIABLE_DESCRIPTOR_COUNT_BIT: DescriptorBindingFlags = 0x00000008;
+pub const DescriptorBindingFlags = packed struct {
+    updateAfterBind: bool = false,
+    updateUnusedWhilePending: bool = false,
+    partiallyBound: bool = false,
+    variableDescriptorCount: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const UPDATE_AFTER_BIND_BIT_EXT = UPDATE_AFTER_BIND_BIT;
-    pub const UPDATE_UNUSED_WHILE_PENDING_BIT_EXT = UPDATE_UNUSED_WHILE_PENDING_BIT;
-    pub const PARTIALLY_BOUND_BIT_EXT = PARTIALLY_BOUND_BIT;
-    pub const VARIABLE_DESCRIPTOR_COUNT_BIT_EXT = VARIABLE_DESCRIPTOR_COUNT_BIT;
+    const Self = @This();
+    pub const updateAfterBindEXT = Self{ .updateAfterBind = true };
+    pub const updateUnusedWhilePendingEXT = Self{ .updateUnusedWhilePending = true };
+    pub const partiallyBoundEXT = Self{ .partiallyBound = true };
+    pub const variableDescriptorCountEXT = Self{ .variableDescriptorCount = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const SemaphoreWaitFlags = Flags;
-pub const SemaphoreWaitFlagBits = struct {
-    pub const ANY_BIT: SemaphoreWaitFlags = 0x00000001;
+pub const SemaphoreWaitFlags = packed struct {
+    any: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
 
-    pub const ANY_BIT_KHR = ANY_BIT;
+    const Self = @This();
+    pub const anyKHR = Self{ .any = true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
 pub const PhysicalDeviceVulkan11Features = extern struct {
@@ -6179,8 +7773,8 @@ pub const PhysicalDeviceVulkan11Properties = extern struct {
     deviceNodeMask: u32,
     deviceLUIDValid: Bool32,
     subgroupSize: u32,
-    subgroupSupportedStages: ShaderStageFlags,
-    subgroupSupportedOperations: SubgroupFeatureFlags,
+    subgroupSupportedStages: ShaderStageFlags align(4),
+    subgroupSupportedOperations: SubgroupFeatureFlags align(4),
     subgroupQuadOperationsInAllStages: Bool32,
     pointClippingBehavior: PointClippingBehavior,
     maxMultiviewViewCount: u32,
@@ -6253,8 +7847,8 @@ pub const PhysicalDeviceVulkan12Properties = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES,
     pNext: ?*c_void = null,
     driverID: DriverId,
-    driverName: [MAX_DRIVER_NAME_SIZE]u8,
-    driverInfo: [MAX_DRIVER_INFO_SIZE]u8,
+    driverName: [MAX_DRIVER_NAME_SIZE-1:0]u8,
+    driverInfo: [MAX_DRIVER_INFO_SIZE-1:0]u8,
     conformanceVersion: ConformanceVersion,
     denormBehaviorIndependence: ShaderFloatControlsIndependence,
     roundingModeIndependence: ShaderFloatControlsIndependence,
@@ -6296,14 +7890,14 @@ pub const PhysicalDeviceVulkan12Properties = extern struct {
     maxDescriptorSetUpdateAfterBindSampledImages: u32,
     maxDescriptorSetUpdateAfterBindStorageImages: u32,
     maxDescriptorSetUpdateAfterBindInputAttachments: u32,
-    supportedDepthResolveModes: ResolveModeFlags,
-    supportedStencilResolveModes: ResolveModeFlags,
+    supportedDepthResolveModes: ResolveModeFlags align(4),
+    supportedStencilResolveModes: ResolveModeFlags align(4),
     independentResolveNone: Bool32,
     independentResolve: Bool32,
     filterMinmaxSingleComponentFormats: Bool32,
     filterMinmaxImageComponentMapping: Bool32,
     maxTimelineSemaphoreValueDifference: u64,
-    framebufferIntegerColorSampleCounts: SampleCountFlags = 0,
+    framebufferIntegerColorSampleCounts: SampleCountFlags align(4) = SampleCountFlags{},
 };
 
 pub const ImageFormatListCreateInfo = extern struct {
@@ -6316,9 +7910,9 @@ pub const ImageFormatListCreateInfo = extern struct {
 pub const AttachmentDescription2 = extern struct {
     sType: StructureType = .ATTACHMENT_DESCRIPTION_2,
     pNext: ?*const c_void = null,
-    flags: AttachmentDescriptionFlags = 0,
+    flags: AttachmentDescriptionFlags align(4) = AttachmentDescriptionFlags{},
     format: Format,
-    samples: SampleCountFlags,
+    samples: SampleCountFlags align(4),
     loadOp: AttachmentLoadOp,
     storeOp: AttachmentStoreOp,
     stencilLoadOp: AttachmentLoadOp,
@@ -6332,13 +7926,13 @@ pub const AttachmentReference2 = extern struct {
     pNext: ?*const c_void = null,
     attachment: u32,
     layout: ImageLayout,
-    aspectMask: ImageAspectFlags,
+    aspectMask: ImageAspectFlags align(4),
 };
 
 pub const SubpassDescription2 = extern struct {
     sType: StructureType = .SUBPASS_DESCRIPTION_2,
     pNext: ?*const c_void = null,
-    flags: SubpassDescriptionFlags = 0,
+    flags: SubpassDescriptionFlags align(4) = SubpassDescriptionFlags{},
     pipelineBindPoint: PipelineBindPoint,
     viewMask: u32,
     inputAttachmentCount: u32 = 0,
@@ -6356,18 +7950,18 @@ pub const SubpassDependency2 = extern struct {
     pNext: ?*const c_void = null,
     srcSubpass: u32,
     dstSubpass: u32,
-    srcStageMask: PipelineStageFlags,
-    dstStageMask: PipelineStageFlags,
-    srcAccessMask: AccessFlags = 0,
-    dstAccessMask: AccessFlags = 0,
-    dependencyFlags: DependencyFlags = 0,
+    srcStageMask: PipelineStageFlags align(4),
+    dstStageMask: PipelineStageFlags align(4),
+    srcAccessMask: AccessFlags align(4) = AccessFlags{},
+    dstAccessMask: AccessFlags align(4) = AccessFlags{},
+    dependencyFlags: DependencyFlags align(4) = DependencyFlags{},
     viewOffset: i32 = 0,
 };
 
 pub const RenderPassCreateInfo2 = extern struct {
     sType: StructureType = .RENDER_PASS_CREATE_INFO_2,
     pNext: ?*const c_void = null,
-    flags: RenderPassCreateFlags = 0,
+    flags: RenderPassCreateFlags align(4) = RenderPassCreateFlags{},
     attachmentCount: u32 = 0,
     pAttachments: [*]const AttachmentDescription2 = undefined,
     subpassCount: u32,
@@ -6401,8 +7995,8 @@ pub const PhysicalDeviceDriverProperties = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_DRIVER_PROPERTIES,
     pNext: ?*c_void = null,
     driverID: DriverId,
-    driverName: [MAX_DRIVER_NAME_SIZE]u8,
-    driverInfo: [MAX_DRIVER_INFO_SIZE]u8,
+    driverName: [MAX_DRIVER_NAME_SIZE-1:0]u8,
+    driverInfo: [MAX_DRIVER_INFO_SIZE-1:0]u8,
     conformanceVersion: ConformanceVersion,
 };
 
@@ -6446,7 +8040,7 @@ pub const DescriptorSetLayoutBindingFlagsCreateInfo = extern struct {
     sType: StructureType = .DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
     pNext: ?*const c_void = null,
     bindingCount: u32 = 0,
-    pBindingFlags: ?[*]const DescriptorBindingFlags = null,
+    pBindingFlags: ?[*]align(4) const DescriptorBindingFlags = null,
 };
 
 pub const PhysicalDeviceDescriptorIndexingFeatures = extern struct {
@@ -6518,16 +8112,16 @@ pub const DescriptorSetVariableDescriptorCountLayoutSupport = extern struct {
 pub const SubpassDescriptionDepthStencilResolve = extern struct {
     sType: StructureType = .SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE,
     pNext: ?*const c_void = null,
-    depthResolveMode: ResolveModeFlags,
-    stencilResolveMode: ResolveModeFlags,
+    depthResolveMode: ResolveModeFlags align(4),
+    stencilResolveMode: ResolveModeFlags align(4),
     pDepthStencilResolveAttachment: ?*const AttachmentReference2 = null,
 };
 
 pub const PhysicalDeviceDepthStencilResolveProperties = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES,
     pNext: ?*c_void = null,
-    supportedDepthResolveModes: ResolveModeFlags,
-    supportedStencilResolveModes: ResolveModeFlags,
+    supportedDepthResolveModes: ResolveModeFlags align(4),
+    supportedStencilResolveModes: ResolveModeFlags align(4),
     independentResolveNone: Bool32,
     independentResolve: Bool32,
 };
@@ -6541,7 +8135,7 @@ pub const PhysicalDeviceScalarBlockLayoutFeatures = extern struct {
 pub const ImageStencilUsageCreateInfo = extern struct {
     sType: StructureType = .IMAGE_STENCIL_USAGE_CREATE_INFO,
     pNext: ?*const c_void = null,
-    stencilUsage: ImageUsageFlags,
+    stencilUsage: ImageUsageFlags align(4),
 };
 
 pub const SamplerReductionModeCreateInfo = extern struct {
@@ -6574,8 +8168,8 @@ pub const PhysicalDeviceImagelessFramebufferFeatures = extern struct {
 pub const FramebufferAttachmentImageInfo = extern struct {
     sType: StructureType = .FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
     pNext: ?*const c_void = null,
-    flags: ImageCreateFlags = 0,
-    usage: ImageUsageFlags,
+    flags: ImageCreateFlags align(4) = ImageCreateFlags{},
+    usage: ImageUsageFlags align(4),
     width: u32,
     height: u32,
     layerCount: u32,
@@ -6665,7 +8259,7 @@ pub const TimelineSemaphoreSubmitInfo = extern struct {
 pub const SemaphoreWaitInfo = extern struct {
     sType: StructureType = .SEMAPHORE_WAIT_INFO,
     pNext: ?*const c_void = null,
-    flags: SemaphoreWaitFlags = 0,
+    flags: SemaphoreWaitFlags align(4) = SemaphoreWaitFlags{},
     semaphoreCount: u32,
     pSemaphores: [*]const Semaphore,
     pValues: [*]const u64,
@@ -6881,9 +8475,9 @@ pub const KHR_surface = 1;
 pub const SurfaceKHR = *@OpaqueType();
 
 pub const KHR_SURFACE_SPEC_VERSION = 25;
-pub const KHR_SURFACE_EXTENSION_NAME = c"VK_KHR_surface";
+pub const KHR_SURFACE_EXTENSION_NAME = "VK_KHR_surface";
 
-pub const ColorSpaceKHR = extern enum {
+pub const ColorSpaceKHR = extern enum(i32) {
     SRGB_NONLINEAR = 0,
     DISPLAY_P3_NONLINEAR_EXT = 1000104001,
     EXTENDED_SRGB_LINEAR_EXT = 1000104002,
@@ -6900,40 +8494,95 @@ pub const ColorSpaceKHR = extern enum {
     PASS_THROUGH_EXT = 1000104013,
     EXTENDED_SRGB_NONLINEAR_EXT = 1000104014,
     DISPLAY_NATIVE_AMD = 1000213000,
+    _,
 
     const Self = @This();
     pub const COLORSPACE_SRGB_NONLINEAR = Self.SRGB_NONLINEAR;
     pub const DCI_P3_LINEAR_EXT = Self.DISPLAY_P3_LINEAR_EXT;
 };
 
-pub const PresentModeKHR = extern enum {
+pub const PresentModeKHR = extern enum(i32) {
     IMMEDIATE = 0,
     MAILBOX = 1,
     FIFO = 2,
     FIFO_RELAXED = 3,
     SHARED_DEMAND_REFRESH = 1000111000,
     SHARED_CONTINUOUS_REFRESH = 1000111001,
+    _,
 };
 
-pub const SurfaceTransformFlagsKHR = Flags;
-pub const SurfaceTransformFlagBitsKHR = struct {
-    pub const IDENTITY_BIT: SurfaceTransformFlagsKHR = 0x00000001;
-    pub const ROTATE_90_BIT: SurfaceTransformFlagsKHR = 0x00000002;
-    pub const ROTATE_180_BIT: SurfaceTransformFlagsKHR = 0x00000004;
-    pub const ROTATE_270_BIT: SurfaceTransformFlagsKHR = 0x00000008;
-    pub const HORIZONTAL_MIRROR_BIT: SurfaceTransformFlagsKHR = 0x00000010;
-    pub const HORIZONTAL_MIRROR_ROTATE_90_BIT: SurfaceTransformFlagsKHR = 0x00000020;
-    pub const HORIZONTAL_MIRROR_ROTATE_180_BIT: SurfaceTransformFlagsKHR = 0x00000040;
-    pub const HORIZONTAL_MIRROR_ROTATE_270_BIT: SurfaceTransformFlagsKHR = 0x00000080;
-    pub const INHERIT_BIT: SurfaceTransformFlagsKHR = 0x00000100;
+pub const SurfaceTransformFlagsKHR = packed struct {
+    identity: bool = false,
+    rotate90: bool = false,
+    rotate180: bool = false,
+    rotate270: bool = false,
+    horizontalMirror: bool = false,
+    horizontalMirrorRotate90: bool = false,
+    horizontalMirrorRotate180: bool = false,
+    horizontalMirrorRotate270: bool = false,
+    inherit: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const CompositeAlphaFlagsKHR = Flags;
-pub const CompositeAlphaFlagBitsKHR = struct {
-    pub const OPAQUE_BIT: CompositeAlphaFlagsKHR = 0x00000001;
-    pub const PRE_MULTIPLIED_BIT: CompositeAlphaFlagsKHR = 0x00000002;
-    pub const POST_MULTIPLIED_BIT: CompositeAlphaFlagsKHR = 0x00000004;
-    pub const INHERIT_BIT: CompositeAlphaFlagsKHR = 0x00000008;
+pub const CompositeAlphaFlagsKHR = packed struct {
+    opaque: bool = false,
+    preMultiplied: bool = false,
+    postMultiplied: bool = false,
+    inherit: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const SurfaceCapabilitiesKHR = extern struct {
@@ -6943,10 +8592,10 @@ pub const SurfaceCapabilitiesKHR = extern struct {
     minImageExtent: Extent2D,
     maxImageExtent: Extent2D,
     maxImageArrayLayers: u32,
-    supportedTransforms: SurfaceTransformFlagsKHR = 0,
-    currentTransform: SurfaceTransformFlagsKHR,
-    supportedCompositeAlpha: CompositeAlphaFlagsKHR = 0,
-    supportedUsageFlags: ImageUsageFlags = 0,
+    supportedTransforms: SurfaceTransformFlagsKHR align(4) = SurfaceTransformFlagsKHR{},
+    currentTransform: SurfaceTransformFlagsKHR align(4),
+    supportedCompositeAlpha: CompositeAlphaFlagsKHR align(4) = CompositeAlphaFlagsKHR{},
+    supportedUsageFlags: ImageUsageFlags align(4) = ImageUsageFlags{},
 };
 
 pub const SurfaceFormatKHR = extern struct {
@@ -7090,39 +8739,98 @@ pub const KHR_swapchain = 1;
 pub const SwapchainKHR = *@OpaqueType();
 
 pub const KHR_SWAPCHAIN_SPEC_VERSION = 70;
-pub const KHR_SWAPCHAIN_EXTENSION_NAME = c"VK_KHR_swapchain";
+pub const KHR_SWAPCHAIN_EXTENSION_NAME = "VK_KHR_swapchain";
 
-pub const SwapchainCreateFlagsKHR = Flags;
-pub const SwapchainCreateFlagBitsKHR = struct {
-    pub const SPLIT_INSTANCE_BIND_REGIONS_BIT: SwapchainCreateFlagsKHR = 0x00000001;
-    pub const PROTECTED_BIT: SwapchainCreateFlagsKHR = 0x00000002;
-    pub const MUTABLE_FORMAT_BIT: SwapchainCreateFlagsKHR = 0x00000004;
+pub const SwapchainCreateFlagsKHR = packed struct {
+    splitInstanceBindRegions: bool = false,
+    protected: bool = false,
+    mutableFormat: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const DeviceGroupPresentModeFlagsKHR = Flags;
-pub const DeviceGroupPresentModeFlagBitsKHR = struct {
-    pub const LOCAL_BIT: DeviceGroupPresentModeFlagsKHR = 0x00000001;
-    pub const REMOTE_BIT: DeviceGroupPresentModeFlagsKHR = 0x00000002;
-    pub const SUM_BIT: DeviceGroupPresentModeFlagsKHR = 0x00000004;
-    pub const LOCAL_MULTI_DEVICE_BIT: DeviceGroupPresentModeFlagsKHR = 0x00000008;
+pub const DeviceGroupPresentModeFlagsKHR = packed struct {
+    local: bool = false,
+    remote: bool = false,
+    sum: bool = false,
+    localMultiDevice: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const SwapchainCreateInfoKHR = extern struct {
     sType: StructureType = .SWAPCHAIN_CREATE_INFO_KHR,
     pNext: ?*const c_void = null,
-    flags: SwapchainCreateFlagsKHR = 0,
+    flags: SwapchainCreateFlagsKHR align(4) = SwapchainCreateFlagsKHR{},
     surface: SurfaceKHR,
     minImageCount: u32,
     imageFormat: Format,
     imageColorSpace: ColorSpaceKHR,
     imageExtent: Extent2D,
     imageArrayLayers: u32,
-    imageUsage: ImageUsageFlags,
+    imageUsage: ImageUsageFlags align(4),
     imageSharingMode: SharingMode,
     queueFamilyIndexCount: u32 = 0,
     pQueueFamilyIndices: [*]const u32 = undefined,
-    preTransform: SurfaceTransformFlagsKHR,
-    compositeAlpha: CompositeAlphaFlagsKHR,
+    preTransform: SurfaceTransformFlagsKHR align(4),
+    compositeAlpha: CompositeAlphaFlagsKHR align(4),
     presentMode: PresentModeKHR,
     clipped: Bool32,
     oldSwapchain: ?SwapchainKHR = null,
@@ -7166,7 +8874,7 @@ pub const DeviceGroupPresentCapabilitiesKHR = extern struct {
     sType: StructureType = .DEVICE_GROUP_PRESENT_CAPABILITIES_KHR,
     pNext: ?*const c_void = null,
     presentMask: [MAX_DEVICE_GROUP_SIZE]u32,
-    modes: DeviceGroupPresentModeFlagsKHR,
+    modes: DeviceGroupPresentModeFlagsKHR align(4),
 };
 
 pub const DeviceGroupPresentInfoKHR = extern struct {
@@ -7174,13 +8882,13 @@ pub const DeviceGroupPresentInfoKHR = extern struct {
     pNext: ?*const c_void = null,
     swapchainCount: u32 = 0,
     pDeviceMasks: [*]const u32 = undefined,
-    mode: DeviceGroupPresentModeFlagsKHR,
+    mode: DeviceGroupPresentModeFlagsKHR align(4),
 };
 
 pub const DeviceGroupSwapchainCreateInfoKHR = extern struct {
     sType: StructureType = .DEVICE_GROUP_SWAPCHAIN_CREATE_INFO_KHR,
     pNext: ?*const c_void = null,
-    modes: DeviceGroupPresentModeFlagsKHR,
+    modes: DeviceGroupPresentModeFlagsKHR align(4),
 };
 
 pub extern fn vkCreateSwapchainKHR(
@@ -7225,7 +8933,7 @@ pub extern fn vkGetDeviceGroupPresentCapabilitiesKHR(
 pub extern fn vkGetDeviceGroupSurfacePresentModesKHR(
     device: Device,
     surface: SurfaceKHR,
-    pModes: *DeviceGroupPresentModeFlagsKHR,
+    pModes: *align(4) DeviceGroupPresentModeFlagsKHR,
 ) Result;
 
 pub extern fn vkGetPhysicalDevicePresentRectanglesKHR(
@@ -7344,7 +9052,7 @@ pub inline fn GetDeviceGroupPresentCapabilitiesKHR(device: Device) error{VK_OUT_
 }
 
 pub inline fn GetDeviceGroupSurfacePresentModesKHR(device: Device, surface: SurfaceKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!DeviceGroupPresentModeFlagsKHR {
-    var out_modes: DeviceGroupPresentModeFlagsKHR = undefined;
+    var out_modes: DeviceGroupPresentModeFlagsKHR align(4) = undefined;
     const result = vkGetDeviceGroupSurfacePresentModesKHR(device, surface, &out_modes);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
@@ -7417,25 +9125,61 @@ pub const DisplayKHR = *@OpaqueType();
 pub const DisplayModeKHR = *@OpaqueType();
 
 pub const KHR_DISPLAY_SPEC_VERSION = 23;
-pub const KHR_DISPLAY_EXTENSION_NAME = c"VK_KHR_display";
+pub const KHR_DISPLAY_EXTENSION_NAME = "VK_KHR_display";
 
-pub const DisplayPlaneAlphaFlagsKHR = Flags;
-pub const DisplayPlaneAlphaFlagBitsKHR = struct {
-    pub const OPAQUE_BIT: DisplayPlaneAlphaFlagsKHR = 0x00000001;
-    pub const GLOBAL_BIT: DisplayPlaneAlphaFlagsKHR = 0x00000002;
-    pub const PER_PIXEL_BIT: DisplayPlaneAlphaFlagsKHR = 0x00000004;
-    pub const PER_PIXEL_PREMULTIPLIED_BIT: DisplayPlaneAlphaFlagsKHR = 0x00000008;
+pub const DisplayPlaneAlphaFlagsKHR = packed struct {
+    opaque: bool = false,
+    global: bool = false,
+    perPixel: bool = false,
+    perPixelPremultiplied: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const DisplayModeCreateFlagsKHR = Flags;
-pub const DisplaySurfaceCreateFlagsKHR = Flags;
+pub const DisplayModeCreateFlagsKHR = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const DisplaySurfaceCreateFlagsKHR = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const DisplayPropertiesKHR = extern struct {
     display: DisplayKHR,
     displayName: CString,
     physicalDimensions: Extent2D,
     physicalResolution: Extent2D,
-    supportedTransforms: SurfaceTransformFlagsKHR = 0,
+    supportedTransforms: SurfaceTransformFlagsKHR align(4) = SurfaceTransformFlagsKHR{},
     planeReorderPossible: Bool32,
     persistentContent: Bool32,
 };
@@ -7453,12 +9197,12 @@ pub const DisplayModePropertiesKHR = extern struct {
 pub const DisplayModeCreateInfoKHR = extern struct {
     sType: StructureType = .DISPLAY_MODE_CREATE_INFO_KHR,
     pNext: ?*const c_void = null,
-    flags: DisplayModeCreateFlagsKHR = 0,
+    flags: DisplayModeCreateFlagsKHR align(4) = DisplayModeCreateFlagsKHR{},
     parameters: DisplayModeParametersKHR,
 };
 
 pub const DisplayPlaneCapabilitiesKHR = extern struct {
-    supportedAlpha: DisplayPlaneAlphaFlagsKHR = 0,
+    supportedAlpha: DisplayPlaneAlphaFlagsKHR align(4) = DisplayPlaneAlphaFlagsKHR{},
     minSrcPosition: Offset2D,
     maxSrcPosition: Offset2D,
     minSrcExtent: Extent2D,
@@ -7477,13 +9221,13 @@ pub const DisplayPlanePropertiesKHR = extern struct {
 pub const DisplaySurfaceCreateInfoKHR = extern struct {
     sType: StructureType = .DISPLAY_SURFACE_CREATE_INFO_KHR,
     pNext: ?*const c_void = null,
-    flags: DisplaySurfaceCreateFlagsKHR = 0,
+    flags: DisplaySurfaceCreateFlagsKHR align(4) = DisplaySurfaceCreateFlagsKHR{},
     displayMode: DisplayModeKHR,
     planeIndex: u32,
     planeStackIndex: u32,
-    transform: SurfaceTransformFlagsKHR,
+    transform: SurfaceTransformFlagsKHR align(4),
     globalAlpha: f32,
-    alphaMode: DisplayPlaneAlphaFlagsKHR,
+    alphaMode: DisplayPlaneAlphaFlagsKHR align(4),
     imageExtent: Extent2D,
 };
 
@@ -7706,7 +9450,7 @@ pub inline fn CreateDisplayPlaneSurfaceKHR(instance: Instance, createInfo: Displ
 
 pub const KHR_display_swapchain = 1;
 pub const KHR_DISPLAY_SWAPCHAIN_SPEC_VERSION = 10;
-pub const KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME = c"VK_KHR_display_swapchain";
+pub const KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME = "VK_KHR_display_swapchain";
 
 pub const DisplayPresentInfoKHR = extern struct {
     sType: StructureType = .DISPLAY_PRESENT_INFO_KHR,
@@ -7742,12 +9486,12 @@ pub inline fn CreateSharedSwapchainsKHR(device: Device, createInfos: []const Swa
 
 pub const KHR_sampler_mirror_clamp_to_edge = 1;
 pub const KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION = 3;
-pub const KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME = c"VK_KHR_sampler_mirror_clamp_to_edge";
+pub const KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME = "VK_KHR_sampler_mirror_clamp_to_edge";
 
 
 pub const KHR_multiview = 1;
 pub const KHR_MULTIVIEW_SPEC_VERSION = 1;
-pub const KHR_MULTIVIEW_EXTENSION_NAME = c"VK_KHR_multiview";
+pub const KHR_MULTIVIEW_EXTENSION_NAME = "VK_KHR_multiview";
 
 pub const RenderPassMultiviewCreateInfoKHR = RenderPassMultiviewCreateInfo;
 pub const PhysicalDeviceMultiviewFeaturesKHR = PhysicalDeviceMultiviewFeatures;
@@ -7756,7 +9500,7 @@ pub const PhysicalDeviceMultiviewPropertiesKHR = PhysicalDeviceMultiviewProperti
 
 pub const KHR_get_physical_device_properties2 = 1;
 pub const KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_SPEC_VERSION = 2;
-pub const KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME = c"VK_KHR_get_physical_device_properties2";
+pub const KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME = "VK_KHR_get_physical_device_properties2";
 
 pub const PhysicalDeviceFeatures2KHR = PhysicalDeviceFeatures2;
 pub const PhysicalDeviceProperties2KHR = PhysicalDeviceProperties2;
@@ -7875,12 +9619,10 @@ pub inline fn GetPhysicalDeviceSparseImageFormatProperties2CountKHR(physicalDevi
 
 pub const KHR_device_group = 1;
 pub const KHR_DEVICE_GROUP_SPEC_VERSION = 4;
-pub const KHR_DEVICE_GROUP_EXTENSION_NAME = c"VK_KHR_device_group";
+pub const KHR_DEVICE_GROUP_EXTENSION_NAME = "VK_KHR_device_group";
 
 pub const PeerMemoryFeatureFlagsKHR = PeerMemoryFeatureFlags;
-pub const PeerMemoryFeatureFlagBitsKHR = PeerMemoryFeatureFlagBits;
 pub const MemoryAllocateFlagsKHR = MemoryAllocateFlags;
-pub const MemoryAllocateFlagBitsKHR = MemoryAllocateFlagBits;
 
 pub const MemoryAllocateFlagsInfoKHR = MemoryAllocateFlagsInfo;
 pub const DeviceGroupRenderPassBeginInfoKHR = DeviceGroupRenderPassBeginInfo;
@@ -7895,7 +9637,7 @@ pub extern fn vkGetDeviceGroupPeerMemoryFeaturesKHR(
     heapIndex: u32,
     localDeviceIndex: u32,
     remoteDeviceIndex: u32,
-    pPeerMemoryFeatures: *PeerMemoryFeatureFlags,
+    pPeerMemoryFeatures: *align(4) PeerMemoryFeatureFlags,
 ) void;
 
 pub extern fn vkCmdSetDeviceMaskKHR(
@@ -7914,7 +9656,7 @@ pub extern fn vkCmdDispatchBaseKHR(
 ) void;
 
 pub inline fn GetDeviceGroupPeerMemoryFeaturesKHR(device: Device, heapIndex: u32, localDeviceIndex: u32, remoteDeviceIndex: u32) PeerMemoryFeatureFlags {
-    var out_peerMemoryFeatures: PeerMemoryFeatureFlags = undefined;
+    var out_peerMemoryFeatures: PeerMemoryFeatureFlags align(4) = undefined;
     vkGetDeviceGroupPeerMemoryFeaturesKHR(device, heapIndex, localDeviceIndex, remoteDeviceIndex, &out_peerMemoryFeatures);
     return out_peerMemoryFeatures;
 }
@@ -7925,12 +9667,12 @@ pub const CmdDispatchBaseKHR = vkCmdDispatchBaseKHR;
 
 pub const KHR_shader_draw_parameters = 1;
 pub const KHR_SHADER_DRAW_PARAMETERS_SPEC_VERSION = 1;
-pub const KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME = c"VK_KHR_shader_draw_parameters";
+pub const KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME = "VK_KHR_shader_draw_parameters";
 
 
 pub const KHR_maintenance1 = 1;
 pub const KHR_MAINTENANCE1_SPEC_VERSION = 2;
-pub const KHR_MAINTENANCE1_EXTENSION_NAME = c"VK_KHR_maintenance1";
+pub const KHR_MAINTENANCE1_EXTENSION_NAME = "VK_KHR_maintenance1";
 
 pub const CommandPoolTrimFlagsKHR = CommandPoolTrimFlags;
 
@@ -7945,7 +9687,7 @@ pub const TrimCommandPoolKHR = vkTrimCommandPoolKHR;
 
 pub const KHR_device_group_creation = 1;
 pub const KHR_DEVICE_GROUP_CREATION_SPEC_VERSION = 1;
-pub const KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME = c"VK_KHR_device_group_creation";
+pub const KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME = "VK_KHR_device_group_creation";
 pub const MAX_DEVICE_GROUP_SIZE_KHR = MAX_DEVICE_GROUP_SIZE;
 
 pub const PhysicalDeviceGroupPropertiesKHR = PhysicalDeviceGroupProperties;
@@ -7994,13 +9736,11 @@ pub inline fn EnumeratePhysicalDeviceGroupsCountKHR(instance: Instance) error{VK
 
 pub const KHR_external_memory_capabilities = 1;
 pub const KHR_EXTERNAL_MEMORY_CAPABILITIES_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME = c"VK_KHR_external_memory_capabilities";
+pub const KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME = "VK_KHR_external_memory_capabilities";
 pub const LUID_SIZE_KHR = LUID_SIZE;
 
 pub const ExternalMemoryHandleTypeFlagsKHR = ExternalMemoryHandleTypeFlags;
-pub const ExternalMemoryHandleTypeFlagBitsKHR = ExternalMemoryHandleTypeFlagBits;
 pub const ExternalMemoryFeatureFlagsKHR = ExternalMemoryFeatureFlags;
-pub const ExternalMemoryFeatureFlagBitsKHR = ExternalMemoryFeatureFlagBits;
 
 pub const ExternalMemoryPropertiesKHR = ExternalMemoryProperties;
 pub const PhysicalDeviceExternalImageFormatInfoKHR = PhysicalDeviceExternalImageFormatInfo;
@@ -8024,7 +9764,7 @@ pub inline fn GetPhysicalDeviceExternalBufferPropertiesKHR(physicalDevice: Physi
 
 pub const KHR_external_memory = 1;
 pub const KHR_EXTERNAL_MEMORY_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_MEMORY_EXTENSION_NAME = c"VK_KHR_external_memory";
+pub const KHR_EXTERNAL_MEMORY_EXTENSION_NAME = "VK_KHR_external_memory";
 pub const QUEUE_FAMILY_EXTERNAL_KHR = QUEUE_FAMILY_EXTERNAL;
 
 pub const ExternalMemoryImageCreateInfoKHR = ExternalMemoryImageCreateInfo;
@@ -8034,12 +9774,12 @@ pub const ExportMemoryAllocateInfoKHR = ExportMemoryAllocateInfo;
 
 pub const KHR_external_memory_fd = 1;
 pub const KHR_EXTERNAL_MEMORY_FD_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME = c"VK_KHR_external_memory_fd";
+pub const KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME = "VK_KHR_external_memory_fd";
 
 pub const ImportMemoryFdInfoKHR = extern struct {
     sType: StructureType = .IMPORT_MEMORY_FD_INFO_KHR,
     pNext: ?*const c_void = null,
-    handleType: ExternalMemoryHandleTypeFlags = 0,
+    handleType: ExternalMemoryHandleTypeFlags align(4) = ExternalMemoryHandleTypeFlags{},
     fd: c_int,
 };
 
@@ -8053,7 +9793,7 @@ pub const MemoryGetFdInfoKHR = extern struct {
     sType: StructureType = .MEMORY_GET_FD_INFO_KHR,
     pNext: ?*const c_void = null,
     memory: DeviceMemory,
-    handleType: ExternalMemoryHandleTypeFlags,
+    handleType: ExternalMemoryHandleTypeFlags align(4),
 };
 
 pub extern fn vkGetMemoryFdKHR(
@@ -8097,12 +9837,10 @@ pub inline fn GetMemoryFdPropertiesKHR(device: Device, handleType: ExternalMemor
 
 pub const KHR_external_semaphore_capabilities = 1;
 pub const KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME = c"VK_KHR_external_semaphore_capabilities";
+pub const KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME = "VK_KHR_external_semaphore_capabilities";
 
 pub const ExternalSemaphoreHandleTypeFlagsKHR = ExternalSemaphoreHandleTypeFlags;
-pub const ExternalSemaphoreHandleTypeFlagBitsKHR = ExternalSemaphoreHandleTypeFlagBits;
 pub const ExternalSemaphoreFeatureFlagsKHR = ExternalSemaphoreFeatureFlags;
-pub const ExternalSemaphoreFeatureFlagBitsKHR = ExternalSemaphoreFeatureFlagBits;
 
 pub const PhysicalDeviceExternalSemaphoreInfoKHR = PhysicalDeviceExternalSemaphoreInfo;
 pub const ExternalSemaphorePropertiesKHR = ExternalSemaphoreProperties;
@@ -8122,24 +9860,23 @@ pub inline fn GetPhysicalDeviceExternalSemaphorePropertiesKHR(physicalDevice: Ph
 
 pub const KHR_external_semaphore = 1;
 pub const KHR_EXTERNAL_SEMAPHORE_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME = c"VK_KHR_external_semaphore";
+pub const KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME = "VK_KHR_external_semaphore";
 
 pub const SemaphoreImportFlagsKHR = SemaphoreImportFlags;
-pub const SemaphoreImportFlagBitsKHR = SemaphoreImportFlagBits;
 
 pub const ExportSemaphoreCreateInfoKHR = ExportSemaphoreCreateInfo;
 
 
 pub const KHR_external_semaphore_fd = 1;
 pub const KHR_EXTERNAL_SEMAPHORE_FD_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME = c"VK_KHR_external_semaphore_fd";
+pub const KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME = "VK_KHR_external_semaphore_fd";
 
 pub const ImportSemaphoreFdInfoKHR = extern struct {
     sType: StructureType = .IMPORT_SEMAPHORE_FD_INFO_KHR,
     pNext: ?*const c_void = null,
     semaphore: Semaphore,
-    flags: SemaphoreImportFlags = 0,
-    handleType: ExternalSemaphoreHandleTypeFlags,
+    flags: SemaphoreImportFlags align(4) = SemaphoreImportFlags{},
+    handleType: ExternalSemaphoreHandleTypeFlags align(4),
     fd: c_int,
 };
 
@@ -8147,7 +9884,7 @@ pub const SemaphoreGetFdInfoKHR = extern struct {
     sType: StructureType = .SEMAPHORE_GET_FD_INFO_KHR,
     pNext: ?*const c_void = null,
     semaphore: Semaphore,
-    handleType: ExternalSemaphoreHandleTypeFlags,
+    handleType: ExternalSemaphoreHandleTypeFlags align(4),
 };
 
 pub extern fn vkImportSemaphoreFdKHR(
@@ -8188,7 +9925,7 @@ pub inline fn GetSemaphoreFdKHR(device: Device, getFdInfo: SemaphoreGetFdInfoKHR
 
 pub const KHR_push_descriptor = 1;
 pub const KHR_PUSH_DESCRIPTOR_SPEC_VERSION = 2;
-pub const KHR_PUSH_DESCRIPTOR_EXTENSION_NAME = c"VK_KHR_push_descriptor";
+pub const KHR_PUSH_DESCRIPTOR_EXTENSION_NAME = "VK_KHR_push_descriptor";
 
 pub const PhysicalDevicePushDescriptorPropertiesKHR = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR,
@@ -8222,7 +9959,7 @@ pub const CmdPushDescriptorSetWithTemplateKHR = vkCmdPushDescriptorSetWithTempla
 
 pub const KHR_shader_float16_int8 = 1;
 pub const KHR_SHADER_FLOAT16_INT8_SPEC_VERSION = 1;
-pub const KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME = c"VK_KHR_shader_float16_int8";
+pub const KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME = "VK_KHR_shader_float16_int8";
 
 pub const PhysicalDeviceShaderFloat16Int8FeaturesKHR = PhysicalDeviceShaderFloat16Int8Features;
 pub const PhysicalDeviceFloat16Int8FeaturesKHR = PhysicalDeviceShaderFloat16Int8Features;
@@ -8230,14 +9967,14 @@ pub const PhysicalDeviceFloat16Int8FeaturesKHR = PhysicalDeviceShaderFloat16Int8
 
 pub const KHR_16bit_storage = 1;
 pub const KHR_16BIT_STORAGE_SPEC_VERSION = 1;
-pub const KHR_16BIT_STORAGE_EXTENSION_NAME = c"VK_KHR_16bit_storage";
+pub const KHR_16BIT_STORAGE_EXTENSION_NAME = "VK_KHR_16bit_storage";
 
 pub const PhysicalDevice16BitStorageFeaturesKHR = PhysicalDevice16BitStorageFeatures;
 
 
 pub const KHR_incremental_present = 1;
 pub const KHR_INCREMENTAL_PRESENT_SPEC_VERSION = 1;
-pub const KHR_INCREMENTAL_PRESENT_EXTENSION_NAME = c"VK_KHR_incremental_present";
+pub const KHR_INCREMENTAL_PRESENT_EXTENSION_NAME = "VK_KHR_incremental_present";
 
 pub const RectLayerKHR = extern struct {
     offset: Offset2D,
@@ -8262,7 +9999,7 @@ pub const KHR_descriptor_update_template = 1;
 pub const DescriptorUpdateTemplateKHR = DescriptorUpdateTemplate;
 
 pub const KHR_DESCRIPTOR_UPDATE_TEMPLATE_SPEC_VERSION = 1;
-pub const KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME = c"VK_KHR_descriptor_update_template";
+pub const KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME = "VK_KHR_descriptor_update_template";
 
 pub const DescriptorUpdateTemplateTypeKHR = DescriptorUpdateTemplateType;
 
@@ -8310,7 +10047,7 @@ pub const UpdateDescriptorSetWithTemplateKHR = vkUpdateDescriptorSetWithTemplate
 
 pub const KHR_imageless_framebuffer = 1;
 pub const KHR_IMAGELESS_FRAMEBUFFER_SPEC_VERSION = 1;
-pub const KHR_IMAGELESS_FRAMEBUFFER_EXTENSION_NAME = c"VK_KHR_imageless_framebuffer";
+pub const KHR_IMAGELESS_FRAMEBUFFER_EXTENSION_NAME = "VK_KHR_imageless_framebuffer";
 
 pub const PhysicalDeviceImagelessFramebufferFeaturesKHR = PhysicalDeviceImagelessFramebufferFeatures;
 pub const FramebufferAttachmentsCreateInfoKHR = FramebufferAttachmentsCreateInfo;
@@ -8320,7 +10057,7 @@ pub const RenderPassAttachmentBeginInfoKHR = RenderPassAttachmentBeginInfo;
 
 pub const KHR_create_renderpass2 = 1;
 pub const KHR_CREATE_RENDERPASS_2_SPEC_VERSION = 1;
-pub const KHR_CREATE_RENDERPASS_2_EXTENSION_NAME = c"VK_KHR_create_renderpass2";
+pub const KHR_CREATE_RENDERPASS_2_EXTENSION_NAME = "VK_KHR_create_renderpass2";
 
 pub const RenderPassCreateInfo2KHR = RenderPassCreateInfo2;
 pub const AttachmentDescription2KHR = AttachmentDescription2;
@@ -8382,12 +10119,12 @@ pub inline fn CmdEndRenderPass2KHR(commandBuffer: CommandBuffer, subpassEndInfo:
 
 pub const KHR_shared_presentable_image = 1;
 pub const KHR_SHARED_PRESENTABLE_IMAGE_SPEC_VERSION = 1;
-pub const KHR_SHARED_PRESENTABLE_IMAGE_EXTENSION_NAME = c"VK_KHR_shared_presentable_image";
+pub const KHR_SHARED_PRESENTABLE_IMAGE_EXTENSION_NAME = "VK_KHR_shared_presentable_image";
 
 pub const SharedPresentSurfaceCapabilitiesKHR = extern struct {
     sType: StructureType = .SHARED_PRESENT_SURFACE_CAPABILITIES_KHR,
     pNext: ?*c_void = null,
-    sharedPresentSupportedUsageFlags: ImageUsageFlags = 0,
+    sharedPresentSupportedUsageFlags: ImageUsageFlags align(4) = ImageUsageFlags{},
 };
 
 pub extern fn vkGetSwapchainStatusKHR(
@@ -8414,12 +10151,10 @@ pub inline fn GetSwapchainStatusKHR(device: Device, swapchain: SwapchainKHR) err
 
 pub const KHR_external_fence_capabilities = 1;
 pub const KHR_EXTERNAL_FENCE_CAPABILITIES_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME = c"VK_KHR_external_fence_capabilities";
+pub const KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME = "VK_KHR_external_fence_capabilities";
 
 pub const ExternalFenceHandleTypeFlagsKHR = ExternalFenceHandleTypeFlags;
-pub const ExternalFenceHandleTypeFlagBitsKHR = ExternalFenceHandleTypeFlagBits;
 pub const ExternalFenceFeatureFlagsKHR = ExternalFenceFeatureFlags;
-pub const ExternalFenceFeatureFlagBitsKHR = ExternalFenceFeatureFlagBits;
 
 pub const PhysicalDeviceExternalFenceInfoKHR = PhysicalDeviceExternalFenceInfo;
 pub const ExternalFencePropertiesKHR = ExternalFenceProperties;
@@ -8439,24 +10174,23 @@ pub inline fn GetPhysicalDeviceExternalFencePropertiesKHR(physicalDevice: Physic
 
 pub const KHR_external_fence = 1;
 pub const KHR_EXTERNAL_FENCE_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_FENCE_EXTENSION_NAME = c"VK_KHR_external_fence";
+pub const KHR_EXTERNAL_FENCE_EXTENSION_NAME = "VK_KHR_external_fence";
 
 pub const FenceImportFlagsKHR = FenceImportFlags;
-pub const FenceImportFlagBitsKHR = FenceImportFlagBits;
 
 pub const ExportFenceCreateInfoKHR = ExportFenceCreateInfo;
 
 
 pub const KHR_external_fence_fd = 1;
 pub const KHR_EXTERNAL_FENCE_FD_SPEC_VERSION = 1;
-pub const KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME = c"VK_KHR_external_fence_fd";
+pub const KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME = "VK_KHR_external_fence_fd";
 
 pub const ImportFenceFdInfoKHR = extern struct {
     sType: StructureType = .IMPORT_FENCE_FD_INFO_KHR,
     pNext: ?*const c_void = null,
     fence: Fence,
-    flags: FenceImportFlags = 0,
-    handleType: ExternalFenceHandleTypeFlags,
+    flags: FenceImportFlags align(4) = FenceImportFlags{},
+    handleType: ExternalFenceHandleTypeFlags align(4),
     fd: c_int,
 };
 
@@ -8464,7 +10198,7 @@ pub const FenceGetFdInfoKHR = extern struct {
     sType: StructureType = .FENCE_GET_FD_INFO_KHR,
     pNext: ?*const c_void = null,
     fence: Fence,
-    handleType: ExternalFenceHandleTypeFlags,
+    handleType: ExternalFenceHandleTypeFlags align(4),
 };
 
 pub extern fn vkImportFenceFdKHR(
@@ -8505,9 +10239,9 @@ pub inline fn GetFenceFdKHR(device: Device, getFdInfo: FenceGetFdInfoKHR) error{
 
 pub const KHR_performance_query = 1;
 pub const KHR_PERFORMANCE_QUERY_SPEC_VERSION = 1;
-pub const KHR_PERFORMANCE_QUERY_EXTENSION_NAME = c"VK_KHR_performance_query";
+pub const KHR_PERFORMANCE_QUERY_EXTENSION_NAME = "VK_KHR_performance_query";
 
-pub const PerformanceCounterUnitKHR = extern enum {
+pub const PerformanceCounterUnitKHR = extern enum(i32) {
     GENERIC = 0,
     PERCENTAGE = 1,
     NANOSECONDS = 2,
@@ -8519,12 +10253,14 @@ pub const PerformanceCounterUnitKHR = extern enum {
     AMPS = 8,
     HERTZ = 9,
     CYCLES = 10,
+    _,
 };
 
-pub const PerformanceCounterScopeKHR = extern enum {
+pub const PerformanceCounterScopeKHR = extern enum(i32) {
     COMMAND_BUFFER = 0,
     RENDER_PASS = 1,
     COMMAND = 2,
+    _,
 
     const Self = @This();
     pub const QUERY_SCOPE_COMMAND_BUFFER = Self.COMMAND_BUFFER;
@@ -8532,23 +10268,88 @@ pub const PerformanceCounterScopeKHR = extern enum {
     pub const QUERY_SCOPE_COMMAND = Self.COMMAND;
 };
 
-pub const PerformanceCounterStorageKHR = extern enum {
+pub const PerformanceCounterStorageKHR = extern enum(i32) {
     INT32 = 0,
     INT64 = 1,
     UINT32 = 2,
     UINT64 = 3,
     FLOAT32 = 4,
     FLOAT64 = 5,
+    _,
 };
 
-pub const PerformanceCounterDescriptionFlagsKHR = Flags;
-pub const PerformanceCounterDescriptionFlagBitsKHR = struct {
-    pub const PERFORMANCE_IMPACTING: PerformanceCounterDescriptionFlagsKHR = 0x00000001;
-    pub const CONCURRENTLY_IMPACTED: PerformanceCounterDescriptionFlagsKHR = 0x00000002;
+pub const PerformanceCounterDescriptionFlagsKHR = packed struct {
+    performanceImpacting: bool = false,
+    concurrentlyImpacted: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const AcquireProfilingLockFlagsKHR = Flags;
-pub const AcquireProfilingLockFlagBitsKHR = struct {
+pub const AcquireProfilingLockFlagsKHR = packed struct {
+    __reserved_bit_00: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const PhysicalDevicePerformanceQueryFeaturesKHR = extern struct {
@@ -8576,10 +10377,10 @@ pub const PerformanceCounterKHR = extern struct {
 pub const PerformanceCounterDescriptionKHR = extern struct {
     sType: StructureType = .PERFORMANCE_COUNTER_DESCRIPTION_KHR,
     pNext: ?*const c_void = null,
-    flags: PerformanceCounterDescriptionFlagsKHR = 0,
-    name: [MAX_DESCRIPTION_SIZE]u8,
-    category: [MAX_DESCRIPTION_SIZE]u8,
-    description: [MAX_DESCRIPTION_SIZE]u8,
+    flags: PerformanceCounterDescriptionFlagsKHR align(4) = PerformanceCounterDescriptionFlagsKHR{},
+    name: [MAX_DESCRIPTION_SIZE-1:0]u8,
+    category: [MAX_DESCRIPTION_SIZE-1:0]u8,
+    description: [MAX_DESCRIPTION_SIZE-1:0]u8,
 };
 
 pub const QueryPoolPerformanceCreateInfoKHR = extern struct {
@@ -8602,7 +10403,7 @@ pub const PerformanceCounterResultKHR = extern union {
 pub const AcquireProfilingLockInfoKHR = extern struct {
     sType: StructureType = .ACQUIRE_PROFILING_LOCK_INFO_KHR,
     pNext: ?*const c_void = null,
-    flags: AcquireProfilingLockFlagsKHR = 0,
+    flags: AcquireProfilingLockFlagsKHR align(4) = AcquireProfilingLockFlagsKHR{},
     timeout: u64,
 };
 
@@ -8691,7 +10492,7 @@ pub const ReleaseProfilingLockKHR = vkReleaseProfilingLockKHR;
 
 pub const KHR_maintenance2 = 1;
 pub const KHR_MAINTENANCE2_SPEC_VERSION = 1;
-pub const KHR_MAINTENANCE2_EXTENSION_NAME = c"VK_KHR_maintenance2";
+pub const KHR_MAINTENANCE2_EXTENSION_NAME = "VK_KHR_maintenance2";
 
 pub const PointClippingBehaviorKHR = PointClippingBehavior;
 pub const TessellationDomainOriginKHR = TessellationDomainOrigin;
@@ -8705,7 +10506,7 @@ pub const PipelineTessellationDomainOriginStateCreateInfoKHR = PipelineTessellat
 
 pub const KHR_get_surface_capabilities2 = 1;
 pub const KHR_GET_SURFACE_CAPABILITIES_2_SPEC_VERSION = 1;
-pub const KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME = c"VK_KHR_get_surface_capabilities2";
+pub const KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME = "VK_KHR_get_surface_capabilities2";
 
 pub const PhysicalDeviceSurfaceInfo2KHR = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
@@ -8789,7 +10590,7 @@ pub inline fn GetPhysicalDeviceSurfaceFormats2CountKHR(physicalDevice: PhysicalD
 
 pub const KHR_variable_pointers = 1;
 pub const KHR_VARIABLE_POINTERS_SPEC_VERSION = 1;
-pub const KHR_VARIABLE_POINTERS_EXTENSION_NAME = c"VK_KHR_variable_pointers";
+pub const KHR_VARIABLE_POINTERS_EXTENSION_NAME = "VK_KHR_variable_pointers";
 
 pub const PhysicalDeviceVariablePointerFeaturesKHR = PhysicalDeviceVariablePointersFeatures;
 pub const PhysicalDeviceVariablePointersFeaturesKHR = PhysicalDeviceVariablePointersFeatures;
@@ -8797,7 +10598,7 @@ pub const PhysicalDeviceVariablePointersFeaturesKHR = PhysicalDeviceVariablePoin
 
 pub const KHR_get_display_properties2 = 1;
 pub const KHR_GET_DISPLAY_PROPERTIES_2_SPEC_VERSION = 1;
-pub const KHR_GET_DISPLAY_PROPERTIES_2_EXTENSION_NAME = c"VK_KHR_get_display_properties2";
+pub const KHR_GET_DISPLAY_PROPERTIES_2_EXTENSION_NAME = "VK_KHR_get_display_properties2";
 
 pub const DisplayProperties2KHR = extern struct {
     sType: StructureType = .DISPLAY_PROPERTIES_2_KHR,
@@ -8967,7 +10768,7 @@ pub inline fn GetDisplayPlaneCapabilities2KHR(physicalDevice: PhysicalDevice, di
 
 pub const KHR_dedicated_allocation = 1;
 pub const KHR_DEDICATED_ALLOCATION_SPEC_VERSION = 3;
-pub const KHR_DEDICATED_ALLOCATION_EXTENSION_NAME = c"VK_KHR_dedicated_allocation";
+pub const KHR_DEDICATED_ALLOCATION_EXTENSION_NAME = "VK_KHR_dedicated_allocation";
 
 pub const MemoryDedicatedRequirementsKHR = MemoryDedicatedRequirements;
 pub const MemoryDedicatedAllocateInfoKHR = MemoryDedicatedAllocateInfo;
@@ -8975,17 +10776,17 @@ pub const MemoryDedicatedAllocateInfoKHR = MemoryDedicatedAllocateInfo;
 
 pub const KHR_storage_buffer_storage_class = 1;
 pub const KHR_STORAGE_BUFFER_STORAGE_CLASS_SPEC_VERSION = 1;
-pub const KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME = c"VK_KHR_storage_buffer_storage_class";
+pub const KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME = "VK_KHR_storage_buffer_storage_class";
 
 
 pub const KHR_relaxed_block_layout = 1;
 pub const KHR_RELAXED_BLOCK_LAYOUT_SPEC_VERSION = 1;
-pub const KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME = c"VK_KHR_relaxed_block_layout";
+pub const KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME = "VK_KHR_relaxed_block_layout";
 
 
 pub const KHR_get_memory_requirements2 = 1;
 pub const KHR_GET_MEMORY_REQUIREMENTS_2_SPEC_VERSION = 1;
-pub const KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME = c"VK_KHR_get_memory_requirements2";
+pub const KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME = "VK_KHR_get_memory_requirements2";
 
 pub const BufferMemoryRequirementsInfo2KHR = BufferMemoryRequirementsInfo2;
 pub const ImageMemoryRequirementsInfo2KHR = ImageMemoryRequirementsInfo2;
@@ -9039,7 +10840,7 @@ pub inline fn GetImageSparseMemoryRequirements2CountKHR(device: Device, info: Im
 
 pub const KHR_image_format_list = 1;
 pub const KHR_IMAGE_FORMAT_LIST_SPEC_VERSION = 1;
-pub const KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME = c"VK_KHR_image_format_list";
+pub const KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME = "VK_KHR_image_format_list";
 
 pub const ImageFormatListCreateInfoKHR = ImageFormatListCreateInfo;
 
@@ -9048,7 +10849,7 @@ pub const KHR_sampler_ycbcr_conversion = 1;
 pub const SamplerYcbcrConversionKHR = SamplerYcbcrConversion;
 
 pub const KHR_SAMPLER_YCBCR_CONVERSION_SPEC_VERSION = 14;
-pub const KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME = c"VK_KHR_sampler_ycbcr_conversion";
+pub const KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME = "VK_KHR_sampler_ycbcr_conversion";
 
 pub const SamplerYcbcrModelConversionKHR = SamplerYcbcrModelConversion;
 pub const SamplerYcbcrRangeKHR = SamplerYcbcrRange;
@@ -9092,7 +10893,7 @@ pub const DestroySamplerYcbcrConversionKHR = vkDestroySamplerYcbcrConversionKHR;
 
 pub const KHR_bind_memory2 = 1;
 pub const KHR_BIND_MEMORY_2_SPEC_VERSION = 1;
-pub const KHR_BIND_MEMORY_2_EXTENSION_NAME = c"VK_KHR_bind_memory2";
+pub const KHR_BIND_MEMORY_2_EXTENSION_NAME = "VK_KHR_bind_memory2";
 
 pub const BindBufferMemoryInfoKHR = BindBufferMemoryInfo;
 pub const BindImageMemoryInfoKHR = BindImageMemoryInfo;
@@ -9135,7 +10936,7 @@ pub inline fn BindImageMemory2KHR(device: Device, bindInfos: []const BindImageMe
 
 pub const KHR_maintenance3 = 1;
 pub const KHR_MAINTENANCE3_SPEC_VERSION = 1;
-pub const KHR_MAINTENANCE3_EXTENSION_NAME = c"VK_KHR_maintenance3";
+pub const KHR_MAINTENANCE3_EXTENSION_NAME = "VK_KHR_maintenance3";
 
 pub const PhysicalDeviceMaintenance3PropertiesKHR = PhysicalDeviceMaintenance3Properties;
 pub const DescriptorSetLayoutSupportKHR = DescriptorSetLayoutSupport;
@@ -9155,7 +10956,7 @@ pub inline fn GetDescriptorSetLayoutSupportKHR(device: Device, createInfo: Descr
 
 pub const KHR_draw_indirect_count = 1;
 pub const KHR_DRAW_INDIRECT_COUNT_SPEC_VERSION = 1;
-pub const KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME = c"VK_KHR_draw_indirect_count";
+pub const KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME = "VK_KHR_draw_indirect_count";
 
 pub extern fn vkCmdDrawIndirectCountKHR(
     commandBuffer: CommandBuffer,
@@ -9183,28 +10984,28 @@ pub const CmdDrawIndexedIndirectCountKHR = vkCmdDrawIndexedIndirectCountKHR;
 
 pub const KHR_shader_subgroup_extended_types = 1;
 pub const KHR_SHADER_SUBGROUP_EXTENDED_TYPES_SPEC_VERSION = 1;
-pub const KHR_SHADER_SUBGROUP_EXTENDED_TYPES_EXTENSION_NAME = c"VK_KHR_shader_subgroup_extended_types";
+pub const KHR_SHADER_SUBGROUP_EXTENDED_TYPES_EXTENSION_NAME = "VK_KHR_shader_subgroup_extended_types";
 
 pub const PhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR = PhysicalDeviceShaderSubgroupExtendedTypesFeatures;
 
 
 pub const KHR_8bit_storage = 1;
 pub const KHR_8BIT_STORAGE_SPEC_VERSION = 1;
-pub const KHR_8BIT_STORAGE_EXTENSION_NAME = c"VK_KHR_8bit_storage";
+pub const KHR_8BIT_STORAGE_EXTENSION_NAME = "VK_KHR_8bit_storage";
 
 pub const PhysicalDevice8BitStorageFeaturesKHR = PhysicalDevice8BitStorageFeatures;
 
 
 pub const KHR_shader_atomic_int64 = 1;
 pub const KHR_SHADER_ATOMIC_INT64_SPEC_VERSION = 1;
-pub const KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME = c"VK_KHR_shader_atomic_int64";
+pub const KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME = "VK_KHR_shader_atomic_int64";
 
 pub const PhysicalDeviceShaderAtomicInt64FeaturesKHR = PhysicalDeviceShaderAtomicInt64Features;
 
 
 pub const KHR_shader_clock = 1;
 pub const KHR_SHADER_CLOCK_SPEC_VERSION = 1;
-pub const KHR_SHADER_CLOCK_EXTENSION_NAME = c"VK_KHR_shader_clock";
+pub const KHR_SHADER_CLOCK_EXTENSION_NAME = "VK_KHR_shader_clock";
 
 pub const PhysicalDeviceShaderClockFeaturesKHR = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR,
@@ -9216,7 +11017,7 @@ pub const PhysicalDeviceShaderClockFeaturesKHR = extern struct {
 
 pub const KHR_driver_properties = 1;
 pub const KHR_DRIVER_PROPERTIES_SPEC_VERSION = 1;
-pub const KHR_DRIVER_PROPERTIES_EXTENSION_NAME = c"VK_KHR_driver_properties";
+pub const KHR_DRIVER_PROPERTIES_EXTENSION_NAME = "VK_KHR_driver_properties";
 pub const MAX_DRIVER_NAME_SIZE_KHR = MAX_DRIVER_NAME_SIZE;
 pub const MAX_DRIVER_INFO_SIZE_KHR = MAX_DRIVER_INFO_SIZE;
 
@@ -9228,7 +11029,7 @@ pub const PhysicalDeviceDriverPropertiesKHR = PhysicalDeviceDriverProperties;
 
 pub const KHR_shader_float_controls = 1;
 pub const KHR_SHADER_FLOAT_CONTROLS_SPEC_VERSION = 4;
-pub const KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME = c"VK_KHR_shader_float_controls";
+pub const KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME = "VK_KHR_shader_float_controls";
 
 pub const ShaderFloatControlsIndependenceKHR = ShaderFloatControlsIndependence;
 
@@ -9237,9 +11038,8 @@ pub const PhysicalDeviceFloatControlsPropertiesKHR = PhysicalDeviceFloatControls
 
 pub const KHR_depth_stencil_resolve = 1;
 pub const KHR_DEPTH_STENCIL_RESOLVE_SPEC_VERSION = 1;
-pub const KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME = c"VK_KHR_depth_stencil_resolve";
+pub const KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME = "VK_KHR_depth_stencil_resolve";
 
-pub const ResolveModeFlagBitsKHR = ResolveModeFlagBits;
 pub const ResolveModeFlagsKHR = ResolveModeFlags;
 
 pub const SubpassDescriptionDepthStencilResolveKHR = SubpassDescriptionDepthStencilResolve;
@@ -9248,16 +11048,15 @@ pub const PhysicalDeviceDepthStencilResolvePropertiesKHR = PhysicalDeviceDepthSt
 
 pub const KHR_swapchain_mutable_format = 1;
 pub const KHR_SWAPCHAIN_MUTABLE_FORMAT_SPEC_VERSION = 1;
-pub const KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME = c"VK_KHR_swapchain_mutable_format";
+pub const KHR_SWAPCHAIN_MUTABLE_FORMAT_EXTENSION_NAME = "VK_KHR_swapchain_mutable_format";
 
 
 pub const KHR_timeline_semaphore = 1;
 pub const KHR_TIMELINE_SEMAPHORE_SPEC_VERSION = 2;
-pub const KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME = c"VK_KHR_timeline_semaphore";
+pub const KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME = "VK_KHR_timeline_semaphore";
 
 pub const SemaphoreTypeKHR = SemaphoreType;
 
-pub const SemaphoreWaitFlagBitsKHR = SemaphoreWaitFlagBits;
 pub const SemaphoreWaitFlagsKHR = SemaphoreWaitFlags;
 
 pub const PhysicalDeviceTimelineSemaphoreFeaturesKHR = PhysicalDeviceTimelineSemaphoreFeatures;
@@ -9325,19 +11124,19 @@ pub inline fn SignalSemaphoreKHR(device: Device, signalInfo: SemaphoreSignalInfo
 
 pub const KHR_vulkan_memory_model = 1;
 pub const KHR_VULKAN_MEMORY_MODEL_SPEC_VERSION = 3;
-pub const KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME = c"VK_KHR_vulkan_memory_model";
+pub const KHR_VULKAN_MEMORY_MODEL_EXTENSION_NAME = "VK_KHR_vulkan_memory_model";
 
 pub const PhysicalDeviceVulkanMemoryModelFeaturesKHR = PhysicalDeviceVulkanMemoryModelFeatures;
 
 
 pub const KHR_spirv_1_4 = 1;
 pub const KHR_SPIRV_1_4_SPEC_VERSION = 1;
-pub const KHR_SPIRV_1_4_EXTENSION_NAME = c"VK_KHR_spirv_1_4";
+pub const KHR_SPIRV_1_4_EXTENSION_NAME = "VK_KHR_spirv_1_4";
 
 
 pub const KHR_surface_protected_capabilities = 1;
 pub const KHR_SURFACE_PROTECTED_CAPABILITIES_SPEC_VERSION = 1;
-pub const KHR_SURFACE_PROTECTED_CAPABILITIES_EXTENSION_NAME = c"VK_KHR_surface_protected_capabilities";
+pub const KHR_SURFACE_PROTECTED_CAPABILITIES_EXTENSION_NAME = "VK_KHR_surface_protected_capabilities";
 
 pub const SurfaceProtectedCapabilitiesKHR = extern struct {
     sType: StructureType = .SURFACE_PROTECTED_CAPABILITIES_KHR,
@@ -9348,7 +11147,7 @@ pub const SurfaceProtectedCapabilitiesKHR = extern struct {
 
 pub const KHR_separate_depth_stencil_layouts = 1;
 pub const KHR_SEPARATE_DEPTH_STENCIL_LAYOUTS_SPEC_VERSION = 1;
-pub const KHR_SEPARATE_DEPTH_STENCIL_LAYOUTS_EXTENSION_NAME = c"VK_KHR_separate_depth_stencil_layouts";
+pub const KHR_SEPARATE_DEPTH_STENCIL_LAYOUTS_EXTENSION_NAME = "VK_KHR_separate_depth_stencil_layouts";
 
 pub const PhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR = PhysicalDeviceSeparateDepthStencilLayoutsFeatures;
 pub const AttachmentReferenceStencilLayoutKHR = AttachmentReferenceStencilLayout;
@@ -9357,14 +11156,14 @@ pub const AttachmentDescriptionStencilLayoutKHR = AttachmentDescriptionStencilLa
 
 pub const KHR_uniform_buffer_standard_layout = 1;
 pub const KHR_UNIFORM_BUFFER_STANDARD_LAYOUT_SPEC_VERSION = 1;
-pub const KHR_UNIFORM_BUFFER_STANDARD_LAYOUT_EXTENSION_NAME = c"VK_KHR_uniform_buffer_standard_layout";
+pub const KHR_UNIFORM_BUFFER_STANDARD_LAYOUT_EXTENSION_NAME = "VK_KHR_uniform_buffer_standard_layout";
 
 pub const PhysicalDeviceUniformBufferStandardLayoutFeaturesKHR = PhysicalDeviceUniformBufferStandardLayoutFeatures;
 
 
 pub const KHR_buffer_device_address = 1;
 pub const KHR_BUFFER_DEVICE_ADDRESS_SPEC_VERSION = 1;
-pub const KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME = c"VK_KHR_buffer_device_address";
+pub const KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME = "VK_KHR_buffer_device_address";
 
 pub const PhysicalDeviceBufferDeviceAddressFeaturesKHR = PhysicalDeviceBufferDeviceAddressFeatures;
 pub const BufferDeviceAddressInfoKHR = BufferDeviceAddressInfo;
@@ -9405,13 +11204,14 @@ pub inline fn GetDeviceMemoryOpaqueCaptureAddressKHR(device: Device, info: Devic
 
 pub const KHR_pipeline_executable_properties = 1;
 pub const KHR_PIPELINE_EXECUTABLE_PROPERTIES_SPEC_VERSION = 1;
-pub const KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME = c"VK_KHR_pipeline_executable_properties";
+pub const KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME = "VK_KHR_pipeline_executable_properties";
 
-pub const PipelineExecutableStatisticFormatKHR = extern enum {
+pub const PipelineExecutableStatisticFormatKHR = extern enum(i32) {
     BOOL32 = 0,
     INT64 = 1,
     UINT64 = 2,
     FLOAT64 = 3,
+    _,
 };
 
 pub const PhysicalDevicePipelineExecutablePropertiesFeaturesKHR = extern struct {
@@ -9429,9 +11229,9 @@ pub const PipelineInfoKHR = extern struct {
 pub const PipelineExecutablePropertiesKHR = extern struct {
     sType: StructureType = .PIPELINE_EXECUTABLE_PROPERTIES_KHR,
     pNext: ?*c_void = null,
-    stages: ShaderStageFlags,
-    name: [MAX_DESCRIPTION_SIZE]u8,
-    description: [MAX_DESCRIPTION_SIZE]u8,
+    stages: ShaderStageFlags align(4),
+    name: [MAX_DESCRIPTION_SIZE-1:0]u8,
+    description: [MAX_DESCRIPTION_SIZE-1:0]u8,
     subgroupSize: u32,
 };
 
@@ -9452,8 +11252,8 @@ pub const PipelineExecutableStatisticValueKHR = extern union {
 pub const PipelineExecutableStatisticKHR = extern struct {
     sType: StructureType = .PIPELINE_EXECUTABLE_STATISTIC_KHR,
     pNext: ?*c_void = null,
-    name: [MAX_DESCRIPTION_SIZE]u8,
-    description: [MAX_DESCRIPTION_SIZE]u8,
+    name: [MAX_DESCRIPTION_SIZE-1:0]u8,
+    description: [MAX_DESCRIPTION_SIZE-1:0]u8,
     format: PipelineExecutableStatisticFormatKHR,
     value: PipelineExecutableStatisticValueKHR,
 };
@@ -9461,8 +11261,8 @@ pub const PipelineExecutableStatisticKHR = extern struct {
 pub const PipelineExecutableInternalRepresentationKHR = extern struct {
     sType: StructureType = .PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR,
     pNext: ?*c_void = null,
-    name: [MAX_DESCRIPTION_SIZE]u8,
-    description: [MAX_DESCRIPTION_SIZE]u8,
+    name: [MAX_DESCRIPTION_SIZE-1:0]u8,
+    description: [MAX_DESCRIPTION_SIZE-1:0]u8,
     isText: Bool32,
     dataSize: usize = 0,
     pData: ?*c_void = null,
@@ -9590,9 +11390,9 @@ pub const EXT_debug_report = 1;
 pub const DebugReportCallbackEXT = *@OpaqueType();
 
 pub const EXT_DEBUG_REPORT_SPEC_VERSION = 9;
-pub const EXT_DEBUG_REPORT_EXTENSION_NAME = c"VK_EXT_debug_report";
+pub const EXT_DEBUG_REPORT_EXTENSION_NAME = "VK_EXT_debug_report";
 
-pub const DebugReportObjectTypeEXT = extern enum {
+pub const DebugReportObjectTypeEXT = extern enum(i32) {
     UNKNOWN = 0,
     INSTANCE = 1,
     PHYSICAL_DEVICE = 2,
@@ -9630,6 +11430,7 @@ pub const DebugReportObjectTypeEXT = extern enum {
     SAMPLER_YCBCR_CONVERSION = 1000156000,
     DESCRIPTOR_UPDATE_TEMPLATE = 1000085000,
     ACCELERATION_STRUCTURE_NV = 1000165000,
+    _,
 
     const Self = @This();
     pub const DEBUG_REPORT = Self.DEBUG_REPORT_CALLBACK_EXT;
@@ -9638,13 +11439,41 @@ pub const DebugReportObjectTypeEXT = extern enum {
     pub const SAMPLER_YCBCR_CONVERSION_KHR = Self.SAMPLER_YCBCR_CONVERSION;
 };
 
-pub const DebugReportFlagsEXT = Flags;
-pub const DebugReportFlagBitsEXT = struct {
-    pub const INFORMATION_BIT: DebugReportFlagsEXT = 0x00000001;
-    pub const WARNING_BIT: DebugReportFlagsEXT = 0x00000002;
-    pub const PERFORMANCE_WARNING_BIT: DebugReportFlagsEXT = 0x00000004;
-    pub const ERROR_BIT: DebugReportFlagsEXT = 0x00000008;
-    pub const DEBUG_BIT: DebugReportFlagsEXT = 0x00000010;
+pub const DebugReportFlagsEXT = packed struct {
+    information: bool = false,
+    warning: bool = false,
+    performanceWarning: bool = false,
+    errorBit: bool = false,
+    debug: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const PFN_DebugReportCallbackEXT = extern fn (
@@ -9661,7 +11490,7 @@ pub const PFN_DebugReportCallbackEXT = extern fn (
 pub const DebugReportCallbackCreateInfoEXT = extern struct {
     sType: StructureType = .DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    flags: DebugReportFlagsEXT = 0,
+    flags: DebugReportFlagsEXT align(4) = DebugReportFlagsEXT{},
     pfnCallback: PFN_DebugReportCallbackEXT,
     pUserData: ?*c_void = null,
 };
@@ -9708,26 +11537,27 @@ pub const DebugReportMessageEXT = vkDebugReportMessageEXT;
 
 pub const NV_glsl_shader = 1;
 pub const NV_GLSL_SHADER_SPEC_VERSION = 1;
-pub const NV_GLSL_SHADER_EXTENSION_NAME = c"VK_NV_glsl_shader";
+pub const NV_GLSL_SHADER_EXTENSION_NAME = "VK_NV_glsl_shader";
 
 
 pub const EXT_depth_range_unrestricted = 1;
 pub const EXT_DEPTH_RANGE_UNRESTRICTED_SPEC_VERSION = 1;
-pub const EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME = c"VK_EXT_depth_range_unrestricted";
+pub const EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME = "VK_EXT_depth_range_unrestricted";
 
 
 pub const IMG_filter_cubic = 1;
 pub const IMG_FILTER_CUBIC_SPEC_VERSION = 1;
-pub const IMG_FILTER_CUBIC_EXTENSION_NAME = c"VK_IMG_filter_cubic";
+pub const IMG_FILTER_CUBIC_EXTENSION_NAME = "VK_IMG_filter_cubic";
 
 
 pub const AMD_rasterization_order = 1;
 pub const AMD_RASTERIZATION_ORDER_SPEC_VERSION = 1;
-pub const AMD_RASTERIZATION_ORDER_EXTENSION_NAME = c"VK_AMD_rasterization_order";
+pub const AMD_RASTERIZATION_ORDER_EXTENSION_NAME = "VK_AMD_rasterization_order";
 
-pub const RasterizationOrderAMD = extern enum {
+pub const RasterizationOrderAMD = extern enum(i32) {
     STRICT = 0,
     RELAXED = 1,
+    _,
 };
 
 pub const PipelineRasterizationStateRasterizationOrderAMD = extern struct {
@@ -9739,17 +11569,17 @@ pub const PipelineRasterizationStateRasterizationOrderAMD = extern struct {
 
 pub const AMD_shader_trinary_minmax = 1;
 pub const AMD_SHADER_TRINARY_MINMAX_SPEC_VERSION = 1;
-pub const AMD_SHADER_TRINARY_MINMAX_EXTENSION_NAME = c"VK_AMD_shader_trinary_minmax";
+pub const AMD_SHADER_TRINARY_MINMAX_EXTENSION_NAME = "VK_AMD_shader_trinary_minmax";
 
 
 pub const AMD_shader_explicit_vertex_parameter = 1;
 pub const AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_SPEC_VERSION = 1;
-pub const AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_EXTENSION_NAME = c"VK_AMD_shader_explicit_vertex_parameter";
+pub const AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_EXTENSION_NAME = "VK_AMD_shader_explicit_vertex_parameter";
 
 
 pub const EXT_debug_marker = 1;
 pub const EXT_DEBUG_MARKER_SPEC_VERSION = 4;
-pub const EXT_DEBUG_MARKER_EXTENSION_NAME = c"VK_EXT_debug_marker";
+pub const EXT_DEBUG_MARKER_EXTENSION_NAME = "VK_EXT_debug_marker";
 
 pub const DebugMarkerObjectNameInfoEXT = extern struct {
     sType: StructureType = .DEBUG_MARKER_OBJECT_NAME_INFO_EXT,
@@ -9833,12 +11663,12 @@ pub inline fn CmdDebugMarkerInsertEXT(commandBuffer: CommandBuffer, markerInfo: 
 
 pub const AMD_gcn_shader = 1;
 pub const AMD_GCN_SHADER_SPEC_VERSION = 1;
-pub const AMD_GCN_SHADER_EXTENSION_NAME = c"VK_AMD_gcn_shader";
+pub const AMD_GCN_SHADER_EXTENSION_NAME = "VK_AMD_gcn_shader";
 
 
 pub const NV_dedicated_allocation = 1;
 pub const NV_DEDICATED_ALLOCATION_SPEC_VERSION = 1;
-pub const NV_DEDICATED_ALLOCATION_EXTENSION_NAME = c"VK_NV_dedicated_allocation";
+pub const NV_DEDICATED_ALLOCATION_EXTENSION_NAME = "VK_NV_dedicated_allocation";
 
 pub const DedicatedAllocationImageCreateInfoNV = extern struct {
     sType: StructureType = .DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV,
@@ -9862,9 +11692,12 @@ pub const DedicatedAllocationMemoryAllocateInfoNV = extern struct {
 
 pub const EXT_transform_feedback = 1;
 pub const EXT_TRANSFORM_FEEDBACK_SPEC_VERSION = 1;
-pub const EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME = c"VK_EXT_transform_feedback";
+pub const EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME = "VK_EXT_transform_feedback";
 
-pub const PipelineRasterizationStateStreamCreateFlagsEXT = Flags;
+pub const PipelineRasterizationStateStreamCreateFlagsEXT = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const PhysicalDeviceTransformFeedbackFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,
@@ -9891,7 +11724,7 @@ pub const PhysicalDeviceTransformFeedbackPropertiesEXT = extern struct {
 pub const PipelineRasterizationStateStreamCreateInfoEXT = extern struct {
     sType: StructureType = .PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    flags: PipelineRasterizationStateStreamCreateFlagsEXT = 0,
+    flags: PipelineRasterizationStateStreamCreateFlagsEXT align(4) = PipelineRasterizationStateStreamCreateFlagsEXT{},
     rasterizationStream: u32,
 };
 
@@ -9968,7 +11801,7 @@ pub const CmdDrawIndirectByteCountEXT = vkCmdDrawIndirectByteCountEXT;
 
 pub const NVX_image_view_handle = 1;
 pub const NVX_IMAGE_VIEW_HANDLE_SPEC_VERSION = 1;
-pub const NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME = c"VK_NVX_image_view_handle";
+pub const NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME = "VK_NVX_image_view_handle";
 
 pub const ImageViewHandleInfoNVX = extern struct {
     sType: StructureType = .IMAGE_VIEW_HANDLE_INFO_NVX,
@@ -9991,7 +11824,7 @@ pub inline fn GetImageViewHandleNVX(device: Device, info: ImageViewHandleInfoNVX
 
 pub const AMD_draw_indirect_count = 1;
 pub const AMD_DRAW_INDIRECT_COUNT_SPEC_VERSION = 2;
-pub const AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME = c"VK_AMD_draw_indirect_count";
+pub const AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME = "VK_AMD_draw_indirect_count";
 
 pub extern fn vkCmdDrawIndirectCountAMD(
     commandBuffer: CommandBuffer,
@@ -10019,22 +11852,22 @@ pub const CmdDrawIndexedIndirectCountAMD = vkCmdDrawIndexedIndirectCountAMD;
 
 pub const AMD_negative_viewport_height = 1;
 pub const AMD_NEGATIVE_VIEWPORT_HEIGHT_SPEC_VERSION = 1;
-pub const AMD_NEGATIVE_VIEWPORT_HEIGHT_EXTENSION_NAME = c"VK_AMD_negative_viewport_height";
+pub const AMD_NEGATIVE_VIEWPORT_HEIGHT_EXTENSION_NAME = "VK_AMD_negative_viewport_height";
 
 
 pub const AMD_gpu_shader_half_float = 1;
 pub const AMD_GPU_SHADER_HALF_FLOAT_SPEC_VERSION = 2;
-pub const AMD_GPU_SHADER_HALF_FLOAT_EXTENSION_NAME = c"VK_AMD_gpu_shader_half_float";
+pub const AMD_GPU_SHADER_HALF_FLOAT_EXTENSION_NAME = "VK_AMD_gpu_shader_half_float";
 
 
 pub const AMD_shader_ballot = 1;
 pub const AMD_SHADER_BALLOT_SPEC_VERSION = 1;
-pub const AMD_SHADER_BALLOT_EXTENSION_NAME = c"VK_AMD_shader_ballot";
+pub const AMD_SHADER_BALLOT_EXTENSION_NAME = "VK_AMD_shader_ballot";
 
 
 pub const AMD_texture_gather_bias_lod = 1;
 pub const AMD_TEXTURE_GATHER_BIAS_LOD_SPEC_VERSION = 1;
-pub const AMD_TEXTURE_GATHER_BIAS_LOD_EXTENSION_NAME = c"VK_AMD_texture_gather_bias_lod";
+pub const AMD_TEXTURE_GATHER_BIAS_LOD_EXTENSION_NAME = "VK_AMD_texture_gather_bias_lod";
 
 pub const TextureLODGatherFormatPropertiesAMD = extern struct {
     sType: StructureType = .TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD,
@@ -10045,12 +11878,13 @@ pub const TextureLODGatherFormatPropertiesAMD = extern struct {
 
 pub const AMD_shader_info = 1;
 pub const AMD_SHADER_INFO_SPEC_VERSION = 1;
-pub const AMD_SHADER_INFO_EXTENSION_NAME = c"VK_AMD_shader_info";
+pub const AMD_SHADER_INFO_EXTENSION_NAME = "VK_AMD_shader_info";
 
-pub const ShaderInfoTypeAMD = extern enum {
+pub const ShaderInfoTypeAMD = extern enum(i32) {
     STATISTICS = 0,
     BINARY = 1,
     DISASSEMBLY = 2,
+    _,
 };
 
 pub const ShaderResourceUsageAMD = extern struct {
@@ -10062,7 +11896,7 @@ pub const ShaderResourceUsageAMD = extern struct {
 };
 
 pub const ShaderStatisticsInfoAMD = extern struct {
-    shaderStageMask: ShaderStageFlags,
+    shaderStageMask: ShaderStageFlags align(4),
     resourceUsage: ShaderResourceUsageAMD,
     numPhysicalVgprs: u32,
     numPhysicalSgprs: u32,
@@ -10115,12 +11949,12 @@ pub inline fn GetShaderInfoCountAMD(device: Device, pipeline: Pipeline, shaderSt
 
 pub const AMD_shader_image_load_store_lod = 1;
 pub const AMD_SHADER_IMAGE_LOAD_STORE_LOD_SPEC_VERSION = 1;
-pub const AMD_SHADER_IMAGE_LOAD_STORE_LOD_EXTENSION_NAME = c"VK_AMD_shader_image_load_store_lod";
+pub const AMD_SHADER_IMAGE_LOAD_STORE_LOD_EXTENSION_NAME = "VK_AMD_shader_image_load_store_lod";
 
 
 pub const NV_corner_sampled_image = 1;
 pub const NV_CORNER_SAMPLED_IMAGE_SPEC_VERSION = 2;
-pub const NV_CORNER_SAMPLED_IMAGE_EXTENSION_NAME = c"VK_NV_corner_sampled_image";
+pub const NV_CORNER_SAMPLED_IMAGE_EXTENSION_NAME = "VK_NV_corner_sampled_image";
 
 pub const PhysicalDeviceCornerSampledImageFeaturesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_CORNER_SAMPLED_IMAGE_FEATURES_NV,
@@ -10131,33 +11965,92 @@ pub const PhysicalDeviceCornerSampledImageFeaturesNV = extern struct {
 
 pub const IMG_format_pvrtc = 1;
 pub const IMG_FORMAT_PVRTC_SPEC_VERSION = 1;
-pub const IMG_FORMAT_PVRTC_EXTENSION_NAME = c"VK_IMG_format_pvrtc";
+pub const IMG_FORMAT_PVRTC_EXTENSION_NAME = "VK_IMG_format_pvrtc";
 
 
 pub const NV_external_memory_capabilities = 1;
 pub const NV_EXTERNAL_MEMORY_CAPABILITIES_SPEC_VERSION = 1;
-pub const NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME = c"VK_NV_external_memory_capabilities";
+pub const NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME = "VK_NV_external_memory_capabilities";
 
-pub const ExternalMemoryHandleTypeFlagsNV = Flags;
-pub const ExternalMemoryHandleTypeFlagBitsNV = struct {
-    pub const OPAQUE_WIN32_BIT: ExternalMemoryHandleTypeFlagsNV = 0x00000001;
-    pub const OPAQUE_WIN32_KMT_BIT: ExternalMemoryHandleTypeFlagsNV = 0x00000002;
-    pub const D3D11_IMAGE_BIT: ExternalMemoryHandleTypeFlagsNV = 0x00000004;
-    pub const D3D11_IMAGE_KMT_BIT: ExternalMemoryHandleTypeFlagsNV = 0x00000008;
+pub const ExternalMemoryHandleTypeFlagsNV = packed struct {
+    opaqueWin32: bool = false,
+    opaqueWin32Kmt: bool = false,
+    d3D11Image: bool = false,
+    d3D11ImageKmt: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const ExternalMemoryFeatureFlagsNV = Flags;
-pub const ExternalMemoryFeatureFlagBitsNV = struct {
-    pub const DEDICATED_ONLY_BIT: ExternalMemoryFeatureFlagsNV = 0x00000001;
-    pub const EXPORTABLE_BIT: ExternalMemoryFeatureFlagsNV = 0x00000002;
-    pub const IMPORTABLE_BIT: ExternalMemoryFeatureFlagsNV = 0x00000004;
+pub const ExternalMemoryFeatureFlagsNV = packed struct {
+    dedicatedOnly: bool = false,
+    exportable: bool = false,
+    importable: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const ExternalImageFormatPropertiesNV = extern struct {
     imageFormatProperties: ImageFormatProperties,
-    externalMemoryFeatures: ExternalMemoryFeatureFlagsNV = 0,
-    exportFromImportedHandleTypes: ExternalMemoryHandleTypeFlagsNV = 0,
-    compatibleHandleTypes: ExternalMemoryHandleTypeFlagsNV = 0,
+    externalMemoryFeatures: ExternalMemoryFeatureFlagsNV align(4) = ExternalMemoryFeatureFlagsNV{},
+    exportFromImportedHandleTypes: ExternalMemoryHandleTypeFlagsNV align(4) = ExternalMemoryHandleTypeFlagsNV{},
+    compatibleHandleTypes: ExternalMemoryHandleTypeFlagsNV align(4) = ExternalMemoryHandleTypeFlagsNV{},
 };
 
 pub extern fn vkGetPhysicalDeviceExternalImageFormatPropertiesNV(
@@ -10188,28 +12081,29 @@ pub inline fn GetPhysicalDeviceExternalImageFormatPropertiesNV(physicalDevice: P
 
 pub const NV_external_memory = 1;
 pub const NV_EXTERNAL_MEMORY_SPEC_VERSION = 1;
-pub const NV_EXTERNAL_MEMORY_EXTENSION_NAME = c"VK_NV_external_memory";
+pub const NV_EXTERNAL_MEMORY_EXTENSION_NAME = "VK_NV_external_memory";
 
 pub const ExternalMemoryImageCreateInfoNV = extern struct {
     sType: StructureType = .EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV,
     pNext: ?*const c_void = null,
-    handleTypes: ExternalMemoryHandleTypeFlagsNV = 0,
+    handleTypes: ExternalMemoryHandleTypeFlagsNV align(4) = ExternalMemoryHandleTypeFlagsNV{},
 };
 
 pub const ExportMemoryAllocateInfoNV = extern struct {
     sType: StructureType = .EXPORT_MEMORY_ALLOCATE_INFO_NV,
     pNext: ?*const c_void = null,
-    handleTypes: ExternalMemoryHandleTypeFlagsNV = 0,
+    handleTypes: ExternalMemoryHandleTypeFlagsNV align(4) = ExternalMemoryHandleTypeFlagsNV{},
 };
 
 
 pub const EXT_validation_flags = 1;
 pub const EXT_VALIDATION_FLAGS_SPEC_VERSION = 2;
-pub const EXT_VALIDATION_FLAGS_EXTENSION_NAME = c"VK_EXT_validation_flags";
+pub const EXT_VALIDATION_FLAGS_EXTENSION_NAME = "VK_EXT_validation_flags";
 
-pub const ValidationCheckEXT = extern enum {
+pub const ValidationCheckEXT = extern enum(i32) {
     ALL = 0,
     SHADERS = 1,
+    _,
 };
 
 pub const ValidationFlagsEXT = extern struct {
@@ -10222,17 +12116,17 @@ pub const ValidationFlagsEXT = extern struct {
 
 pub const EXT_shader_subgroup_ballot = 1;
 pub const EXT_SHADER_SUBGROUP_BALLOT_SPEC_VERSION = 1;
-pub const EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME = c"VK_EXT_shader_subgroup_ballot";
+pub const EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME = "VK_EXT_shader_subgroup_ballot";
 
 
 pub const EXT_shader_subgroup_vote = 1;
 pub const EXT_SHADER_SUBGROUP_VOTE_SPEC_VERSION = 1;
-pub const EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME = c"VK_EXT_shader_subgroup_vote";
+pub const EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME = "VK_EXT_shader_subgroup_vote";
 
 
 pub const EXT_texture_compression_astc_hdr = 1;
 pub const EXT_TEXTURE_COMPRESSION_ASTC_HDR_SPEC_VERSION = 1;
-pub const EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME = c"VK_EXT_texture_compression_astc_hdr";
+pub const EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME = "VK_EXT_texture_compression_astc_hdr";
 
 pub const PhysicalDeviceTextureCompressionASTCHDRFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT,
@@ -10243,7 +12137,7 @@ pub const PhysicalDeviceTextureCompressionASTCHDRFeaturesEXT = extern struct {
 
 pub const EXT_astc_decode_mode = 1;
 pub const EXT_ASTC_DECODE_MODE_SPEC_VERSION = 1;
-pub const EXT_ASTC_DECODE_MODE_EXTENSION_NAME = c"VK_EXT_astc_decode_mode";
+pub const EXT_ASTC_DECODE_MODE_EXTENSION_NAME = "VK_EXT_astc_decode_mode";
 
 pub const ImageViewASTCDecodeModeEXT = extern struct {
     sType: StructureType = .IMAGE_VIEW_ASTC_DECODE_MODE_EXT,
@@ -10260,11 +12154,43 @@ pub const PhysicalDeviceASTCDecodeFeaturesEXT = extern struct {
 
 pub const EXT_conditional_rendering = 1;
 pub const EXT_CONDITIONAL_RENDERING_SPEC_VERSION = 2;
-pub const EXT_CONDITIONAL_RENDERING_EXTENSION_NAME = c"VK_EXT_conditional_rendering";
+pub const EXT_CONDITIONAL_RENDERING_EXTENSION_NAME = "VK_EXT_conditional_rendering";
 
-pub const ConditionalRenderingFlagsEXT = Flags;
-pub const ConditionalRenderingFlagBitsEXT = struct {
-    pub const INVERTED_BIT: ConditionalRenderingFlagsEXT = 0x00000001;
+pub const ConditionalRenderingFlagsEXT = packed struct {
+    inverted: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const ConditionalRenderingBeginInfoEXT = extern struct {
@@ -10272,7 +12198,7 @@ pub const ConditionalRenderingBeginInfoEXT = extern struct {
     pNext: ?*const c_void = null,
     buffer: Buffer,
     offset: DeviceSize,
-    flags: ConditionalRenderingFlagsEXT = 0,
+    flags: ConditionalRenderingFlagsEXT align(4) = ConditionalRenderingFlagsEXT{},
 };
 
 pub const PhysicalDeviceConditionalRenderingFeaturesEXT = extern struct {
@@ -10307,9 +12233,9 @@ pub const ObjectTableNVX = *@OpaqueType();
 pub const IndirectCommandsLayoutNVX = *@OpaqueType();
 
 pub const NVX_DEVICE_GENERATED_COMMANDS_SPEC_VERSION = 3;
-pub const NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME = c"VK_NVX_device_generated_commands";
+pub const NVX_DEVICE_GENERATED_COMMANDS_EXTENSION_NAME = "VK_NVX_device_generated_commands";
 
-pub const IndirectCommandsTokenTypeNVX = extern enum {
+pub const IndirectCommandsTokenTypeNVX = extern enum(i32) {
     PIPELINE = 0,
     DESCRIPTOR_SET = 1,
     INDEX_BUFFER = 2,
@@ -10318,28 +12244,90 @@ pub const IndirectCommandsTokenTypeNVX = extern enum {
     DRAW_INDEXED = 5,
     DRAW = 6,
     DISPATCH = 7,
+    _,
 };
 
-pub const ObjectEntryTypeNVX = extern enum {
+pub const ObjectEntryTypeNVX = extern enum(i32) {
     DESCRIPTOR_SET = 0,
     PIPELINE = 1,
     INDEX_BUFFER = 2,
     VERTEX_BUFFER = 3,
     PUSH_CONSTANT = 4,
+    _,
 };
 
-pub const IndirectCommandsLayoutUsageFlagsNVX = Flags;
-pub const IndirectCommandsLayoutUsageFlagBitsNVX = struct {
-    pub const UNORDERED_SEQUENCES_BIT: IndirectCommandsLayoutUsageFlagsNVX = 0x00000001;
-    pub const SPARSE_SEQUENCES_BIT: IndirectCommandsLayoutUsageFlagsNVX = 0x00000002;
-    pub const EMPTY_EXECUTIONS_BIT: IndirectCommandsLayoutUsageFlagsNVX = 0x00000004;
-    pub const INDEXED_SEQUENCES_BIT: IndirectCommandsLayoutUsageFlagsNVX = 0x00000008;
+pub const IndirectCommandsLayoutUsageFlagsNVX = packed struct {
+    unorderedSequences: bool = false,
+    sparseSequences: bool = false,
+    emptyExecutions: bool = false,
+    indexedSequences: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const ObjectEntryUsageFlagsNVX = Flags;
-pub const ObjectEntryUsageFlagBitsNVX = struct {
-    pub const GRAPHICS_BIT: ObjectEntryUsageFlagsNVX = 0x00000001;
-    pub const COMPUTE_BIT: ObjectEntryUsageFlagsNVX = 0x00000002;
+pub const ObjectEntryUsageFlagsNVX = packed struct {
+    graphics: bool = false,
+    compute: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const DeviceGeneratedCommandsFeaturesNVX = extern struct {
@@ -10375,7 +12363,7 @@ pub const IndirectCommandsLayoutCreateInfoNVX = extern struct {
     sType: StructureType = .INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NVX,
     pNext: ?*const c_void = null,
     pipelineBindPoint: PipelineBindPoint,
-    flags: IndirectCommandsLayoutUsageFlagsNVX,
+    flags: IndirectCommandsLayoutUsageFlagsNVX align(4),
     tokenCount: u32,
     pTokens: [*]const IndirectCommandsLayoutTokenNVX,
 };
@@ -10409,7 +12397,7 @@ pub const ObjectTableCreateInfoNVX = extern struct {
     objectCount: u32,
     pObjectEntryTypes: [*]const ObjectEntryTypeNVX,
     pObjectEntryCounts: [*]const u32,
-    pObjectEntryUsageFlags: [*]const ObjectEntryUsageFlagsNVX,
+    pObjectEntryUsageFlags: [*]align(4) const ObjectEntryUsageFlagsNVX,
     maxUniformBuffersPerDescriptor: u32,
     maxStorageBuffersPerDescriptor: u32,
     maxStorageImagesPerDescriptor: u32,
@@ -10419,40 +12407,40 @@ pub const ObjectTableCreateInfoNVX = extern struct {
 
 pub const ObjectTableEntryNVX = extern struct {
     inType: ObjectEntryTypeNVX,
-    flags: ObjectEntryUsageFlagsNVX,
+    flags: ObjectEntryUsageFlagsNVX align(4),
 };
 
 pub const ObjectTablePipelineEntryNVX = extern struct {
     inType: ObjectEntryTypeNVX,
-    flags: ObjectEntryUsageFlagsNVX,
+    flags: ObjectEntryUsageFlagsNVX align(4),
     pipeline: Pipeline,
 };
 
 pub const ObjectTableDescriptorSetEntryNVX = extern struct {
     inType: ObjectEntryTypeNVX,
-    flags: ObjectEntryUsageFlagsNVX,
+    flags: ObjectEntryUsageFlagsNVX align(4),
     pipelineLayout: PipelineLayout,
     descriptorSet: DescriptorSet,
 };
 
 pub const ObjectTableVertexBufferEntryNVX = extern struct {
     inType: ObjectEntryTypeNVX,
-    flags: ObjectEntryUsageFlagsNVX,
+    flags: ObjectEntryUsageFlagsNVX align(4),
     buffer: Buffer,
 };
 
 pub const ObjectTableIndexBufferEntryNVX = extern struct {
     inType: ObjectEntryTypeNVX,
-    flags: ObjectEntryUsageFlagsNVX,
+    flags: ObjectEntryUsageFlagsNVX align(4),
     buffer: Buffer,
     indexType: IndexType,
 };
 
 pub const ObjectTablePushConstantEntryNVX = extern struct {
     inType: ObjectEntryTypeNVX,
-    flags: ObjectEntryUsageFlagsNVX,
+    flags: ObjectEntryUsageFlagsNVX align(4),
     pipelineLayout: PipelineLayout,
-    stageFlags: ShaderStageFlags,
+    stageFlags: ShaderStageFlags align(4),
 };
 
 pub extern fn vkCmdProcessCommandsNVX(
@@ -10588,7 +12576,7 @@ pub inline fn GetPhysicalDeviceGeneratedCommandsPropertiesNVX(physicalDevice: Ph
 
 pub const NV_clip_space_w_scaling = 1;
 pub const NV_CLIP_SPACE_W_SCALING_SPEC_VERSION = 1;
-pub const NV_CLIP_SPACE_W_SCALING_EXTENSION_NAME = c"VK_NV_clip_space_w_scaling";
+pub const NV_CLIP_SPACE_W_SCALING_EXTENSION_NAME = "VK_NV_clip_space_w_scaling";
 
 pub const ViewportWScalingNV = extern struct {
     xcoeff: f32,
@@ -10617,7 +12605,7 @@ pub inline fn CmdSetViewportWScalingNV(commandBuffer: CommandBuffer, firstViewpo
 
 pub const EXT_direct_mode_display = 1;
 pub const EXT_DIRECT_MODE_DISPLAY_SPEC_VERSION = 1;
-pub const EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME = c"VK_EXT_direct_mode_display";
+pub const EXT_DIRECT_MODE_DISPLAY_EXTENSION_NAME = "VK_EXT_direct_mode_display";
 
 pub extern fn vkReleaseDisplayEXT(
     physicalDevice: PhysicalDevice,
@@ -10634,11 +12622,43 @@ pub inline fn ReleaseDisplayEXT(physicalDevice: PhysicalDevice, display: Display
 
 pub const EXT_display_surface_counter = 1;
 pub const EXT_DISPLAY_SURFACE_COUNTER_SPEC_VERSION = 1;
-pub const EXT_DISPLAY_SURFACE_COUNTER_EXTENSION_NAME = c"VK_EXT_display_surface_counter";
+pub const EXT_DISPLAY_SURFACE_COUNTER_EXTENSION_NAME = "VK_EXT_display_surface_counter";
 
-pub const SurfaceCounterFlagsEXT = Flags;
-pub const SurfaceCounterFlagBitsEXT = struct {
-    pub const VBLANK: SurfaceCounterFlagsEXT = 0x00000001;
+pub const SurfaceCounterFlagsEXT = packed struct {
+    vblank: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const SurfaceCapabilities2EXT = extern struct {
@@ -10650,11 +12670,11 @@ pub const SurfaceCapabilities2EXT = extern struct {
     minImageExtent: Extent2D,
     maxImageExtent: Extent2D,
     maxImageArrayLayers: u32,
-    supportedTransforms: SurfaceTransformFlagsKHR = 0,
-    currentTransform: SurfaceTransformFlagsKHR,
-    supportedCompositeAlpha: CompositeAlphaFlagsKHR = 0,
-    supportedUsageFlags: ImageUsageFlags = 0,
-    supportedSurfaceCounters: SurfaceCounterFlagsEXT = 0,
+    supportedTransforms: SurfaceTransformFlagsKHR align(4) = SurfaceTransformFlagsKHR{},
+    currentTransform: SurfaceTransformFlagsKHR align(4),
+    supportedCompositeAlpha: CompositeAlphaFlagsKHR align(4) = CompositeAlphaFlagsKHR{},
+    supportedUsageFlags: ImageUsageFlags align(4) = ImageUsageFlags{},
+    supportedSurfaceCounters: SurfaceCounterFlagsEXT align(4) = SurfaceCounterFlagsEXT{},
 };
 
 pub extern fn vkGetPhysicalDeviceSurfaceCapabilities2EXT(
@@ -10680,20 +12700,23 @@ pub inline fn GetPhysicalDeviceSurfaceCapabilities2EXT(physicalDevice: PhysicalD
 
 pub const EXT_display_control = 1;
 pub const EXT_DISPLAY_CONTROL_SPEC_VERSION = 1;
-pub const EXT_DISPLAY_CONTROL_EXTENSION_NAME = c"VK_EXT_display_control";
+pub const EXT_DISPLAY_CONTROL_EXTENSION_NAME = "VK_EXT_display_control";
 
-pub const DisplayPowerStateEXT = extern enum {
+pub const DisplayPowerStateEXT = extern enum(i32) {
     OFF = 0,
     SUSPEND = 1,
     ON = 2,
+    _,
 };
 
-pub const DeviceEventTypeEXT = extern enum {
+pub const DeviceEventTypeEXT = extern enum(i32) {
     DISPLAY_HOTPLUG = 0,
+    _,
 };
 
-pub const DisplayEventTypeEXT = extern enum {
+pub const DisplayEventTypeEXT = extern enum(i32) {
     FIRST_PIXEL_OUT = 0,
+    _,
 };
 
 pub const DisplayPowerInfoEXT = extern struct {
@@ -10717,7 +12740,7 @@ pub const DisplayEventInfoEXT = extern struct {
 pub const SwapchainCounterCreateInfoEXT = extern struct {
     sType: StructureType = .SWAPCHAIN_COUNTER_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    surfaceCounters: SurfaceCounterFlagsEXT = 0,
+    surfaceCounters: SurfaceCounterFlagsEXT align(4) = SurfaceCounterFlagsEXT{},
 };
 
 pub extern fn vkDisplayPowerControlEXT(
@@ -10789,7 +12812,7 @@ pub inline fn GetSwapchainCounterEXT(device: Device, swapchain: SwapchainKHR, co
 
 pub const GOOGLE_display_timing = 1;
 pub const GOOGLE_DISPLAY_TIMING_SPEC_VERSION = 1;
-pub const GOOGLE_DISPLAY_TIMING_EXTENSION_NAME = c"VK_GOOGLE_display_timing";
+pub const GOOGLE_DISPLAY_TIMING_EXTENSION_NAME = "VK_GOOGLE_display_timing";
 
 pub const RefreshCycleDurationGOOGLE = extern struct {
     refreshDuration: u64,
@@ -10878,22 +12901,22 @@ pub inline fn GetPastPresentationTimingCountGOOGLE(device: Device, swapchain: Sw
 
 pub const NV_sample_mask_override_coverage = 1;
 pub const NV_SAMPLE_MASK_OVERRIDE_COVERAGE_SPEC_VERSION = 1;
-pub const NV_SAMPLE_MASK_OVERRIDE_COVERAGE_EXTENSION_NAME = c"VK_NV_sample_mask_override_coverage";
+pub const NV_SAMPLE_MASK_OVERRIDE_COVERAGE_EXTENSION_NAME = "VK_NV_sample_mask_override_coverage";
 
 
 pub const NV_geometry_shader_passthrough = 1;
 pub const NV_GEOMETRY_SHADER_PASSTHROUGH_SPEC_VERSION = 1;
-pub const NV_GEOMETRY_SHADER_PASSTHROUGH_EXTENSION_NAME = c"VK_NV_geometry_shader_passthrough";
+pub const NV_GEOMETRY_SHADER_PASSTHROUGH_EXTENSION_NAME = "VK_NV_geometry_shader_passthrough";
 
 
 pub const NV_viewport_array2 = 1;
 pub const NV_VIEWPORT_ARRAY2_SPEC_VERSION = 1;
-pub const NV_VIEWPORT_ARRAY2_EXTENSION_NAME = c"VK_NV_viewport_array2";
+pub const NV_VIEWPORT_ARRAY2_EXTENSION_NAME = "VK_NV_viewport_array2";
 
 
 pub const NVX_multiview_per_view_attributes = 1;
 pub const NVX_MULTIVIEW_PER_VIEW_ATTRIBUTES_SPEC_VERSION = 1;
-pub const NVX_MULTIVIEW_PER_VIEW_ATTRIBUTES_EXTENSION_NAME = c"VK_NVX_multiview_per_view_attributes";
+pub const NVX_MULTIVIEW_PER_VIEW_ATTRIBUTES_EXTENSION_NAME = "VK_NVX_multiview_per_view_attributes";
 
 pub const PhysicalDeviceMultiviewPerViewAttributesPropertiesNVX = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_ATTRIBUTES_PROPERTIES_NVX,
@@ -10904,9 +12927,9 @@ pub const PhysicalDeviceMultiviewPerViewAttributesPropertiesNVX = extern struct 
 
 pub const NV_viewport_swizzle = 1;
 pub const NV_VIEWPORT_SWIZZLE_SPEC_VERSION = 1;
-pub const NV_VIEWPORT_SWIZZLE_EXTENSION_NAME = c"VK_NV_viewport_swizzle";
+pub const NV_VIEWPORT_SWIZZLE_EXTENSION_NAME = "VK_NV_viewport_swizzle";
 
-pub const ViewportCoordinateSwizzleNV = extern enum {
+pub const ViewportCoordinateSwizzleNV = extern enum(i32) {
     POSITIVE_X = 0,
     NEGATIVE_X = 1,
     POSITIVE_Y = 2,
@@ -10915,9 +12938,13 @@ pub const ViewportCoordinateSwizzleNV = extern enum {
     NEGATIVE_Z = 5,
     POSITIVE_W = 6,
     NEGATIVE_W = 7,
+    _,
 };
 
-pub const PipelineViewportSwizzleStateCreateFlagsNV = Flags;
+pub const PipelineViewportSwizzleStateCreateFlagsNV = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const ViewportSwizzleNV = extern struct {
     x: ViewportCoordinateSwizzleNV,
@@ -10929,7 +12956,7 @@ pub const ViewportSwizzleNV = extern struct {
 pub const PipelineViewportSwizzleStateCreateInfoNV = extern struct {
     sType: StructureType = .PIPELINE_VIEWPORT_SWIZZLE_STATE_CREATE_INFO_NV,
     pNext: ?*const c_void = null,
-    flags: PipelineViewportSwizzleStateCreateFlagsNV = 0,
+    flags: PipelineViewportSwizzleStateCreateFlagsNV align(4) = PipelineViewportSwizzleStateCreateFlagsNV{},
     viewportCount: u32,
     pViewportSwizzles: [*]const ViewportSwizzleNV,
 };
@@ -10937,14 +12964,18 @@ pub const PipelineViewportSwizzleStateCreateInfoNV = extern struct {
 
 pub const EXT_discard_rectangles = 1;
 pub const EXT_DISCARD_RECTANGLES_SPEC_VERSION = 1;
-pub const EXT_DISCARD_RECTANGLES_EXTENSION_NAME = c"VK_EXT_discard_rectangles";
+pub const EXT_DISCARD_RECTANGLES_EXTENSION_NAME = "VK_EXT_discard_rectangles";
 
-pub const DiscardRectangleModeEXT = extern enum {
+pub const DiscardRectangleModeEXT = extern enum(i32) {
     INCLUSIVE = 0,
     EXCLUSIVE = 1,
+    _,
 };
 
-pub const PipelineDiscardRectangleStateCreateFlagsEXT = Flags;
+pub const PipelineDiscardRectangleStateCreateFlagsEXT = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const PhysicalDeviceDiscardRectanglePropertiesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_DISCARD_RECTANGLE_PROPERTIES_EXT,
@@ -10955,7 +12986,7 @@ pub const PhysicalDeviceDiscardRectanglePropertiesEXT = extern struct {
 pub const PipelineDiscardRectangleStateCreateInfoEXT = extern struct {
     sType: StructureType = .PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    flags: PipelineDiscardRectangleStateCreateFlagsEXT = 0,
+    flags: PipelineDiscardRectangleStateCreateFlagsEXT align(4) = PipelineDiscardRectangleStateCreateFlagsEXT{},
     discardRectangleMode: DiscardRectangleModeEXT,
     discardRectangleCount: u32 = 0,
     pDiscardRectangles: ?[*]const Rect2D = null,
@@ -10975,15 +13006,19 @@ pub inline fn CmdSetDiscardRectangleEXT(commandBuffer: CommandBuffer, firstDisca
 
 pub const EXT_conservative_rasterization = 1;
 pub const EXT_CONSERVATIVE_RASTERIZATION_SPEC_VERSION = 1;
-pub const EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME = c"VK_EXT_conservative_rasterization";
+pub const EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME = "VK_EXT_conservative_rasterization";
 
-pub const ConservativeRasterizationModeEXT = extern enum {
+pub const ConservativeRasterizationModeEXT = extern enum(i32) {
     DISABLED = 0,
     OVERESTIMATE = 1,
     UNDERESTIMATE = 2,
+    _,
 };
 
-pub const PipelineRasterizationConservativeStateCreateFlagsEXT = Flags;
+pub const PipelineRasterizationConservativeStateCreateFlagsEXT = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const PhysicalDeviceConservativeRasterizationPropertiesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_CONSERVATIVE_RASTERIZATION_PROPERTIES_EXT,
@@ -11002,7 +13037,7 @@ pub const PhysicalDeviceConservativeRasterizationPropertiesEXT = extern struct {
 pub const PipelineRasterizationConservativeStateCreateInfoEXT = extern struct {
     sType: StructureType = .PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    flags: PipelineRasterizationConservativeStateCreateFlagsEXT = 0,
+    flags: PipelineRasterizationConservativeStateCreateFlagsEXT align(4) = PipelineRasterizationConservativeStateCreateFlagsEXT{},
     conservativeRasterizationMode: ConservativeRasterizationModeEXT,
     extraPrimitiveOverestimationSize: f32,
 };
@@ -11010,9 +13045,12 @@ pub const PipelineRasterizationConservativeStateCreateInfoEXT = extern struct {
 
 pub const EXT_depth_clip_enable = 1;
 pub const EXT_DEPTH_CLIP_ENABLE_SPEC_VERSION = 1;
-pub const EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME = c"VK_EXT_depth_clip_enable";
+pub const EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME = "VK_EXT_depth_clip_enable";
 
-pub const PipelineRasterizationDepthClipStateCreateFlagsEXT = Flags;
+pub const PipelineRasterizationDepthClipStateCreateFlagsEXT = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const PhysicalDeviceDepthClipEnableFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT,
@@ -11023,19 +13061,19 @@ pub const PhysicalDeviceDepthClipEnableFeaturesEXT = extern struct {
 pub const PipelineRasterizationDepthClipStateCreateInfoEXT = extern struct {
     sType: StructureType = .PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    flags: PipelineRasterizationDepthClipStateCreateFlagsEXT = 0,
+    flags: PipelineRasterizationDepthClipStateCreateFlagsEXT align(4) = PipelineRasterizationDepthClipStateCreateFlagsEXT{},
     depthClipEnable: Bool32,
 };
 
 
 pub const EXT_swapchain_colorspace = 1;
 pub const EXT_SWAPCHAIN_COLOR_SPACE_SPEC_VERSION = 4;
-pub const EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME = c"VK_EXT_swapchain_colorspace";
+pub const EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME = "VK_EXT_swapchain_colorspace";
 
 
 pub const EXT_hdr_metadata = 1;
 pub const EXT_HDR_METADATA_SPEC_VERSION = 2;
-pub const EXT_HDR_METADATA_EXTENSION_NAME = c"VK_EXT_hdr_metadata";
+pub const EXT_HDR_METADATA_EXTENSION_NAME = "VK_EXT_hdr_metadata";
 
 pub const XYColorEXT = extern struct {
     x: f32,
@@ -11070,37 +13108,103 @@ pub inline fn SetHdrMetadataEXT(device: Device, swapchains: []const SwapchainKHR
 
 pub const EXT_external_memory_dma_buf = 1;
 pub const EXT_EXTERNAL_MEMORY_DMA_BUF_SPEC_VERSION = 1;
-pub const EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME = c"VK_EXT_external_memory_dma_buf";
+pub const EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME = "VK_EXT_external_memory_dma_buf";
 
 
 pub const EXT_queue_family_foreign = 1;
 pub const EXT_QUEUE_FAMILY_FOREIGN_SPEC_VERSION = 1;
-pub const EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME = c"VK_EXT_queue_family_foreign";
-pub const QUEUE_FAMILY_FOREIGN_EXT = (~u32(0)-2);
+pub const EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME = "VK_EXT_queue_family_foreign";
+pub const QUEUE_FAMILY_FOREIGN_EXT = (~@as(u32, 0)-2);
 
 
 pub const EXT_debug_utils = 1;
 pub const DebugUtilsMessengerEXT = *@OpaqueType();
 
 pub const EXT_DEBUG_UTILS_SPEC_VERSION = 1;
-pub const EXT_DEBUG_UTILS_EXTENSION_NAME = c"VK_EXT_debug_utils";
+pub const EXT_DEBUG_UTILS_EXTENSION_NAME = "VK_EXT_debug_utils";
 
-pub const DebugUtilsMessengerCallbackDataFlagsEXT = Flags;
-pub const DebugUtilsMessengerCreateFlagsEXT = Flags;
-
-pub const DebugUtilsMessageSeverityFlagsEXT = Flags;
-pub const DebugUtilsMessageSeverityFlagBitsEXT = struct {
-    pub const VERBOSE_BIT: DebugUtilsMessageSeverityFlagsEXT = 0x00000001;
-    pub const INFO_BIT: DebugUtilsMessageSeverityFlagsEXT = 0x00000010;
-    pub const WARNING_BIT: DebugUtilsMessageSeverityFlagsEXT = 0x00000100;
-    pub const ERROR_BIT: DebugUtilsMessageSeverityFlagsEXT = 0x00001000;
+pub const DebugUtilsMessengerCallbackDataFlagsEXT = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const DebugUtilsMessageTypeFlagsEXT = Flags;
-pub const DebugUtilsMessageTypeFlagBitsEXT = struct {
-    pub const GENERAL_BIT: DebugUtilsMessageTypeFlagsEXT = 0x00000001;
-    pub const VALIDATION_BIT: DebugUtilsMessageTypeFlagsEXT = 0x00000002;
-    pub const PERFORMANCE_BIT: DebugUtilsMessageTypeFlagsEXT = 0x00000004;
+pub const DebugUtilsMessengerCreateFlagsEXT = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const DebugUtilsMessageSeverityFlagsEXT = packed struct {
+    verbose: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    info: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    warning: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    errorBit: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
+pub const DebugUtilsMessageTypeFlagsEXT = packed struct {
+    general: bool = false,
+    validation: bool = false,
+    performance: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const DebugUtilsObjectNameInfoEXT = extern struct {
@@ -11131,7 +13235,7 @@ pub const DebugUtilsLabelEXT = extern struct {
 pub const DebugUtilsMessengerCallbackDataEXT = extern struct {
     sType: StructureType = .DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT,
     pNext: ?*const c_void = null,
-    flags: DebugUtilsMessengerCallbackDataFlagsEXT = 0,
+    flags: DebugUtilsMessengerCallbackDataFlagsEXT align(4) = DebugUtilsMessengerCallbackDataFlagsEXT{},
     pMessageIdName: ?CString = null,
     messageIdNumber: i32 = 0,
     pMessage: CString,
@@ -11153,9 +13257,9 @@ pub const PFN_DebugUtilsMessengerCallbackEXT = extern fn (
 pub const DebugUtilsMessengerCreateInfoEXT = extern struct {
     sType: StructureType = .DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    flags: DebugUtilsMessengerCreateFlagsEXT = 0,
-    messageSeverity: DebugUtilsMessageSeverityFlagsEXT,
-    messageType: DebugUtilsMessageTypeFlagsEXT,
+    flags: DebugUtilsMessengerCreateFlagsEXT align(4) = DebugUtilsMessengerCreateFlagsEXT{},
+    messageSeverity: DebugUtilsMessageSeverityFlagsEXT align(4),
+    messageType: DebugUtilsMessageTypeFlagsEXT align(4),
     pfnUserCallback: PFN_DebugUtilsMessengerCallbackEXT,
     pUserData: ?*c_void = null,
 };
@@ -11277,7 +13381,7 @@ pub inline fn SubmitDebugUtilsMessageEXT(instance: Instance, messageSeverity: De
 
 pub const EXT_sampler_filter_minmax = 1;
 pub const EXT_SAMPLER_FILTER_MINMAX_SPEC_VERSION = 2;
-pub const EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME = c"VK_EXT_sampler_filter_minmax";
+pub const EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME = "VK_EXT_sampler_filter_minmax";
 
 pub const SamplerReductionModeEXT = SamplerReductionMode;
 
@@ -11287,22 +13391,22 @@ pub const PhysicalDeviceSamplerFilterMinmaxPropertiesEXT = PhysicalDeviceSampler
 
 pub const AMD_gpu_shader_int16 = 1;
 pub const AMD_GPU_SHADER_INT16_SPEC_VERSION = 2;
-pub const AMD_GPU_SHADER_INT16_EXTENSION_NAME = c"VK_AMD_gpu_shader_int16";
+pub const AMD_GPU_SHADER_INT16_EXTENSION_NAME = "VK_AMD_gpu_shader_int16";
 
 
 pub const AMD_mixed_attachment_samples = 1;
 pub const AMD_MIXED_ATTACHMENT_SAMPLES_SPEC_VERSION = 1;
-pub const AMD_MIXED_ATTACHMENT_SAMPLES_EXTENSION_NAME = c"VK_AMD_mixed_attachment_samples";
+pub const AMD_MIXED_ATTACHMENT_SAMPLES_EXTENSION_NAME = "VK_AMD_mixed_attachment_samples";
 
 
 pub const AMD_shader_fragment_mask = 1;
 pub const AMD_SHADER_FRAGMENT_MASK_SPEC_VERSION = 1;
-pub const AMD_SHADER_FRAGMENT_MASK_EXTENSION_NAME = c"VK_AMD_shader_fragment_mask";
+pub const AMD_SHADER_FRAGMENT_MASK_EXTENSION_NAME = "VK_AMD_shader_fragment_mask";
 
 
 pub const EXT_inline_uniform_block = 1;
 pub const EXT_INLINE_UNIFORM_BLOCK_SPEC_VERSION = 1;
-pub const EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME = c"VK_EXT_inline_uniform_block";
+pub const EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME = "VK_EXT_inline_uniform_block";
 
 pub const PhysicalDeviceInlineUniformBlockFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT,
@@ -11337,12 +13441,12 @@ pub const DescriptorPoolInlineUniformBlockCreateInfoEXT = extern struct {
 
 pub const EXT_shader_stencil_export = 1;
 pub const EXT_SHADER_STENCIL_EXPORT_SPEC_VERSION = 1;
-pub const EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME = c"VK_EXT_shader_stencil_export";
+pub const EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME = "VK_EXT_shader_stencil_export";
 
 
 pub const EXT_sample_locations = 1;
 pub const EXT_SAMPLE_LOCATIONS_SPEC_VERSION = 1;
-pub const EXT_SAMPLE_LOCATIONS_EXTENSION_NAME = c"VK_EXT_sample_locations";
+pub const EXT_SAMPLE_LOCATIONS_EXTENSION_NAME = "VK_EXT_sample_locations";
 
 pub const SampleLocationEXT = extern struct {
     x: f32,
@@ -11352,7 +13456,7 @@ pub const SampleLocationEXT = extern struct {
 pub const SampleLocationsInfoEXT = extern struct {
     sType: StructureType = .SAMPLE_LOCATIONS_INFO_EXT,
     pNext: ?*const c_void = null,
-    sampleLocationsPerPixel: SampleCountFlags = 0,
+    sampleLocationsPerPixel: SampleCountFlags align(4) = SampleCountFlags{},
     sampleLocationGridSize: Extent2D,
     sampleLocationsCount: u32 = 0,
     pSampleLocations: [*]const SampleLocationEXT = undefined,
@@ -11387,7 +13491,7 @@ pub const PipelineSampleLocationsStateCreateInfoEXT = extern struct {
 pub const PhysicalDeviceSampleLocationsPropertiesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SAMPLE_LOCATIONS_PROPERTIES_EXT,
     pNext: ?*c_void = null,
-    sampleLocationSampleCounts: SampleCountFlags,
+    sampleLocationSampleCounts: SampleCountFlags align(4),
     maxSampleLocationGridSize: Extent2D,
     sampleLocationCoordinateRange: [2]f32,
     sampleLocationSubPixelBits: u32,
@@ -11424,12 +13528,13 @@ pub inline fn GetPhysicalDeviceMultisamplePropertiesEXT(physicalDevice: Physical
 
 pub const EXT_blend_operation_advanced = 1;
 pub const EXT_BLEND_OPERATION_ADVANCED_SPEC_VERSION = 2;
-pub const EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME = c"VK_EXT_blend_operation_advanced";
+pub const EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME = "VK_EXT_blend_operation_advanced";
 
-pub const BlendOverlapEXT = extern enum {
+pub const BlendOverlapEXT = extern enum(i32) {
     UNCORRELATED = 0,
     DISJOINT = 1,
     CONJOINT = 2,
+    _,
 };
 
 pub const PhysicalDeviceBlendOperationAdvancedFeaturesEXT = extern struct {
@@ -11460,14 +13565,17 @@ pub const PipelineColorBlendAdvancedStateCreateInfoEXT = extern struct {
 
 pub const NV_fragment_coverage_to_color = 1;
 pub const NV_FRAGMENT_COVERAGE_TO_COLOR_SPEC_VERSION = 1;
-pub const NV_FRAGMENT_COVERAGE_TO_COLOR_EXTENSION_NAME = c"VK_NV_fragment_coverage_to_color";
+pub const NV_FRAGMENT_COVERAGE_TO_COLOR_EXTENSION_NAME = "VK_NV_fragment_coverage_to_color";
 
-pub const PipelineCoverageToColorStateCreateFlagsNV = Flags;
+pub const PipelineCoverageToColorStateCreateFlagsNV = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const PipelineCoverageToColorStateCreateInfoNV = extern struct {
     sType: StructureType = .PIPELINE_COVERAGE_TO_COLOR_STATE_CREATE_INFO_NV,
     pNext: ?*const c_void = null,
-    flags: PipelineCoverageToColorStateCreateFlagsNV = 0,
+    flags: PipelineCoverageToColorStateCreateFlagsNV align(4) = PipelineCoverageToColorStateCreateFlagsNV{},
     coverageToColorEnable: Bool32,
     coverageToColorLocation: u32 = 0,
 };
@@ -11475,21 +13583,25 @@ pub const PipelineCoverageToColorStateCreateInfoNV = extern struct {
 
 pub const NV_framebuffer_mixed_samples = 1;
 pub const NV_FRAMEBUFFER_MIXED_SAMPLES_SPEC_VERSION = 1;
-pub const NV_FRAMEBUFFER_MIXED_SAMPLES_EXTENSION_NAME = c"VK_NV_framebuffer_mixed_samples";
+pub const NV_FRAMEBUFFER_MIXED_SAMPLES_EXTENSION_NAME = "VK_NV_framebuffer_mixed_samples";
 
-pub const CoverageModulationModeNV = extern enum {
+pub const CoverageModulationModeNV = extern enum(i32) {
     NONE = 0,
     RGB = 1,
     ALPHA = 2,
     RGBA = 3,
+    _,
 };
 
-pub const PipelineCoverageModulationStateCreateFlagsNV = Flags;
+pub const PipelineCoverageModulationStateCreateFlagsNV = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const PipelineCoverageModulationStateCreateInfoNV = extern struct {
     sType: StructureType = .PIPELINE_COVERAGE_MODULATION_STATE_CREATE_INFO_NV,
     pNext: ?*const c_void = null,
-    flags: PipelineCoverageModulationStateCreateFlagsNV = 0,
+    flags: PipelineCoverageModulationStateCreateFlagsNV align(4) = PipelineCoverageModulationStateCreateFlagsNV{},
     coverageModulationMode: CoverageModulationModeNV,
     coverageModulationTableEnable: Bool32,
     coverageModulationTableCount: u32 = 0,
@@ -11499,12 +13611,12 @@ pub const PipelineCoverageModulationStateCreateInfoNV = extern struct {
 
 pub const NV_fill_rectangle = 1;
 pub const NV_FILL_RECTANGLE_SPEC_VERSION = 1;
-pub const NV_FILL_RECTANGLE_EXTENSION_NAME = c"VK_NV_fill_rectangle";
+pub const NV_FILL_RECTANGLE_EXTENSION_NAME = "VK_NV_fill_rectangle";
 
 
 pub const NV_shader_sm_builtins = 1;
 pub const NV_SHADER_SM_BUILTINS_SPEC_VERSION = 1;
-pub const NV_SHADER_SM_BUILTINS_EXTENSION_NAME = c"VK_NV_shader_sm_builtins";
+pub const NV_SHADER_SM_BUILTINS_EXTENSION_NAME = "VK_NV_shader_sm_builtins";
 
 pub const PhysicalDeviceShaderSMBuiltinsPropertiesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SHADER_SM_BUILTINS_PROPERTIES_NV,
@@ -11522,17 +13634,17 @@ pub const PhysicalDeviceShaderSMBuiltinsFeaturesNV = extern struct {
 
 pub const EXT_post_depth_coverage = 1;
 pub const EXT_POST_DEPTH_COVERAGE_SPEC_VERSION = 1;
-pub const EXT_POST_DEPTH_COVERAGE_EXTENSION_NAME = c"VK_EXT_post_depth_coverage";
+pub const EXT_POST_DEPTH_COVERAGE_EXTENSION_NAME = "VK_EXT_post_depth_coverage";
 
 
 pub const EXT_image_drm_format_modifier = 1;
 pub const EXT_IMAGE_DRM_FORMAT_MODIFIER_SPEC_VERSION = 1;
-pub const EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME = c"VK_EXT_image_drm_format_modifier";
+pub const EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME = "VK_EXT_image_drm_format_modifier";
 
 pub const DrmFormatModifierPropertiesEXT = extern struct {
     drmFormatModifier: u64,
     drmFormatModifierPlaneCount: u32,
-    drmFormatModifierTilingFeatures: FormatFeatureFlags,
+    drmFormatModifierTilingFeatures: FormatFeatureFlags align(4),
 };
 
 pub const DrmFormatModifierPropertiesListEXT = extern struct {
@@ -11592,18 +13704,22 @@ pub const EXT_validation_cache = 1;
 pub const ValidationCacheEXT = *@OpaqueType();
 
 pub const EXT_VALIDATION_CACHE_SPEC_VERSION = 1;
-pub const EXT_VALIDATION_CACHE_EXTENSION_NAME = c"VK_EXT_validation_cache";
+pub const EXT_VALIDATION_CACHE_EXTENSION_NAME = "VK_EXT_validation_cache";
 
-pub const ValidationCacheHeaderVersionEXT = extern enum {
+pub const ValidationCacheHeaderVersionEXT = extern enum(i32) {
     ONE = 1,
+    _,
 };
 
-pub const ValidationCacheCreateFlagsEXT = Flags;
+pub const ValidationCacheCreateFlagsEXT = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const ValidationCacheCreateInfoEXT = extern struct {
     sType: StructureType = .VALIDATION_CACHE_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    flags: ValidationCacheCreateFlagsEXT = 0,
+    flags: ValidationCacheCreateFlagsEXT align(4) = ValidationCacheCreateFlagsEXT{},
     initialDataSize: usize = 0,
     pInitialData: ?*const c_void = undefined,
 };
@@ -11701,9 +13817,8 @@ pub inline fn GetValidationCacheDataCountEXT(device: Device, validationCache: Va
 
 pub const EXT_descriptor_indexing = 1;
 pub const EXT_DESCRIPTOR_INDEXING_SPEC_VERSION = 2;
-pub const EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME = c"VK_EXT_descriptor_indexing";
+pub const EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME = "VK_EXT_descriptor_indexing";
 
-pub const DescriptorBindingFlagBitsEXT = DescriptorBindingFlagBits;
 pub const DescriptorBindingFlagsEXT = DescriptorBindingFlags;
 
 pub const DescriptorSetLayoutBindingFlagsCreateInfoEXT = DescriptorSetLayoutBindingFlagsCreateInfo;
@@ -11715,14 +13830,14 @@ pub const DescriptorSetVariableDescriptorCountLayoutSupportEXT = DescriptorSetVa
 
 pub const EXT_shader_viewport_index_layer = 1;
 pub const EXT_SHADER_VIEWPORT_INDEX_LAYER_SPEC_VERSION = 1;
-pub const EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME = c"VK_EXT_shader_viewport_index_layer";
+pub const EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME = "VK_EXT_shader_viewport_index_layer";
 
 
 pub const NV_shading_rate_image = 1;
 pub const NV_SHADING_RATE_IMAGE_SPEC_VERSION = 3;
-pub const NV_SHADING_RATE_IMAGE_EXTENSION_NAME = c"VK_NV_shading_rate_image";
+pub const NV_SHADING_RATE_IMAGE_EXTENSION_NAME = "VK_NV_shading_rate_image";
 
-pub const ShadingRatePaletteEntryNV = extern enum {
+pub const ShadingRatePaletteEntryNV = extern enum(i32) {
     NO_INVOCATIONS = 0,
     T_16_INVOCATIONS_PER_PIXEL = 1,
     T_8_INVOCATIONS_PER_PIXEL = 2,
@@ -11735,13 +13850,15 @@ pub const ShadingRatePaletteEntryNV = extern enum {
     T_1_INVOCATION_PER_4X2_PIXELS = 9,
     T_1_INVOCATION_PER_2X4_PIXELS = 10,
     T_1_INVOCATION_PER_4X4_PIXELS = 11,
+    _,
 };
 
-pub const CoarseSampleOrderTypeNV = extern enum {
+pub const CoarseSampleOrderTypeNV = extern enum(i32) {
     DEFAULT = 0,
     CUSTOM = 1,
     PIXEL_MAJOR = 2,
     SAMPLE_MAJOR = 3,
+    _,
 };
 
 pub const ShadingRatePaletteNV = extern struct {
@@ -11828,57 +13945,150 @@ pub const NV_ray_tracing = 1;
 pub const AccelerationStructureNV = *@OpaqueType();
 
 pub const NV_RAY_TRACING_SPEC_VERSION = 3;
-pub const NV_RAY_TRACING_EXTENSION_NAME = c"VK_NV_ray_tracing";
-pub const SHADER_UNUSED_NV = (~u32(0));
+pub const NV_RAY_TRACING_EXTENSION_NAME = "VK_NV_ray_tracing";
+pub const SHADER_UNUSED_NV = (~@as(u32, 0));
 
-pub const AccelerationStructureTypeNV = extern enum {
+pub const AccelerationStructureTypeNV = extern enum(i32) {
     TOP_LEVEL = 0,
     BOTTOM_LEVEL = 1,
+    _,
 };
 
-pub const RayTracingShaderGroupTypeNV = extern enum {
+pub const RayTracingShaderGroupTypeNV = extern enum(i32) {
     GENERAL = 0,
     TRIANGLES_HIT_GROUP = 1,
     PROCEDURAL_HIT_GROUP = 2,
+    _,
 };
 
-pub const GeometryTypeNV = extern enum {
+pub const GeometryTypeNV = extern enum(i32) {
     TRIANGLES = 0,
     AABBS = 1,
+    _,
 };
 
-pub const CopyAccelerationStructureModeNV = extern enum {
+pub const CopyAccelerationStructureModeNV = extern enum(i32) {
     CLONE = 0,
     COMPACT = 1,
+    _,
 };
 
-pub const AccelerationStructureMemoryRequirementsTypeNV = extern enum {
+pub const AccelerationStructureMemoryRequirementsTypeNV = extern enum(i32) {
     OBJECT = 0,
     BUILD_SCRATCH = 1,
     UPDATE_SCRATCH = 2,
+    _,
 };
 
-pub const GeometryFlagsNV = Flags;
-pub const GeometryFlagBitsNV = struct {
-    pub const OPAQUE_BIT: GeometryFlagsNV = 0x00000001;
-    pub const NO_DUPLICATE_ANY_HIT_INVOCATION_BIT: GeometryFlagsNV = 0x00000002;
+pub const GeometryFlagsNV = packed struct {
+    opaque: bool = false,
+    noDuplicateAnyHitInvocation: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const GeometryInstanceFlagsNV = Flags;
-pub const GeometryInstanceFlagBitsNV = struct {
-    pub const TRIANGLE_CULL_DISABLE_BIT: GeometryInstanceFlagsNV = 0x00000001;
-    pub const TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT: GeometryInstanceFlagsNV = 0x00000002;
-    pub const FORCE_OPAQUE_BIT: GeometryInstanceFlagsNV = 0x00000004;
-    pub const FORCE_NO_OPAQUE_BIT: GeometryInstanceFlagsNV = 0x00000008;
+pub const GeometryInstanceFlagsNV = packed struct {
+    triangleCullDisable: bool = false,
+    triangleFrontCounterclockwise: bool = false,
+    forceOpaque: bool = false,
+    forceNoOpaque: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const BuildAccelerationStructureFlagsNV = Flags;
-pub const BuildAccelerationStructureFlagBitsNV = struct {
-    pub const ALLOW_UPDATE_BIT: BuildAccelerationStructureFlagsNV = 0x00000001;
-    pub const ALLOW_COMPACTION_BIT: BuildAccelerationStructureFlagsNV = 0x00000002;
-    pub const PREFER_FAST_TRACE_BIT: BuildAccelerationStructureFlagsNV = 0x00000004;
-    pub const PREFER_FAST_BUILD_BIT: BuildAccelerationStructureFlagsNV = 0x00000008;
-    pub const LOW_MEMORY_BIT: BuildAccelerationStructureFlagsNV = 0x00000010;
+pub const BuildAccelerationStructureFlagsNV = packed struct {
+    allowUpdate: bool = false,
+    allowCompaction: bool = false,
+    preferFastTrace: bool = false,
+    preferFastBuild: bool = false,
+    lowMemory: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const RayTracingShaderGroupCreateInfoNV = extern struct {
@@ -11894,7 +14104,7 @@ pub const RayTracingShaderGroupCreateInfoNV = extern struct {
 pub const RayTracingPipelineCreateInfoNV = extern struct {
     sType: StructureType = .RAY_TRACING_PIPELINE_CREATE_INFO_NV,
     pNext: ?*const c_void = null,
-    flags: PipelineCreateFlags = 0,
+    flags: PipelineCreateFlags align(4) = PipelineCreateFlags{},
     stageCount: u32,
     pStages: [*]const PipelineShaderStageCreateInfo,
     groupCount: u32,
@@ -11940,14 +14150,14 @@ pub const GeometryNV = extern struct {
     pNext: ?*const c_void = null,
     geometryType: GeometryTypeNV,
     geometry: GeometryDataNV,
-    flags: GeometryFlagsNV = 0,
+    flags: GeometryFlagsNV align(4) = GeometryFlagsNV{},
 };
 
 pub const AccelerationStructureInfoNV = extern struct {
     sType: StructureType = .ACCELERATION_STRUCTURE_INFO_NV,
     pNext: ?*const c_void = null,
     inType: AccelerationStructureTypeNV,
-    flags: BuildAccelerationStructureFlagsNV = 0,
+    flags: BuildAccelerationStructureFlagsNV align(4) = BuildAccelerationStructureFlagsNV{},
     instanceCount: u32 = 0,
     geometryCount: u32 = 0,
     pGeometries: [*]const GeometryNV = undefined,
@@ -12190,7 +14400,7 @@ pub inline fn CompileDeferredNV(device: Device, pipeline: Pipeline, shader: u32)
 
 pub const NV_representative_fragment_test = 1;
 pub const NV_REPRESENTATIVE_FRAGMENT_TEST_SPEC_VERSION = 2;
-pub const NV_REPRESENTATIVE_FRAGMENT_TEST_EXTENSION_NAME = c"VK_NV_representative_fragment_test";
+pub const NV_REPRESENTATIVE_FRAGMENT_TEST_EXTENSION_NAME = "VK_NV_representative_fragment_test";
 
 pub const PhysicalDeviceRepresentativeFragmentTestFeaturesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_REPRESENTATIVE_FRAGMENT_TEST_FEATURES_NV,
@@ -12207,7 +14417,7 @@ pub const PipelineRepresentativeFragmentTestStateCreateInfoNV = extern struct {
 
 pub const EXT_filter_cubic = 1;
 pub const EXT_FILTER_CUBIC_SPEC_VERSION = 3;
-pub const EXT_FILTER_CUBIC_EXTENSION_NAME = c"VK_EXT_filter_cubic";
+pub const EXT_FILTER_CUBIC_EXTENSION_NAME = "VK_EXT_filter_cubic";
 
 pub const PhysicalDeviceImageViewImageFormatInfoEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT,
@@ -12225,13 +14435,14 @@ pub const FilterCubicImageViewImageFormatPropertiesEXT = extern struct {
 
 pub const EXT_global_priority = 1;
 pub const EXT_GLOBAL_PRIORITY_SPEC_VERSION = 2;
-pub const EXT_GLOBAL_PRIORITY_EXTENSION_NAME = c"VK_EXT_global_priority";
+pub const EXT_GLOBAL_PRIORITY_EXTENSION_NAME = "VK_EXT_global_priority";
 
-pub const QueueGlobalPriorityEXT = extern enum {
+pub const QueueGlobalPriorityEXT = extern enum(i32) {
     LOW = 128,
     MEDIUM = 256,
     HIGH = 512,
     REALTIME = 1024,
+    _,
 };
 
 pub const DeviceQueueGlobalPriorityCreateInfoEXT = extern struct {
@@ -12243,12 +14454,12 @@ pub const DeviceQueueGlobalPriorityCreateInfoEXT = extern struct {
 
 pub const EXT_external_memory_host = 1;
 pub const EXT_EXTERNAL_MEMORY_HOST_SPEC_VERSION = 1;
-pub const EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME = c"VK_EXT_external_memory_host";
+pub const EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME = "VK_EXT_external_memory_host";
 
 pub const ImportMemoryHostPointerInfoEXT = extern struct {
     sType: StructureType = .IMPORT_MEMORY_HOST_POINTER_INFO_EXT,
     pNext: ?*const c_void = null,
-    handleType: ExternalMemoryHandleTypeFlags,
+    handleType: ExternalMemoryHandleTypeFlags align(4),
     pHostPointer: ?*c_void,
 };
 
@@ -12286,7 +14497,7 @@ pub inline fn GetMemoryHostPointerPropertiesEXT(device: Device, handleType: Exte
 
 pub const AMD_buffer_marker = 1;
 pub const AMD_BUFFER_MARKER_SPEC_VERSION = 1;
-pub const AMD_BUFFER_MARKER_EXTENSION_NAME = c"VK_AMD_buffer_marker";
+pub const AMD_BUFFER_MARKER_EXTENSION_NAME = "VK_AMD_buffer_marker";
 
 pub extern fn vkCmdWriteBufferMarkerAMD(
     commandBuffer: CommandBuffer,
@@ -12301,28 +14512,62 @@ pub const CmdWriteBufferMarkerAMD = vkCmdWriteBufferMarkerAMD;
 
 pub const AMD_pipeline_compiler_control = 1;
 pub const AMD_PIPELINE_COMPILER_CONTROL_SPEC_VERSION = 1;
-pub const AMD_PIPELINE_COMPILER_CONTROL_EXTENSION_NAME = c"VK_AMD_pipeline_compiler_control";
+pub const AMD_PIPELINE_COMPILER_CONTROL_EXTENSION_NAME = "VK_AMD_pipeline_compiler_control";
 
-pub const PipelineCompilerControlFlagsAMD = Flags;
-pub const PipelineCompilerControlFlagBitsAMD = struct {
+pub const PipelineCompilerControlFlagsAMD = packed struct {
+    __reserved_bit_00: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const PipelineCompilerControlCreateInfoAMD = extern struct {
     sType: StructureType = .PIPELINE_COMPILER_CONTROL_CREATE_INFO_AMD,
     pNext: ?*const c_void = null,
-    compilerControlFlags: PipelineCompilerControlFlagsAMD = 0,
+    compilerControlFlags: PipelineCompilerControlFlagsAMD align(4) = PipelineCompilerControlFlagsAMD{},
 };
 
 
 pub const EXT_calibrated_timestamps = 1;
 pub const EXT_CALIBRATED_TIMESTAMPS_SPEC_VERSION = 1;
-pub const EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME = c"VK_EXT_calibrated_timestamps";
+pub const EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME = "VK_EXT_calibrated_timestamps";
 
-pub const TimeDomainEXT = extern enum {
+pub const TimeDomainEXT = extern enum(i32) {
     DEVICE = 0,
     CLOCK_MONOTONIC = 1,
     CLOCK_MONOTONIC_RAW = 2,
     QUERY_PERFORMANCE_COUNTER = 3,
+    _,
 };
 
 pub const CalibratedTimestampInfoEXT = extern struct {
@@ -12394,7 +14639,7 @@ pub inline fn GetCalibratedTimestampsEXT(device: Device, timestampInfos: []const
 
 pub const AMD_shader_core_properties = 1;
 pub const AMD_SHADER_CORE_PROPERTIES_SPEC_VERSION = 2;
-pub const AMD_SHADER_CORE_PROPERTIES_EXTENSION_NAME = c"VK_AMD_shader_core_properties";
+pub const AMD_SHADER_CORE_PROPERTIES_EXTENSION_NAME = "VK_AMD_shader_core_properties";
 
 pub const PhysicalDeviceShaderCorePropertiesAMD = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_AMD,
@@ -12418,12 +14663,13 @@ pub const PhysicalDeviceShaderCorePropertiesAMD = extern struct {
 
 pub const AMD_memory_overallocation_behavior = 1;
 pub const AMD_MEMORY_OVERALLOCATION_BEHAVIOR_SPEC_VERSION = 1;
-pub const AMD_MEMORY_OVERALLOCATION_BEHAVIOR_EXTENSION_NAME = c"VK_AMD_memory_overallocation_behavior";
+pub const AMD_MEMORY_OVERALLOCATION_BEHAVIOR_EXTENSION_NAME = "VK_AMD_memory_overallocation_behavior";
 
-pub const MemoryOverallocationBehaviorAMD = extern enum {
+pub const MemoryOverallocationBehaviorAMD = extern enum(i32) {
     DEFAULT = 0,
     ALLOWED = 1,
     DISALLOWED = 2,
+    _,
 };
 
 pub const DeviceMemoryOverallocationCreateInfoAMD = extern struct {
@@ -12435,7 +14681,7 @@ pub const DeviceMemoryOverallocationCreateInfoAMD = extern struct {
 
 pub const EXT_vertex_attribute_divisor = 1;
 pub const EXT_VERTEX_ATTRIBUTE_DIVISOR_SPEC_VERSION = 3;
-pub const EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME = c"VK_EXT_vertex_attribute_divisor";
+pub const EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME = "VK_EXT_vertex_attribute_divisor";
 
 pub const PhysicalDeviceVertexAttributeDivisorPropertiesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT,
@@ -12465,17 +14711,47 @@ pub const PhysicalDeviceVertexAttributeDivisorFeaturesEXT = extern struct {
 
 pub const EXT_pipeline_creation_feedback = 1;
 pub const EXT_PIPELINE_CREATION_FEEDBACK_SPEC_VERSION = 1;
-pub const EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME = c"VK_EXT_pipeline_creation_feedback";
+pub const EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME = "VK_EXT_pipeline_creation_feedback";
 
-pub const PipelineCreationFeedbackFlagsEXT = Flags;
-pub const PipelineCreationFeedbackFlagBitsEXT = struct {
-    pub const VALID_BIT: PipelineCreationFeedbackFlagsEXT = 0x00000001;
-    pub const APPLICATION_PIPELINE_CACHE_HIT_BIT: PipelineCreationFeedbackFlagsEXT = 0x00000002;
-    pub const BASE_PIPELINE_ACCELERATION_BIT: PipelineCreationFeedbackFlagsEXT = 0x00000004;
+pub const PipelineCreationFeedbackFlagsEXT = packed struct {
+    valid: bool = false,
+    applicationPipelineCacheHit: bool = false,
+    basePipelineAcceleration: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const PipelineCreationFeedbackEXT = extern struct {
-    flags: PipelineCreationFeedbackFlagsEXT,
+    flags: PipelineCreationFeedbackFlagsEXT align(4),
     duration: u64,
 };
 
@@ -12490,12 +14766,12 @@ pub const PipelineCreationFeedbackCreateInfoEXT = extern struct {
 
 pub const NV_shader_subgroup_partitioned = 1;
 pub const NV_SHADER_SUBGROUP_PARTITIONED_SPEC_VERSION = 1;
-pub const NV_SHADER_SUBGROUP_PARTITIONED_EXTENSION_NAME = c"VK_NV_shader_subgroup_partitioned";
+pub const NV_SHADER_SUBGROUP_PARTITIONED_EXTENSION_NAME = "VK_NV_shader_subgroup_partitioned";
 
 
 pub const NV_compute_shader_derivatives = 1;
 pub const NV_COMPUTE_SHADER_DERIVATIVES_SPEC_VERSION = 1;
-pub const NV_COMPUTE_SHADER_DERIVATIVES_EXTENSION_NAME = c"VK_NV_compute_shader_derivatives";
+pub const NV_COMPUTE_SHADER_DERIVATIVES_EXTENSION_NAME = "VK_NV_compute_shader_derivatives";
 
 pub const PhysicalDeviceComputeShaderDerivativesFeaturesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_NV,
@@ -12507,7 +14783,7 @@ pub const PhysicalDeviceComputeShaderDerivativesFeaturesNV = extern struct {
 
 pub const NV_mesh_shader = 1;
 pub const NV_MESH_SHADER_SPEC_VERSION = 1;
-pub const NV_MESH_SHADER_EXTENSION_NAME = c"VK_NV_mesh_shader";
+pub const NV_MESH_SHADER_EXTENSION_NAME = "VK_NV_mesh_shader";
 
 pub const PhysicalDeviceMeshShaderFeaturesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV,
@@ -12570,7 +14846,7 @@ pub const CmdDrawMeshTasksIndirectCountNV = vkCmdDrawMeshTasksIndirectCountNV;
 
 pub const NV_fragment_shader_barycentric = 1;
 pub const NV_FRAGMENT_SHADER_BARYCENTRIC_SPEC_VERSION = 1;
-pub const NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME = c"VK_NV_fragment_shader_barycentric";
+pub const NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME = "VK_NV_fragment_shader_barycentric";
 
 pub const PhysicalDeviceFragmentShaderBarycentricFeaturesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV,
@@ -12581,7 +14857,7 @@ pub const PhysicalDeviceFragmentShaderBarycentricFeaturesNV = extern struct {
 
 pub const NV_shader_image_footprint = 1;
 pub const NV_SHADER_IMAGE_FOOTPRINT_SPEC_VERSION = 2;
-pub const NV_SHADER_IMAGE_FOOTPRINT_EXTENSION_NAME = c"VK_NV_shader_image_footprint";
+pub const NV_SHADER_IMAGE_FOOTPRINT_EXTENSION_NAME = "VK_NV_shader_image_footprint";
 
 pub const PhysicalDeviceShaderImageFootprintFeaturesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV,
@@ -12592,7 +14868,7 @@ pub const PhysicalDeviceShaderImageFootprintFeaturesNV = extern struct {
 
 pub const NV_scissor_exclusive = 1;
 pub const NV_SCISSOR_EXCLUSIVE_SPEC_VERSION = 1;
-pub const NV_SCISSOR_EXCLUSIVE_EXTENSION_NAME = c"VK_NV_scissor_exclusive";
+pub const NV_SCISSOR_EXCLUSIVE_EXTENSION_NAME = "VK_NV_scissor_exclusive";
 
 pub const PipelineViewportExclusiveScissorStateCreateInfoNV = extern struct {
     sType: StructureType = .PIPELINE_VIEWPORT_EXCLUSIVE_SCISSOR_STATE_CREATE_INFO_NV,
@@ -12621,18 +14897,18 @@ pub inline fn CmdSetExclusiveScissorNV(commandBuffer: CommandBuffer, firstExclus
 
 pub const NV_device_diagnostic_checkpoints = 1;
 pub const NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_SPEC_VERSION = 2;
-pub const NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME = c"VK_NV_device_diagnostic_checkpoints";
+pub const NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME = "VK_NV_device_diagnostic_checkpoints";
 
 pub const QueueFamilyCheckpointPropertiesNV = extern struct {
     sType: StructureType = .QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV,
     pNext: ?*c_void = null,
-    checkpointExecutionStageMask: PipelineStageFlags,
+    checkpointExecutionStageMask: PipelineStageFlags align(4),
 };
 
 pub const CheckpointDataNV = extern struct {
     sType: StructureType = .CHECKPOINT_DATA_NV,
     pNext: ?*c_void = null,
-    stage: PipelineStageFlags,
+    stage: PipelineStageFlags align(4),
     pCheckpointMarker: ?*c_void,
 };
 
@@ -12665,7 +14941,7 @@ pub inline fn GetQueueCheckpointDataCountNV(queue: Queue) u32 {
 
 pub const INTEL_shader_integer_functions2 = 1;
 pub const INTEL_SHADER_INTEGER_FUNCTIONS_2_SPEC_VERSION = 1;
-pub const INTEL_SHADER_INTEGER_FUNCTIONS_2_EXTENSION_NAME = c"VK_INTEL_shader_integer_functions2";
+pub const INTEL_SHADER_INTEGER_FUNCTIONS_2_EXTENSION_NAME = "VK_INTEL_shader_integer_functions2";
 
 pub const PhysicalDeviceShaderIntegerFunctions2FeaturesINTEL = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS_2_FEATURES_INTEL,
@@ -12678,32 +14954,37 @@ pub const INTEL_performance_query = 1;
 pub const PerformanceConfigurationINTEL = *@OpaqueType();
 
 pub const INTEL_PERFORMANCE_QUERY_SPEC_VERSION = 1;
-pub const INTEL_PERFORMANCE_QUERY_EXTENSION_NAME = c"VK_INTEL_performance_query";
+pub const INTEL_PERFORMANCE_QUERY_EXTENSION_NAME = "VK_INTEL_performance_query";
 
-pub const PerformanceConfigurationTypeINTEL = extern enum {
+pub const PerformanceConfigurationTypeINTEL = extern enum(i32) {
     COMMAND_QUEUE_METRICS_DISCOVERY_ACTIVATED = 0,
+    _,
 };
 
-pub const QueryPoolSamplingModeINTEL = extern enum {
+pub const QueryPoolSamplingModeINTEL = extern enum(i32) {
     MANUAL = 0,
+    _,
 };
 
-pub const PerformanceOverrideTypeINTEL = extern enum {
+pub const PerformanceOverrideTypeINTEL = extern enum(i32) {
     NULL_HARDWARE = 0,
     FLUSH_GPU_CACHES = 1,
+    _,
 };
 
-pub const PerformanceParameterTypeINTEL = extern enum {
+pub const PerformanceParameterTypeINTEL = extern enum(i32) {
     HW_COUNTERS_SUPPORTED = 0,
     STREAM_MARKER_VALID_BITS = 1,
+    _,
 };
 
-pub const PerformanceValueTypeINTEL = extern enum {
+pub const PerformanceValueTypeINTEL = extern enum(i32) {
     UINT32 = 0,
     UINT64 = 1,
     FLOAT = 2,
     BOOL = 3,
     STRING = 4,
+    _,
 };
 
 pub const PerformanceValueDataINTEL = extern union {
@@ -12898,7 +15179,7 @@ pub inline fn GetPerformanceParameterINTEL(device: Device, parameter: Performanc
 
 pub const EXT_pci_bus_info = 1;
 pub const EXT_PCI_BUS_INFO_SPEC_VERSION = 2;
-pub const EXT_PCI_BUS_INFO_EXTENSION_NAME = c"VK_EXT_pci_bus_info";
+pub const EXT_PCI_BUS_INFO_EXTENSION_NAME = "VK_EXT_pci_bus_info";
 
 pub const PhysicalDevicePCIBusInfoPropertiesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT,
@@ -12912,7 +15193,7 @@ pub const PhysicalDevicePCIBusInfoPropertiesEXT = extern struct {
 
 pub const AMD_display_native_hdr = 1;
 pub const AMD_DISPLAY_NATIVE_HDR_SPEC_VERSION = 1;
-pub const AMD_DISPLAY_NATIVE_HDR_EXTENSION_NAME = c"VK_AMD_display_native_hdr";
+pub const AMD_DISPLAY_NATIVE_HDR_EXTENSION_NAME = "VK_AMD_display_native_hdr";
 
 pub const DisplayNativeHdrSurfaceCapabilitiesAMD = extern struct {
     sType: StructureType = .DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD,
@@ -12937,7 +15218,7 @@ pub const SetLocalDimmingAMD = vkSetLocalDimmingAMD;
 
 pub const EXT_fragment_density_map = 1;
 pub const EXT_FRAGMENT_DENSITY_MAP_SPEC_VERSION = 1;
-pub const EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME = c"VK_EXT_fragment_density_map";
+pub const EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME = "VK_EXT_fragment_density_map";
 
 pub const PhysicalDeviceFragmentDensityMapFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT,
@@ -12964,24 +15245,24 @@ pub const RenderPassFragmentDensityMapCreateInfoEXT = extern struct {
 
 pub const EXT_scalar_block_layout = 1;
 pub const EXT_SCALAR_BLOCK_LAYOUT_SPEC_VERSION = 1;
-pub const EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME = c"VK_EXT_scalar_block_layout";
+pub const EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME = "VK_EXT_scalar_block_layout";
 
 pub const PhysicalDeviceScalarBlockLayoutFeaturesEXT = PhysicalDeviceScalarBlockLayoutFeatures;
 
 
 pub const GOOGLE_hlsl_functionality1 = 1;
 pub const GOOGLE_HLSL_FUNCTIONALITY1_SPEC_VERSION = 1;
-pub const GOOGLE_HLSL_FUNCTIONALITY1_EXTENSION_NAME = c"VK_GOOGLE_hlsl_functionality1";
+pub const GOOGLE_HLSL_FUNCTIONALITY1_EXTENSION_NAME = "VK_GOOGLE_hlsl_functionality1";
 
 
 pub const GOOGLE_decorate_string = 1;
 pub const GOOGLE_DECORATE_STRING_SPEC_VERSION = 1;
-pub const GOOGLE_DECORATE_STRING_EXTENSION_NAME = c"VK_GOOGLE_decorate_string";
+pub const GOOGLE_DECORATE_STRING_EXTENSION_NAME = "VK_GOOGLE_decorate_string";
 
 
 pub const EXT_subgroup_size_control = 1;
 pub const EXT_SUBGROUP_SIZE_CONTROL_SPEC_VERSION = 2;
-pub const EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME = c"VK_EXT_subgroup_size_control";
+pub const EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME = "VK_EXT_subgroup_size_control";
 
 pub const PhysicalDeviceSubgroupSizeControlFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_FEATURES_EXT,
@@ -12996,7 +15277,7 @@ pub const PhysicalDeviceSubgroupSizeControlPropertiesEXT = extern struct {
     minSubgroupSize: u32,
     maxSubgroupSize: u32,
     maxComputeWorkgroupSubgroups: u32,
-    requiredSubgroupSizeStages: ShaderStageFlags,
+    requiredSubgroupSizeStages: ShaderStageFlags align(4),
 };
 
 pub const PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT = extern struct {
@@ -13008,23 +15289,56 @@ pub const PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT = extern struct {
 
 pub const AMD_shader_core_properties2 = 1;
 pub const AMD_SHADER_CORE_PROPERTIES_2_SPEC_VERSION = 1;
-pub const AMD_SHADER_CORE_PROPERTIES_2_EXTENSION_NAME = c"VK_AMD_shader_core_properties2";
+pub const AMD_SHADER_CORE_PROPERTIES_2_EXTENSION_NAME = "VK_AMD_shader_core_properties2";
 
-pub const ShaderCorePropertiesFlagsAMD = Flags;
-pub const ShaderCorePropertiesFlagBitsAMD = struct {
+pub const ShaderCorePropertiesFlagsAMD = packed struct {
+    __reserved_bit_00: bool = false,
+    __reserved_bit_01: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const PhysicalDeviceShaderCoreProperties2AMD = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_2_AMD,
     pNext: ?*c_void = null,
-    shaderCoreFeatures: ShaderCorePropertiesFlagsAMD,
+    shaderCoreFeatures: ShaderCorePropertiesFlagsAMD align(4),
     activeComputeUnitCount: u32,
 };
 
 
 pub const AMD_device_coherent_memory = 1;
 pub const AMD_DEVICE_COHERENT_MEMORY_SPEC_VERSION = 1;
-pub const AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME = c"VK_AMD_device_coherent_memory";
+pub const AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME = "VK_AMD_device_coherent_memory";
 
 pub const PhysicalDeviceCoherentMemoryFeaturesAMD = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD,
@@ -13035,7 +15349,7 @@ pub const PhysicalDeviceCoherentMemoryFeaturesAMD = extern struct {
 
 pub const EXT_memory_budget = 1;
 pub const EXT_MEMORY_BUDGET_SPEC_VERSION = 1;
-pub const EXT_MEMORY_BUDGET_EXTENSION_NAME = c"VK_EXT_memory_budget";
+pub const EXT_MEMORY_BUDGET_EXTENSION_NAME = "VK_EXT_memory_budget";
 
 pub const PhysicalDeviceMemoryBudgetPropertiesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,
@@ -13047,7 +15361,7 @@ pub const PhysicalDeviceMemoryBudgetPropertiesEXT = extern struct {
 
 pub const EXT_memory_priority = 1;
 pub const EXT_MEMORY_PRIORITY_SPEC_VERSION = 1;
-pub const EXT_MEMORY_PRIORITY_EXTENSION_NAME = c"VK_EXT_memory_priority";
+pub const EXT_MEMORY_PRIORITY_EXTENSION_NAME = "VK_EXT_memory_priority";
 
 pub const PhysicalDeviceMemoryPriorityFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT,
@@ -13064,7 +15378,7 @@ pub const MemoryPriorityAllocateInfoEXT = extern struct {
 
 pub const NV_dedicated_allocation_image_aliasing = 1;
 pub const NV_DEDICATED_ALLOCATION_IMAGE_ALIASING_SPEC_VERSION = 1;
-pub const NV_DEDICATED_ALLOCATION_IMAGE_ALIASING_EXTENSION_NAME = c"VK_NV_dedicated_allocation_image_aliasing";
+pub const NV_DEDICATED_ALLOCATION_IMAGE_ALIASING_EXTENSION_NAME = "VK_NV_dedicated_allocation_image_aliasing";
 
 pub const PhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_DEDICATED_ALLOCATION_IMAGE_ALIASING_FEATURES_NV,
@@ -13075,7 +15389,7 @@ pub const PhysicalDeviceDedicatedAllocationImageAliasingFeaturesNV = extern stru
 
 pub const EXT_buffer_device_address = 1;
 pub const EXT_BUFFER_DEVICE_ADDRESS_SPEC_VERSION = 2;
-pub const EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME = c"VK_EXT_buffer_device_address";
+pub const EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME = "VK_EXT_buffer_device_address";
 
 pub const PhysicalDeviceBufferDeviceAddressFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
@@ -13107,27 +15421,53 @@ pub inline fn GetBufferDeviceAddressEXT(device: Device, info: BufferDeviceAddres
 
 pub const EXT_tooling_info = 1;
 pub const EXT_TOOLING_INFO_SPEC_VERSION = 1;
-pub const EXT_TOOLING_INFO_EXTENSION_NAME = c"VK_EXT_tooling_info";
+pub const EXT_TOOLING_INFO_EXTENSION_NAME = "VK_EXT_tooling_info";
 
-pub const ToolPurposeFlagsEXT = Flags;
-pub const ToolPurposeFlagBitsEXT = struct {
-    pub const VALIDATION_BIT: ToolPurposeFlagsEXT = 0x00000001;
-    pub const PROFILING_BIT: ToolPurposeFlagsEXT = 0x00000002;
-    pub const TRACING_BIT: ToolPurposeFlagsEXT = 0x00000004;
-    pub const ADDITIONAL_FEATURES_BIT: ToolPurposeFlagsEXT = 0x00000008;
-    pub const MODIFYING_FEATURES_BIT: ToolPurposeFlagsEXT = 0x00000010;
-    pub const DEBUG_REPORTING_BIT: ToolPurposeFlagsEXT = 0x00000020;
-    pub const DEBUG_MARKERS_BIT: ToolPurposeFlagsEXT = 0x00000040;
+pub const ToolPurposeFlagsEXT = packed struct {
+    validation: bool = false,
+    profiling: bool = false,
+    tracing: bool = false,
+    additionalFeatures: bool = false,
+    modifyingFeatures: bool = false,
+    debugReporting: bool = false,
+    debugMarkers: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const PhysicalDeviceToolPropertiesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_TOOL_PROPERTIES_EXT,
     pNext: ?*c_void = null,
-    name: [MAX_EXTENSION_NAME_SIZE]u8,
-    version: [MAX_EXTENSION_NAME_SIZE]u8,
-    purposes: ToolPurposeFlagsEXT,
-    description: [MAX_DESCRIPTION_SIZE]u8,
-    layer: [MAX_EXTENSION_NAME_SIZE]u8,
+    name: [MAX_EXTENSION_NAME_SIZE-1:0]u8,
+    version: [MAX_EXTENSION_NAME_SIZE-1:0]u8,
+    purposes: ToolPurposeFlagsEXT align(4),
+    description: [MAX_DESCRIPTION_SIZE-1:0]u8,
+    layer: [MAX_EXTENSION_NAME_SIZE-1:0]u8,
 };
 
 pub extern fn vkGetPhysicalDeviceToolPropertiesEXT(
@@ -13163,22 +15503,23 @@ pub inline fn GetPhysicalDeviceToolPropertiesCountEXT(physicalDevice: PhysicalDe
 
 pub const EXT_separate_stencil_usage = 1;
 pub const EXT_SEPARATE_STENCIL_USAGE_SPEC_VERSION = 1;
-pub const EXT_SEPARATE_STENCIL_USAGE_EXTENSION_NAME = c"VK_EXT_separate_stencil_usage";
+pub const EXT_SEPARATE_STENCIL_USAGE_EXTENSION_NAME = "VK_EXT_separate_stencil_usage";
 
 pub const ImageStencilUsageCreateInfoEXT = ImageStencilUsageCreateInfo;
 
 
 pub const EXT_validation_features = 1;
 pub const EXT_VALIDATION_FEATURES_SPEC_VERSION = 2;
-pub const EXT_VALIDATION_FEATURES_EXTENSION_NAME = c"VK_EXT_validation_features";
+pub const EXT_VALIDATION_FEATURES_EXTENSION_NAME = "VK_EXT_validation_features";
 
-pub const ValidationFeatureEnableEXT = extern enum {
+pub const ValidationFeatureEnableEXT = extern enum(i32) {
     GPU_ASSISTED = 0,
     GPU_ASSISTED_RESERVE_BINDING_SLOT = 1,
     BEST_PRACTICES = 2,
+    _,
 };
 
-pub const ValidationFeatureDisableEXT = extern enum {
+pub const ValidationFeatureDisableEXT = extern enum(i32) {
     ALL = 0,
     SHADERS = 1,
     THREAD_SAFETY = 2,
@@ -13186,6 +15527,7 @@ pub const ValidationFeatureDisableEXT = extern enum {
     OBJECT_LIFETIMES = 4,
     CORE_CHECKS = 5,
     UNIQUE_HANDLES = 6,
+    _,
 };
 
 pub const ValidationFeaturesEXT = extern struct {
@@ -13200,9 +15542,9 @@ pub const ValidationFeaturesEXT = extern struct {
 
 pub const NV_cooperative_matrix = 1;
 pub const NV_COOPERATIVE_MATRIX_SPEC_VERSION = 1;
-pub const NV_COOPERATIVE_MATRIX_EXTENSION_NAME = c"VK_NV_cooperative_matrix";
+pub const NV_COOPERATIVE_MATRIX_EXTENSION_NAME = "VK_NV_cooperative_matrix";
 
-pub const ComponentTypeNV = extern enum {
+pub const ComponentTypeNV = extern enum(i32) {
     FLOAT16 = 0,
     FLOAT32 = 1,
     FLOAT64 = 2,
@@ -13214,13 +15556,15 @@ pub const ComponentTypeNV = extern enum {
     UINT16 = 8,
     UINT32 = 9,
     UINT64 = 10,
+    _,
 };
 
-pub const ScopeNV = extern enum {
+pub const ScopeNV = extern enum(i32) {
     DEVICE = 1,
     WORKGROUP = 2,
     SUBGROUP = 3,
     QUEUE_FAMILY = 5,
+    _,
 };
 
 pub const CooperativeMatrixPropertiesNV = extern struct {
@@ -13246,7 +15590,7 @@ pub const PhysicalDeviceCooperativeMatrixFeaturesNV = extern struct {
 pub const PhysicalDeviceCooperativeMatrixPropertiesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_COOPERATIVE_MATRIX_PROPERTIES_NV,
     pNext: ?*c_void = null,
-    cooperativeMatrixSupportedStages: ShaderStageFlags,
+    cooperativeMatrixSupportedStages: ShaderStageFlags align(4),
 };
 
 pub extern fn vkGetPhysicalDeviceCooperativeMatrixPropertiesNV(
@@ -13290,14 +15634,18 @@ pub inline fn GetPhysicalDeviceCooperativeMatrixPropertiesCountNV(physicalDevice
 
 pub const NV_coverage_reduction_mode = 1;
 pub const NV_COVERAGE_REDUCTION_MODE_SPEC_VERSION = 1;
-pub const NV_COVERAGE_REDUCTION_MODE_EXTENSION_NAME = c"VK_NV_coverage_reduction_mode";
+pub const NV_COVERAGE_REDUCTION_MODE_EXTENSION_NAME = "VK_NV_coverage_reduction_mode";
 
-pub const CoverageReductionModeNV = extern enum {
+pub const CoverageReductionModeNV = extern enum(i32) {
     MERGE = 0,
     TRUNCATE = 1,
+    _,
 };
 
-pub const PipelineCoverageReductionStateCreateFlagsNV = Flags;
+pub const PipelineCoverageReductionStateCreateFlagsNV = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const PhysicalDeviceCoverageReductionModeFeaturesNV = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_COVERAGE_REDUCTION_MODE_FEATURES_NV,
@@ -13308,7 +15656,7 @@ pub const PhysicalDeviceCoverageReductionModeFeaturesNV = extern struct {
 pub const PipelineCoverageReductionStateCreateInfoNV = extern struct {
     sType: StructureType = .PIPELINE_COVERAGE_REDUCTION_STATE_CREATE_INFO_NV,
     pNext: ?*const c_void = null,
-    flags: PipelineCoverageReductionStateCreateFlagsNV = 0,
+    flags: PipelineCoverageReductionStateCreateFlagsNV align(4) = PipelineCoverageReductionStateCreateFlagsNV{},
     coverageReductionMode: CoverageReductionModeNV,
 };
 
@@ -13316,9 +15664,9 @@ pub const FramebufferMixedSamplesCombinationNV = extern struct {
     sType: StructureType = .FRAMEBUFFER_MIXED_SAMPLES_COMBINATION_NV,
     pNext: ?*c_void = null,
     coverageReductionMode: CoverageReductionModeNV,
-    rasterizationSamples: SampleCountFlags,
-    depthStencilSamples: SampleCountFlags,
-    colorSamples: SampleCountFlags,
+    rasterizationSamples: SampleCountFlags align(4),
+    depthStencilSamples: SampleCountFlags align(4),
+    colorSamples: SampleCountFlags align(4),
 };
 
 pub extern fn vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV(
@@ -13362,7 +15710,7 @@ pub inline fn GetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsCount
 
 pub const EXT_fragment_shader_interlock = 1;
 pub const EXT_FRAGMENT_SHADER_INTERLOCK_SPEC_VERSION = 1;
-pub const EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME = c"VK_EXT_fragment_shader_interlock";
+pub const EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME = "VK_EXT_fragment_shader_interlock";
 
 pub const PhysicalDeviceFragmentShaderInterlockFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT,
@@ -13375,7 +15723,7 @@ pub const PhysicalDeviceFragmentShaderInterlockFeaturesEXT = extern struct {
 
 pub const EXT_ycbcr_image_arrays = 1;
 pub const EXT_YCBCR_IMAGE_ARRAYS_SPEC_VERSION = 1;
-pub const EXT_YCBCR_IMAGE_ARRAYS_EXTENSION_NAME = c"VK_EXT_ycbcr_image_arrays";
+pub const EXT_YCBCR_IMAGE_ARRAYS_EXTENSION_NAME = "VK_EXT_ycbcr_image_arrays";
 
 pub const PhysicalDeviceYcbcrImageArraysFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_YCBCR_IMAGE_ARRAYS_FEATURES_EXT,
@@ -13386,14 +15734,17 @@ pub const PhysicalDeviceYcbcrImageArraysFeaturesEXT = extern struct {
 
 pub const EXT_headless_surface = 1;
 pub const EXT_HEADLESS_SURFACE_SPEC_VERSION = 1;
-pub const EXT_HEADLESS_SURFACE_EXTENSION_NAME = c"VK_EXT_headless_surface";
+pub const EXT_HEADLESS_SURFACE_EXTENSION_NAME = "VK_EXT_headless_surface";
 
-pub const HeadlessSurfaceCreateFlagsEXT = Flags;
+pub const HeadlessSurfaceCreateFlagsEXT = packed struct {
+    __reserved_bits_00_31: u32 = 0,
+    pub usingnamespace FlagsMixin(@This());
+};
 
 pub const HeadlessSurfaceCreateInfoEXT = extern struct {
     sType: StructureType = .HEADLESS_SURFACE_CREATE_INFO_EXT,
     pNext: ?*const c_void = null,
-    flags: HeadlessSurfaceCreateFlagsEXT = 0,
+    flags: HeadlessSurfaceCreateFlagsEXT align(4) = HeadlessSurfaceCreateFlagsEXT{},
 };
 
 pub extern fn vkCreateHeadlessSurfaceEXT(
@@ -13419,13 +15770,14 @@ pub inline fn CreateHeadlessSurfaceEXT(instance: Instance, createInfo: HeadlessS
 
 pub const EXT_line_rasterization = 1;
 pub const EXT_LINE_RASTERIZATION_SPEC_VERSION = 1;
-pub const EXT_LINE_RASTERIZATION_EXTENSION_NAME = c"VK_EXT_line_rasterization";
+pub const EXT_LINE_RASTERIZATION_EXTENSION_NAME = "VK_EXT_line_rasterization";
 
-pub const LineRasterizationModeEXT = extern enum {
+pub const LineRasterizationModeEXT = extern enum(i32) {
     DEFAULT = 0,
     RECTANGULAR = 1,
     BRESENHAM = 2,
     RECTANGULAR_SMOOTH = 3,
+    _,
 };
 
 pub const PhysicalDeviceLineRasterizationFeaturesEXT = extern struct {
@@ -13465,7 +15817,7 @@ pub const CmdSetLineStippleEXT = vkCmdSetLineStippleEXT;
 
 pub const EXT_host_query_reset = 1;
 pub const EXT_HOST_QUERY_RESET_SPEC_VERSION = 1;
-pub const EXT_HOST_QUERY_RESET_EXTENSION_NAME = c"VK_EXT_host_query_reset";
+pub const EXT_HOST_QUERY_RESET_EXTENSION_NAME = "VK_EXT_host_query_reset";
 
 pub const PhysicalDeviceHostQueryResetFeaturesEXT = PhysicalDeviceHostQueryResetFeatures;
 
@@ -13481,7 +15833,7 @@ pub const ResetQueryPoolEXT = vkResetQueryPoolEXT;
 
 pub const EXT_index_type_uint8 = 1;
 pub const EXT_INDEX_TYPE_UINT8_SPEC_VERSION = 1;
-pub const EXT_INDEX_TYPE_UINT8_EXTENSION_NAME = c"VK_EXT_index_type_uint8";
+pub const EXT_INDEX_TYPE_UINT8_EXTENSION_NAME = "VK_EXT_index_type_uint8";
 
 pub const PhysicalDeviceIndexTypeUint8FeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT,
@@ -13492,7 +15844,7 @@ pub const PhysicalDeviceIndexTypeUint8FeaturesEXT = extern struct {
 
 pub const EXT_shader_demote_to_helper_invocation = 1;
 pub const EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_SPEC_VERSION = 1;
-pub const EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME = c"VK_EXT_shader_demote_to_helper_invocation";
+pub const EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME = "VK_EXT_shader_demote_to_helper_invocation";
 
 pub const PhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT,
@@ -13503,7 +15855,7 @@ pub const PhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT = extern struc
 
 pub const EXT_texel_buffer_alignment = 1;
 pub const EXT_TEXEL_BUFFER_ALIGNMENT_SPEC_VERSION = 1;
-pub const EXT_TEXEL_BUFFER_ALIGNMENT_EXTENSION_NAME = c"VK_EXT_texel_buffer_alignment";
+pub const EXT_TEXEL_BUFFER_ALIGNMENT_EXTENSION_NAME = "VK_EXT_texel_buffer_alignment";
 
 pub const PhysicalDeviceTexelBufferAlignmentFeaturesEXT = extern struct {
     sType: StructureType = .PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT,
@@ -13523,7 +15875,5 @@ pub const PhysicalDeviceTexelBufferAlignmentPropertiesEXT = extern struct {
 
 pub const GOOGLE_user_type = 1;
 pub const GOOGLE_USER_TYPE_SPEC_VERSION = 1;
-pub const GOOGLE_USER_TYPE_EXTENSION_NAME = c"VK_GOOGLE_user_type";
+pub const GOOGLE_USER_TYPE_EXTENSION_NAME = "VK_GOOGLE_user_type";
 
-
-test "Compile All" { _ = @typeInfo(@This()); }

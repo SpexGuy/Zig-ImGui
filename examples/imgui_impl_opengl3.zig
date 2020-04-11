@@ -53,7 +53,7 @@ var g_VboHandle: c_uint = 0;
 var g_ElementsHandle: c_uint = 0;
 
 // Functions
-pub fn Init(glsl_version_opt: ?[]const u8) bool {
+pub fn Init(glsl_version_opt: ?[:0]const u8) bool {
     // Query for GL version
     var major: gl.GLint = undefined;
     var minor: gl.GLint = undefined;
@@ -63,7 +63,7 @@ pub fn Init(glsl_version_opt: ?[]const u8) bool {
 
     // Setup back-end capabilities flags
     var io = imgui.GetIO();
-    io.BackendRendererName = c"imgui_impl_opengl3";
+    io.BackendRendererName = "imgui_impl_opengl3";
     if (IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET) {
         if (g_GlVersion >= 3200)
             io.BackendFlags |= imgui.BackendFlagBits.RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
@@ -71,11 +71,11 @@ pub fn Init(glsl_version_opt: ?[]const u8) bool {
 
     // Store GLSL version string so we can refer to it later in case we recreate shaders.
     // Note: GLSL version is NOT the same as GL version. Leave this to NULL if unsure.
-    var glsl_version: []const u8 = undefined;
+    var glsl_version: [:0]const u8 = undefined;
     if (glsl_version_opt) |value| {
         glsl_version = value;
     } else {
-        glsl_version = &"#version 130";
+        glsl_version = "#version 130";
     }
 
     std.debug.assert(glsl_version.len + 2 < g_GlslVersionStringMem.len);
@@ -223,7 +223,7 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     // Setup desired GL state
     // Recreate the VAO every time (this is to easily allow multiple GL contexts to be rendered to. VAO are not shared among GL contexts)
     // The renderer would actually work without any VAO bound, but then our VertexAttrib calls would overwrite the default one currently bound.
-    var vertex_array_object = gl.GLuint(0);
+    var vertex_array_object: gl.GLuint = 0;
 
     gl.glGenVertexArrays(1, &vertex_array_object);
 
@@ -234,7 +234,7 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     var clip_scale = draw_data.FramebufferScale; // (1,1) unless using retina display which are often (2,2)
 
     // Render command lists
-    for (draw_data.CmdLists[0..@intCast(usize, draw_data.CmdListsCount)]) |cmd_list| {
+    for (draw_data.CmdLists.?[0..@intCast(usize, draw_data.CmdListsCount)]) |cmd_list| {
         // Upload vertex/index buffers
         gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.VtxBuffer.len * @sizeOf(imgui.DrawVert)), cmd_list.VtxBuffer.items, gl.GL_STREAM_DRAW);
         gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.IdxBuffer.len * @sizeOf(imgui.DrawIdx)), cmd_list.IdxBuffer.items, gl.GL_STREAM_DRAW);
@@ -312,11 +312,11 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
 fn CreateFontsTexture() bool {
     // Build texture atlas
     const io = imgui.GetIO();
-    var pixels: [*]u8 = undefined;
+    var pixels: ?[*]u8 = undefined;
     var width: i32 = undefined;
     var height: i32 = undefined;
     var bpp: i32 = undefined;
-    io.Fonts.GetTexDataAsRGBA32(&pixels, &width, &height, &bpp); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+    io.Fonts.?.GetTexDataAsRGBA32(&pixels, &width, &height, &bpp); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
 
     // Upload texture to graphics system
     var last_texture: gl.GLint = undefined;
@@ -330,7 +330,7 @@ fn CreateFontsTexture() bool {
     gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels);
 
     // Store our identifier
-    io.Fonts.TexID = @intToPtr(imgui.TextureID, g_FontTexture);
+    io.Fonts.?.TexID = @intToPtr(imgui.TextureID, g_FontTexture);
 
     // Restore state
     gl.glBindTexture(gl.GL_TEXTURE_2D, @intCast(c_uint, last_texture));
@@ -342,45 +342,45 @@ fn DestroyFontsTexture() void {
     if (g_FontTexture != 0) {
         const io = imgui.GetIO();
         gl.glDeleteTextures(1, &g_FontTexture);
-        io.Fonts.TexID = null;
+        io.Fonts.?.TexID = null;
         g_FontTexture = 0;
     }
 }
 
 // If you get an error please report on github. You may try different GL context version or GLSL version. See GL<>GLSL version table at the top of this file.
 fn CheckShader(handle: gl.GLuint, desc: []const u8) bool {
-    var status = gl.GLint(0);
-    var log_length = gl.GLint(0);
+    var status: gl.GLint = 0;
+    var log_length: gl.GLint = 0;
     gl.glGetShaderiv(handle, gl.GL_COMPILE_STATUS, &status);
     gl.glGetShaderiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
     if (status == gl.GL_FALSE)
-        std.debug.warn("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to compile {}!\n", desc);
+        std.debug.warn("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to compile {}!\n", .{desc});
     if (log_length > 1) {
         var buf: imgui.Vector(u8) = undefined;
         buf.init();
         defer buf.deinit();
         buf.resize(@intCast(c_int, log_length + 1));
         gl.glGetShaderInfoLog(handle, log_length, null, @ptrCast([*]gl.GLchar, buf.begin()));
-        std.debug.warn("{}\n", buf.begin());
+        std.debug.warn("{}\n", .{buf.begin()});
     }
     return status != gl.GL_FALSE;
 }
 
 // If you get an error please report on GitHub. You may try different GL context version or GLSL version.
 fn CheckProgram(handle: gl.GLuint, desc: []const u8) bool {
-    var status = gl.GLint(0);
-    var log_length = gl.GLint(0);
+    var status: gl.GLint = 0;
+    var log_length: gl.GLint = 0;
     gl.glGetProgramiv(handle, gl.GL_LINK_STATUS, &status);
     gl.glGetProgramiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
     if (status == gl.GL_FALSE)
-        std.debug.warn("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to link {}! (with GLSL '{}')\n", desc, g_GlslVersionString);
+        std.debug.warn("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to link {}! (with GLSL '{}')\n", .{ desc, g_GlslVersionString });
     if (log_length > 1) {
         var buf: imgui.Vector(u8) = undefined;
         buf.init();
         defer buf.deinit();
         buf.resize(@intCast(c_int, log_length + 1));
         gl.glGetProgramInfoLog(handle, log_length, null, @ptrCast([*]gl.GLchar, buf.begin()));
-        std.debug.warn("{}\n", buf.begin());
+        std.debug.warn("{}\n", .{buf.begin()});
     }
     return status != gl.GL_FALSE;
 }
@@ -398,7 +398,7 @@ fn CreateDeviceObjects() bool {
     if (std.fmt.parseInt(u32, numberPart, 10)) |value| {
         glsl_version = value;
     } else |err| {
-        std.debug.warn("Couldn't parse glsl version from '{}', '{}'\n", g_GlslVersionString, numberPart);
+        std.debug.warn("Couldn't parse glsl version from '{}', '{}'\n", .{ g_GlslVersionString, numberPart });
     }
 
     const vertex_shader_glsl_120 = "uniform mat4 ProjMtx;\n" ++
@@ -412,7 +412,7 @@ fn CreateDeviceObjects() bool {
         "    Frag_UV = UV;\n" ++
         "    Frag_Color = Color;\n" ++
         "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n" ++
-        "}\n" ++ [_]u8{0};
+        "}\n";
 
     const vertex_shader_glsl_130 = "uniform mat4 ProjMtx;\n" ++
         "in vec2 Position;\n" ++
@@ -425,7 +425,7 @@ fn CreateDeviceObjects() bool {
         "    Frag_UV = UV;\n" ++
         "    Frag_Color = Color;\n" ++
         "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n" ++
-        "}\n" ++ [_]u8{0};
+        "}\n";
 
     const vertex_shader_glsl_300_es = "precision mediump float;\n" ++
         "layout (location = 0) in vec2 Position;\n" ++
@@ -439,7 +439,7 @@ fn CreateDeviceObjects() bool {
         "    Frag_UV = UV;\n" ++
         "    Frag_Color = Color;\n" ++
         "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n" ++
-        "}\n" ++ [_]u8{0};
+        "}\n";
 
     const vertex_shader_glsl_410_core = "layout (location = 0) in vec2 Position;\n" ++
         "layout (location = 1) in vec2 UV;\n" ++
@@ -452,7 +452,7 @@ fn CreateDeviceObjects() bool {
         "    Frag_UV = UV;\n" ++
         "    Frag_Color = Color;\n" ++
         "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n" ++
-        "}\n" ++ [_]u8{0};
+        "}\n";
 
     const fragment_shader_glsl_120 = "#ifdef GL_ES\n" ++
         "    precision mediump float;\n" ++
@@ -463,7 +463,7 @@ fn CreateDeviceObjects() bool {
         "void main()\n" ++
         "{\n" ++
         "    gl_FragColor = Frag_Color * texture2D(Texture, Frag_UV.st);\n" ++
-        "}\n" ++ [_]u8{0};
+        "}\n";
 
     const fragment_shader_glsl_130 = "uniform sampler2D Texture;\n" ++
         "in vec2 Frag_UV;\n" ++
@@ -472,7 +472,7 @@ fn CreateDeviceObjects() bool {
         "void main()\n" ++
         "{\n" ++
         "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n" ++
-        "}\n" ++ [_]u8{0};
+        "}\n";
 
     const fragment_shader_glsl_300_es = "precision mediump float;\n" ++
         "uniform sampler2D Texture;\n" ++
@@ -482,7 +482,7 @@ fn CreateDeviceObjects() bool {
         "void main()\n" ++
         "{\n" ++
         "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n" ++
-        "}\n" ++ [_]u8{0};
+        "}\n";
 
     const fragment_shader_glsl_410_core = "in vec2 Frag_UV;\n" ++
         "in vec4 Frag_Color;\n" ++
@@ -491,23 +491,23 @@ fn CreateDeviceObjects() bool {
         "void main()\n" ++
         "{\n" ++
         "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n" ++
-        "}\n" ++ [_]u8{0};
+        "}\n";
 
     // Select shaders matching our GLSL versions
     var vertex_shader: [*]const u8 = undefined;
     var fragment_shader: [*]const u8 = undefined;
     if (glsl_version < 130) {
-        vertex_shader = &vertex_shader_glsl_120;
-        fragment_shader = &fragment_shader_glsl_120;
+        vertex_shader = vertex_shader_glsl_120;
+        fragment_shader = fragment_shader_glsl_120;
     } else if (glsl_version >= 410) {
-        vertex_shader = &vertex_shader_glsl_410_core;
-        fragment_shader = &fragment_shader_glsl_410_core;
+        vertex_shader = vertex_shader_glsl_410_core;
+        fragment_shader = fragment_shader_glsl_410_core;
     } else if (glsl_version == 300) {
-        vertex_shader = &vertex_shader_glsl_300_es;
-        fragment_shader = &fragment_shader_glsl_300_es;
+        vertex_shader = vertex_shader_glsl_300_es;
+        fragment_shader = fragment_shader_glsl_300_es;
     } else {
-        vertex_shader = &vertex_shader_glsl_130;
-        fragment_shader = &fragment_shader_glsl_130;
+        vertex_shader = vertex_shader_glsl_130;
+        fragment_shader = fragment_shader_glsl_130;
     }
 
     // Create shaders
@@ -515,25 +515,25 @@ fn CreateDeviceObjects() bool {
     g_VertHandle = gl.glCreateShader(gl.GL_VERTEX_SHADER);
     gl.glShaderSource(g_VertHandle, 2, &vertex_shader_with_version, null);
     gl.glCompileShader(g_VertHandle);
-    _ = CheckShader(g_VertHandle, &"vertex shader");
+    _ = CheckShader(g_VertHandle, "vertex shader");
 
     const fragment_shader_with_version = [_][*]const u8{ &g_GlslVersionStringMem, fragment_shader };
     g_FragHandle = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
     gl.glShaderSource(g_FragHandle, 2, &fragment_shader_with_version, null);
     gl.glCompileShader(g_FragHandle);
-    _ = CheckShader(g_FragHandle, &"fragment shader");
+    _ = CheckShader(g_FragHandle, "fragment shader");
 
     g_ShaderHandle = gl.glCreateProgram();
     gl.glAttachShader(g_ShaderHandle, g_VertHandle);
     gl.glAttachShader(g_ShaderHandle, g_FragHandle);
     gl.glLinkProgram(g_ShaderHandle);
-    _ = CheckProgram(g_ShaderHandle, &"shader program");
+    _ = CheckProgram(g_ShaderHandle, "shader program");
 
-    g_AttribLocationTex = gl.glGetUniformLocation(g_ShaderHandle, c"Texture");
-    g_AttribLocationProjMtx = gl.glGetUniformLocation(g_ShaderHandle, c"ProjMtx");
-    g_AttribLocationVtxPos = gl.glGetAttribLocation(g_ShaderHandle, c"Position");
-    g_AttribLocationVtxUV = gl.glGetAttribLocation(g_ShaderHandle, c"UV");
-    g_AttribLocationVtxColor = gl.glGetAttribLocation(g_ShaderHandle, c"Color");
+    g_AttribLocationTex = gl.glGetUniformLocation(g_ShaderHandle, "Texture");
+    g_AttribLocationProjMtx = gl.glGetUniformLocation(g_ShaderHandle, "ProjMtx");
+    g_AttribLocationVtxPos = gl.glGetAttribLocation(g_ShaderHandle, "Position");
+    g_AttribLocationVtxUV = gl.glGetAttribLocation(g_ShaderHandle, "UV");
+    g_AttribLocationVtxColor = gl.glGetAttribLocation(g_ShaderHandle, "Color");
 
     // Create buffers
     gl.glGenBuffers(1, &g_VboHandle);

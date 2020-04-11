@@ -2889,7 +2889,7 @@ pub const raw = struct {
     pub extern fn igGetCursorScreenPos() Vec2;
     pub extern fn igGetCursorStartPos() Vec2;
     pub extern fn igGetDragDropPayload() ?*const Payload;
-    pub extern fn igGetDrawData() ?*DrawData;
+    pub extern fn igGetDrawData() *DrawData;
     pub extern fn igGetDrawListSharedData() ?*DrawListSharedData;
     pub extern fn igGetFont() ?*Font;
     pub extern fn igGetFontSize() f32;
@@ -2901,7 +2901,7 @@ pub const raw = struct {
     pub extern fn igGetIDStr(str_id: ?[*:0]const u8) ID;
     pub extern fn igGetIDRange(str_id_begin: ?[*]const u8, str_id_end: ?[*]const u8) ID;
     pub extern fn igGetIDPtr(ptr_id: ?*const c_void) ID;
-    pub extern fn igGetIO() ?*IO;
+    pub extern fn igGetIO() *IO;
     pub extern fn igGetItemRectMax() Vec2;
     pub extern fn igGetItemRectMin() Vec2;
     pub extern fn igGetItemRectSize() Vec2;
