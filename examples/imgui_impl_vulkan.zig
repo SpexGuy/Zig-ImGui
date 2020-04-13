@@ -911,7 +911,7 @@ pub fn Init(info: *InitInfo, render_pass: ?vk.RenderPass) !void {
     // Setup back-end capabilities flags
     const io = imgui.GetIO();
     io.BackendRendererName = "imgui_impl_vulkan";
-    io.BackendFlags |= imgui.BackendFlagBits.RendererHasVtxOffset; // We can honor the imgui.DrawCmd::VtxOffset field, allowing for large meshes.
+    io.BackendFlags.RendererHasVtxOffset = true; // We can honor the imgui.DrawCmd::VtxOffset field, allowing for large meshes.
 
     if (info.MinImageCount < 2) return error.FailedStuff;
     std.debug.assert(info.MinImageCount >= 2);

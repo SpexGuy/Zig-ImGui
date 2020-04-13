@@ -1,3 +1,5 @@
+const assert = @import("std").debug.assert;
+
 pub const DrawListSharedData = @OpaqueType();
 pub const Context = @OpaqueType();
 pub const DrawCallback = ?fn (parent_list: ?*const DrawList, cmd: ?*const DrawCmd) callconv(.C) void;
@@ -16,260 +18,732 @@ pub fn CHECKVERSION() void {
     }
 }
 
-pub const DrawCornerFlags = u32;
-pub const DrawCornerFlagBits = struct {
-    pub const None: DrawCornerFlags = 0;
-    pub const TopLeft: DrawCornerFlags = 1 << 0;
-    pub const TopRight: DrawCornerFlags = 1 << 1;
-    pub const BotLeft: DrawCornerFlags = 1 << 2;
-    pub const BotRight: DrawCornerFlags = 1 << 3;
-    pub const Top: DrawCornerFlags = TopLeft | TopRight;
-    pub const Bot: DrawCornerFlags = BotLeft | BotRight;
-    pub const Left: DrawCornerFlags = TopLeft | BotLeft;
-    pub const Right: DrawCornerFlags = TopRight | BotRight;
-    pub const All: DrawCornerFlags = 0xF;
+pub fn FlagsMixin(comptime FlagType: type) type {
+    comptime assert(@sizeOf(FlagType) == 4);
+    return struct {
+        pub fn toInt(self: FlagType) Flags {
+            return @bitCast(Flags, self);
+        }
+        pub fn fromInt(value: Flags) FlagType {
+            return @bitCast(FlagType, value);
+        }
+        pub fn with(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) | toInt(b));
+        }
+        pub fn only(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) & toInt(b));
+        }
+        pub fn without(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) & ~toInt(b));
+        }
+        pub fn hasAllSet(a: FlagType, b: FlagType) bool {
+            return (toInt(a) & toInt(b)) == toInt(b);
+        }
+        pub fn hasAnySet(a: FlagType, b: FlagType) bool {
+            return (toInt(a) & toInt(b)) != 0;
+        }
+        pub fn isEmpty(a: FlagType) bool {
+            return toInt(a) == 0;
+        }
+    };
+}
+
+pub const DrawCornerFlags = packed struct {
+    TopLeft: bool = false,
+    TopRight: bool = false,
+    BotLeft: bool = false,
+    BotRight: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const Top = Self{ .TopLeft=true, .TopRight=true };
+    pub const Bot = Self{ .BotLeft=true, .BotRight=true };
+    pub const Left = Self{ .TopLeft=true, .BotLeft=true };
+    pub const Right = Self{ .TopRight=true, .BotRight=true };
+    pub const All = Self{ .TopLeft=true, .TopRight=true, .BotLeft=true, .BotRight=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const DrawListFlags = u32;
-pub const DrawListFlagBits = struct {
-    pub const None: DrawListFlags = 0;
-    pub const AntiAliasedLines: DrawListFlags = 1 << 0;
-    pub const AntiAliasedFill: DrawListFlags = 1 << 1;
-    pub const AllowVtxOffset: DrawListFlags = 1 << 2;
+pub const DrawListFlags = packed struct {
+    AntiAliasedLines: bool = false,
+    AntiAliasedFill: bool = false,
+    AllowVtxOffset: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const FontAtlasFlags = u32;
-pub const FontAtlasFlagBits = struct {
-    pub const None: FontAtlasFlags = 0;
-    pub const NoPowerOfTwoHeight: FontAtlasFlags = 1 << 0;
-    pub const NoMouseCursors: FontAtlasFlags = 1 << 1;
+pub const FontAtlasFlags = packed struct {
+    NoPowerOfTwoHeight: bool = false,
+    NoMouseCursors: bool = false,
+    __reserved_bit_02: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const BackendFlags = u32;
-pub const BackendFlagBits = struct {
-    pub const None: BackendFlags = 0;
-    pub const HasGamepad: BackendFlags = 1 << 0;
-    pub const HasMouseCursors: BackendFlags = 1 << 1;
-    pub const HasSetMousePos: BackendFlags = 1 << 2;
-    pub const RendererHasVtxOffset: BackendFlags = 1 << 3;
+pub const BackendFlags = packed struct {
+    HasGamepad: bool = false,
+    HasMouseCursors: bool = false,
+    HasSetMousePos: bool = false,
+    RendererHasVtxOffset: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const ColorEditFlags = u32;
-pub const ColorEditFlagBits = struct {
-    pub const None: ColorEditFlags = 0;
-    pub const NoAlpha: ColorEditFlags = 1 << 1;
-    pub const NoPicker: ColorEditFlags = 1 << 2;
-    pub const NoOptions: ColorEditFlags = 1 << 3;
-    pub const NoSmallPreview: ColorEditFlags = 1 << 4;
-    pub const NoInputs: ColorEditFlags = 1 << 5;
-    pub const NoTooltip: ColorEditFlags = 1 << 6;
-    pub const NoLabel: ColorEditFlags = 1 << 7;
-    pub const NoSidePreview: ColorEditFlags = 1 << 8;
-    pub const NoDragDrop: ColorEditFlags = 1 << 9;
-    pub const AlphaBar: ColorEditFlags = 1 << 16;
-    pub const AlphaPreview: ColorEditFlags = 1 << 17;
-    pub const AlphaPreviewHalf: ColorEditFlags = 1 << 18;
-    pub const HDR: ColorEditFlags = 1 << 19;
-    pub const DisplayRGB: ColorEditFlags = 1 << 20;
-    pub const DisplayHSV: ColorEditFlags = 1 << 21;
-    pub const DisplayHex: ColorEditFlags = 1 << 22;
-    pub const Uint8: ColorEditFlags = 1 << 23;
-    pub const Float: ColorEditFlags = 1 << 24;
-    pub const PickerHueBar: ColorEditFlags = 1 << 25;
-    pub const PickerHueWheel: ColorEditFlags = 1 << 26;
-    pub const InputRGB: ColorEditFlags = 1 << 27;
-    pub const InputHSV: ColorEditFlags = 1 << 28;
-    pub const _OptionsDefault: ColorEditFlags = Uint8|DisplayRGB|InputRGB|PickerHueBar;
-    pub const _DisplayMask: ColorEditFlags = DisplayRGB|DisplayHSV|DisplayHex;
-    pub const _DataTypeMask: ColorEditFlags = Uint8|Float;
-    pub const _PickerMask: ColorEditFlags = PickerHueWheel|PickerHueBar;
-    pub const _InputMask: ColorEditFlags = InputRGB|InputHSV;
+pub const ColorEditFlags = packed struct {
+    __reserved_bit_00: bool = false,
+    NoAlpha: bool = false,
+    NoPicker: bool = false,
+    NoOptions: bool = false,
+    NoSmallPreview: bool = false,
+    NoInputs: bool = false,
+    NoTooltip: bool = false,
+    NoLabel: bool = false,
+    NoSidePreview: bool = false,
+    NoDragDrop: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    AlphaBar: bool = false,
+    AlphaPreview: bool = false,
+    AlphaPreviewHalf: bool = false,
+    HDR: bool = false,
+    DisplayRGB: bool = false,
+    DisplayHSV: bool = false,
+    DisplayHex: bool = false,
+    Uint8: bool = false,
+    Float: bool = false,
+    PickerHueBar: bool = false,
+    PickerHueWheel: bool = false,
+    InputRGB: bool = false,
+    InputHSV: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const _OptionsDefault = Self{ .DisplayRGB=true, .Uint8=true, .PickerHueBar=true, .InputRGB=true };
+    pub const _DisplayMask = Self{ .DisplayRGB=true, .DisplayHSV=true, .DisplayHex=true };
+    pub const _DataTypeMask = Self{ .Uint8=true, .Float=true };
+    pub const _PickerMask = Self{ .PickerHueBar=true, .PickerHueWheel=true };
+    pub const _InputMask = Self{ .InputRGB=true, .InputHSV=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const ComboFlags = u32;
-pub const ComboFlagBits = struct {
-    pub const None: ComboFlags = 0;
-    pub const PopupAlignLeft: ComboFlags = 1 << 0;
-    pub const HeightSmall: ComboFlags = 1 << 1;
-    pub const HeightRegular: ComboFlags = 1 << 2;
-    pub const HeightLarge: ComboFlags = 1 << 3;
-    pub const HeightLargest: ComboFlags = 1 << 4;
-    pub const NoArrowButton: ComboFlags = 1 << 5;
-    pub const NoPreview: ComboFlags = 1 << 6;
-    pub const HeightMask_: ComboFlags = HeightSmall | HeightRegular | HeightLarge | HeightLargest;
+pub const ComboFlags = packed struct {
+    PopupAlignLeft: bool = false,
+    HeightSmall: bool = false,
+    HeightRegular: bool = false,
+    HeightLarge: bool = false,
+    HeightLargest: bool = false,
+    NoArrowButton: bool = false,
+    NoPreview: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const HeightMask_ = Self{ .HeightSmall=true, .HeightRegular=true, .HeightLarge=true, .HeightLargest=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const CondFlags = u32;
-pub const CondFlagBits = struct {
-    pub const Always: CondFlags = 1 << 0;
-    pub const Once: CondFlags = 1 << 1;
-    pub const FirstUseEver: CondFlags = 1 << 2;
-    pub const Appearing: CondFlags = 1 << 3;
+pub const CondFlags = packed struct {
+    Always: bool = false,
+    Once: bool = false,
+    FirstUseEver: bool = false,
+    Appearing: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub usingnamespace FlagsMixin(@This());
 };
 
-pub const ConfigFlags = u32;
-pub const ConfigFlagBits = struct {
-    pub const None: ConfigFlags = 0;
-    pub const NavEnableKeyboard: ConfigFlags = 1 << 0;
-    pub const NavEnableGamepad: ConfigFlags = 1 << 1;
-    pub const NavEnableSetMousePos: ConfigFlags = 1 << 2;
-    pub const NavNoCaptureKeyboard: ConfigFlags = 1 << 3;
-    pub const NoMouse: ConfigFlags = 1 << 4;
-    pub const NoMouseCursorChange: ConfigFlags = 1 << 5;
-    pub const IsSRGB: ConfigFlags = 1 << 20;
-    pub const IsTouchScreen: ConfigFlags = 1 << 21;
+pub const ConfigFlags = packed struct {
+    NavEnableKeyboard: bool = false,
+    NavEnableGamepad: bool = false,
+    NavEnableSetMousePos: bool = false,
+    NavNoCaptureKeyboard: bool = false,
+    NoMouse: bool = false,
+    NoMouseCursorChange: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    IsSRGB: bool = false,
+    IsTouchScreen: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const DragDropFlags = u32;
-pub const DragDropFlagBits = struct {
-    pub const None: DragDropFlags = 0;
-    pub const SourceNoPreviewTooltip: DragDropFlags = 1 << 0;
-    pub const SourceNoDisableHover: DragDropFlags = 1 << 1;
-    pub const SourceNoHoldToOpenOthers: DragDropFlags = 1 << 2;
-    pub const SourceAllowNullID: DragDropFlags = 1 << 3;
-    pub const SourceExtern: DragDropFlags = 1 << 4;
-    pub const SourceAutoExpirePayload: DragDropFlags = 1 << 5;
-    pub const AcceptBeforeDelivery: DragDropFlags = 1 << 10;
-    pub const AcceptNoDrawDefaultRect: DragDropFlags = 1 << 11;
-    pub const AcceptNoPreviewTooltip: DragDropFlags = 1 << 12;
-    pub const AcceptPeekOnly: DragDropFlags = AcceptBeforeDelivery | AcceptNoDrawDefaultRect;
+pub const DragDropFlags = packed struct {
+    SourceNoPreviewTooltip: bool = false,
+    SourceNoDisableHover: bool = false,
+    SourceNoHoldToOpenOthers: bool = false,
+    SourceAllowNullID: bool = false,
+    SourceExtern: bool = false,
+    SourceAutoExpirePayload: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    AcceptBeforeDelivery: bool = false,
+    AcceptNoDrawDefaultRect: bool = false,
+    AcceptNoPreviewTooltip: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const AcceptPeekOnly = Self{ .AcceptBeforeDelivery=true, .AcceptNoDrawDefaultRect=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const FocusedFlags = u32;
-pub const FocusedFlagBits = struct {
-    pub const None: FocusedFlags = 0;
-    pub const ChildWindows: FocusedFlags = 1 << 0;
-    pub const RootWindow: FocusedFlags = 1 << 1;
-    pub const AnyWindow: FocusedFlags = 1 << 2;
-    pub const RootAndChildWindows: FocusedFlags = RootWindow | ChildWindows;
+pub const FocusedFlags = packed struct {
+    ChildWindows: bool = false,
+    RootWindow: bool = false,
+    AnyWindow: bool = false,
+    __reserved_bit_03: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const RootAndChildWindows = Self{ .ChildWindows=true, .RootWindow=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const HoveredFlags = u32;
-pub const HoveredFlagBits = struct {
-    pub const None: HoveredFlags = 0;
-    pub const ChildWindows: HoveredFlags = 1 << 0;
-    pub const RootWindow: HoveredFlags = 1 << 1;
-    pub const AnyWindow: HoveredFlags = 1 << 2;
-    pub const AllowWhenBlockedByPopup: HoveredFlags = 1 << 3;
-    pub const AllowWhenBlockedByActiveItem: HoveredFlags = 1 << 5;
-    pub const AllowWhenOverlapped: HoveredFlags = 1 << 6;
-    pub const AllowWhenDisabled: HoveredFlags = 1 << 7;
-    pub const RectOnly: HoveredFlags = AllowWhenBlockedByPopup | AllowWhenBlockedByActiveItem | AllowWhenOverlapped;
-    pub const RootAndChildWindows: HoveredFlags = RootWindow | ChildWindows;
+pub const HoveredFlags = packed struct {
+    ChildWindows: bool = false,
+    RootWindow: bool = false,
+    AnyWindow: bool = false,
+    AllowWhenBlockedByPopup: bool = false,
+    __reserved_bit_04: bool = false,
+    AllowWhenBlockedByActiveItem: bool = false,
+    AllowWhenOverlapped: bool = false,
+    AllowWhenDisabled: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const RectOnly = Self{ .AllowWhenBlockedByPopup=true, .AllowWhenBlockedByActiveItem=true, .AllowWhenOverlapped=true };
+    pub const RootAndChildWindows = Self{ .ChildWindows=true, .RootWindow=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const InputTextFlags = u32;
-pub const InputTextFlagBits = struct {
-    pub const None: InputTextFlags = 0;
-    pub const CharsDecimal: InputTextFlags = 1 << 0;
-    pub const CharsHexadecimal: InputTextFlags = 1 << 1;
-    pub const CharsUppercase: InputTextFlags = 1 << 2;
-    pub const CharsNoBlank: InputTextFlags = 1 << 3;
-    pub const AutoSelectAll: InputTextFlags = 1 << 4;
-    pub const EnterReturnsTrue: InputTextFlags = 1 << 5;
-    pub const CallbackCompletion: InputTextFlags = 1 << 6;
-    pub const CallbackHistory: InputTextFlags = 1 << 7;
-    pub const CallbackAlways: InputTextFlags = 1 << 8;
-    pub const CallbackCharFilter: InputTextFlags = 1 << 9;
-    pub const AllowTabInput: InputTextFlags = 1 << 10;
-    pub const CtrlEnterForNewLine: InputTextFlags = 1 << 11;
-    pub const NoHorizontalScroll: InputTextFlags = 1 << 12;
-    pub const AlwaysInsertMode: InputTextFlags = 1 << 13;
-    pub const ReadOnly: InputTextFlags = 1 << 14;
-    pub const Password: InputTextFlags = 1 << 15;
-    pub const NoUndoRedo: InputTextFlags = 1 << 16;
-    pub const CharsScientific: InputTextFlags = 1 << 17;
-    pub const CallbackResize: InputTextFlags = 1 << 18;
-    pub const Multiline: InputTextFlags = 1 << 20;
-    pub const NoMarkEdited: InputTextFlags = 1 << 21;
+pub const InputTextFlags = packed struct {
+    CharsDecimal: bool = false,
+    CharsHexadecimal: bool = false,
+    CharsUppercase: bool = false,
+    CharsNoBlank: bool = false,
+    AutoSelectAll: bool = false,
+    EnterReturnsTrue: bool = false,
+    CallbackCompletion: bool = false,
+    CallbackHistory: bool = false,
+    CallbackAlways: bool = false,
+    CallbackCharFilter: bool = false,
+    AllowTabInput: bool = false,
+    CtrlEnterForNewLine: bool = false,
+    NoHorizontalScroll: bool = false,
+    AlwaysInsertMode: bool = false,
+    ReadOnly: bool = false,
+    Password: bool = false,
+    NoUndoRedo: bool = false,
+    CharsScientific: bool = false,
+    CallbackResize: bool = false,
+    __reserved_bit_19: bool = false,
+    Multiline: bool = false,
+    NoMarkEdited: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const SelectableFlags = u32;
-pub const SelectableFlagBits = struct {
-    pub const None: SelectableFlags = 0;
-    pub const DontClosePopups: SelectableFlags = 1 << 0;
-    pub const SpanAllColumns: SelectableFlags = 1 << 1;
-    pub const AllowDoubleClick: SelectableFlags = 1 << 2;
-    pub const Disabled: SelectableFlags = 1 << 3;
-    pub const AllowItemOverlap: SelectableFlags = 1 << 4;
+pub const SelectableFlags = packed struct {
+    DontClosePopups: bool = false,
+    SpanAllColumns: bool = false,
+    AllowDoubleClick: bool = false,
+    Disabled: bool = false,
+    AllowItemOverlap: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const TabBarFlags = u32;
-pub const TabBarFlagBits = struct {
-    pub const None: TabBarFlags = 0;
-    pub const Reorderable: TabBarFlags = 1 << 0;
-    pub const AutoSelectNewTabs: TabBarFlags = 1 << 1;
-    pub const TabListPopupButton: TabBarFlags = 1 << 2;
-    pub const NoCloseWithMiddleMouseButton: TabBarFlags = 1 << 3;
-    pub const NoTabListScrollingButtons: TabBarFlags = 1 << 4;
-    pub const NoTooltip: TabBarFlags = 1 << 5;
-    pub const FittingPolicyResizeDown: TabBarFlags = 1 << 6;
-    pub const FittingPolicyScroll: TabBarFlags = 1 << 7;
-    pub const FittingPolicyMask_: TabBarFlags = FittingPolicyResizeDown | FittingPolicyScroll;
-    pub const FittingPolicyDefault_: TabBarFlags = FittingPolicyResizeDown;
+pub const TabBarFlags = packed struct {
+    Reorderable: bool = false,
+    AutoSelectNewTabs: bool = false,
+    TabListPopupButton: bool = false,
+    NoCloseWithMiddleMouseButton: bool = false,
+    NoTabListScrollingButtons: bool = false,
+    NoTooltip: bool = false,
+    FittingPolicyResizeDown: bool = false,
+    FittingPolicyScroll: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const FittingPolicyMask_ = Self{ .FittingPolicyResizeDown=true, .FittingPolicyScroll=true };
+    pub const FittingPolicyDefault_ = Self{ .FittingPolicyResizeDown=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const TabItemFlags = u32;
-pub const TabItemFlagBits = struct {
-    pub const None: TabItemFlags = 0;
-    pub const UnsavedDocument: TabItemFlags = 1 << 0;
-    pub const SetSelected: TabItemFlags = 1 << 1;
-    pub const NoCloseWithMiddleMouseButton: TabItemFlags = 1 << 2;
-    pub const NoPushId: TabItemFlags = 1 << 3;
+pub const TabItemFlags = packed struct {
+    UnsavedDocument: bool = false,
+    SetSelected: bool = false,
+    NoCloseWithMiddleMouseButton: bool = false,
+    NoPushId: bool = false,
+    __reserved_bit_04: bool = false,
+    __reserved_bit_05: bool = false,
+    __reserved_bit_06: bool = false,
+    __reserved_bit_07: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const TreeNodeFlags = u32;
-pub const TreeNodeFlagBits = struct {
-    pub const None: TreeNodeFlags = 0;
-    pub const Selected: TreeNodeFlags = 1 << 0;
-    pub const Framed: TreeNodeFlags = 1 << 1;
-    pub const AllowItemOverlap: TreeNodeFlags = 1 << 2;
-    pub const NoTreePushOnOpen: TreeNodeFlags = 1 << 3;
-    pub const NoAutoOpenOnLog: TreeNodeFlags = 1 << 4;
-    pub const DefaultOpen: TreeNodeFlags = 1 << 5;
-    pub const OpenOnDoubleClick: TreeNodeFlags = 1 << 6;
-    pub const OpenOnArrow: TreeNodeFlags = 1 << 7;
-    pub const Leaf: TreeNodeFlags = 1 << 8;
-    pub const Bullet: TreeNodeFlags = 1 << 9;
-    pub const FramePadding: TreeNodeFlags = 1 << 10;
-    pub const SpanAvailWidth: TreeNodeFlags = 1 << 11;
-    pub const SpanFullWidth: TreeNodeFlags = 1 << 12;
-    pub const NavLeftJumpsBackHere: TreeNodeFlags = 1 << 13;
-    pub const CollapsingHeader: TreeNodeFlags = Framed | NoTreePushOnOpen | NoAutoOpenOnLog;
+pub const TreeNodeFlags = packed struct {
+    Selected: bool = false,
+    Framed: bool = false,
+    AllowItemOverlap: bool = false,
+    NoTreePushOnOpen: bool = false,
+    NoAutoOpenOnLog: bool = false,
+    DefaultOpen: bool = false,
+    OpenOnDoubleClick: bool = false,
+    OpenOnArrow: bool = false,
+    Leaf: bool = false,
+    Bullet: bool = false,
+    FramePadding: bool = false,
+    SpanAvailWidth: bool = false,
+    SpanFullWidth: bool = false,
+    NavLeftJumpsBackHere: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const CollapsingHeader = Self{ .Framed=true, .NoTreePushOnOpen=true, .NoAutoOpenOnLog=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
-pub const WindowFlags = u32;
-pub const WindowFlagBits = struct {
-    pub const None: WindowFlags = 0;
-    pub const NoTitleBar: WindowFlags = 1 << 0;
-    pub const NoResize: WindowFlags = 1 << 1;
-    pub const NoMove: WindowFlags = 1 << 2;
-    pub const NoScrollbar: WindowFlags = 1 << 3;
-    pub const NoScrollWithMouse: WindowFlags = 1 << 4;
-    pub const NoCollapse: WindowFlags = 1 << 5;
-    pub const AlwaysAutoResize: WindowFlags = 1 << 6;
-    pub const NoBackground: WindowFlags = 1 << 7;
-    pub const NoSavedSettings: WindowFlags = 1 << 8;
-    pub const NoMouseInputs: WindowFlags = 1 << 9;
-    pub const MenuBar: WindowFlags = 1 << 10;
-    pub const HorizontalScrollbar: WindowFlags = 1 << 11;
-    pub const NoFocusOnAppearing: WindowFlags = 1 << 12;
-    pub const NoBringToFrontOnFocus: WindowFlags = 1 << 13;
-    pub const AlwaysVerticalScrollbar: WindowFlags = 1 << 14;
-    pub const AlwaysHorizontalScrollbar: WindowFlags = 1<< 15;
-    pub const AlwaysUseWindowPadding: WindowFlags = 1 << 16;
-    pub const NoNavInputs: WindowFlags = 1 << 18;
-    pub const NoNavFocus: WindowFlags = 1 << 19;
-    pub const UnsavedDocument: WindowFlags = 1 << 20;
-    pub const NoNav: WindowFlags = NoNavInputs | NoNavFocus;
-    pub const NoDecoration: WindowFlags = NoTitleBar | NoResize | NoScrollbar | NoCollapse;
-    pub const NoInputs: WindowFlags = NoMouseInputs | NoNavInputs | NoNavFocus;
-    pub const NavFlattened: WindowFlags = 1 << 23;
-    pub const ChildWindow: WindowFlags = 1 << 24;
-    pub const Tooltip: WindowFlags = 1 << 25;
-    pub const Popup: WindowFlags = 1 << 26;
-    pub const Modal: WindowFlags = 1 << 27;
-    pub const ChildMenu: WindowFlags = 1 << 28;
+pub const WindowFlags = packed struct {
+    NoTitleBar: bool = false,
+    NoResize: bool = false,
+    NoMove: bool = false,
+    NoScrollbar: bool = false,
+    NoScrollWithMouse: bool = false,
+    NoCollapse: bool = false,
+    AlwaysAutoResize: bool = false,
+    NoBackground: bool = false,
+    NoSavedSettings: bool = false,
+    NoMouseInputs: bool = false,
+    MenuBar: bool = false,
+    HorizontalScrollbar: bool = false,
+    NoFocusOnAppearing: bool = false,
+    NoBringToFrontOnFocus: bool = false,
+    AlwaysVerticalScrollbar: bool = false,
+    AlwaysHorizontalScrollbar: bool = false,
+    AlwaysUseWindowPadding: bool = false,
+    __reserved_bit_17: bool = false,
+    NoNavInputs: bool = false,
+    NoNavFocus: bool = false,
+    UnsavedDocument: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    NavFlattened: bool = false,
+    ChildWindow: bool = false,
+    Tooltip: bool = false,
+    Popup: bool = false,
+    Modal: bool = false,
+    ChildMenu: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    const Self = @This();
+    pub const None = Self{};
+    pub const NoNav = Self{ .NoNavInputs=true, .NoNavFocus=true };
+    pub const NoDecoration = Self{ .NoTitleBar=true, .NoResize=true, .NoScrollbar=true, .NoCollapse=true };
+    pub const NoInputs = Self{ .NoMouseInputs=true, .NoNavInputs=true, .NoNavFocus=true };
+
+    pub usingnamespace FlagsMixin(Self);
 };
 
 pub const Col = extern enum {
@@ -501,7 +975,7 @@ pub const DrawList = extern struct {
     CmdBuffer: Vector(DrawCmd),
     IdxBuffer: Vector(DrawIdx),
     VtxBuffer: Vector(DrawVert),
-    Flags: DrawListFlags,
+    Flags: DrawListFlags align(4),
     _Data: ?*const DrawListSharedData,
     _OwnerName: ?[*:0]const u8,
     _VtxCurrentOffset: u32,
@@ -631,7 +1105,7 @@ pub const Font = extern struct {
 
 pub const FontAtlas = extern struct {
     Locked: bool,
-    Flags: FontAtlasFlags,
+    Flags: FontAtlasFlags align(4),
     TexID: TextureID,
     TexDesiredWidth: i32,
     TexGlyphPadding: i32,
@@ -746,8 +1220,8 @@ pub const FontGlyphRangesBuilder = extern struct {
 };
 
 pub const IO = extern struct {
-    ConfigFlags: ConfigFlags,
-    BackendFlags: BackendFlags,
+    ConfigFlags: ConfigFlags align(4),
+    BackendFlags: BackendFlags align(4),
     DisplaySize: Vec2,
     DeltaTime: f32,
     IniSavingRate: f32,
@@ -832,8 +1306,8 @@ pub const IO = extern struct {
 };
 
 pub const InputTextCallbackData = extern struct {
-    EventFlag: InputTextFlags,
-    Flags: InputTextFlags,
+    EventFlag: InputTextFlags align(4),
+    Flags: InputTextFlags align(4),
     UserData: ?*c_void,
     EventChar: Wchar,
     EventKey: Key,

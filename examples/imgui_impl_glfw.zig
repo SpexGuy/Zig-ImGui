@@ -88,8 +88,8 @@ fn Init(window: *glfw.GLFWwindow, install_callbacks: bool, client_api: GlfwClien
 
     // Setup back-end capabilities flags
     var io = imgui.GetIO();
-    io.BackendFlags |= imgui.BackendFlagBits.HasMouseCursors; // We can honor GetMouseCursor() values (optional)
-    io.BackendFlags |= imgui.BackendFlagBits.HasSetMousePos; // We can honor io.WantSetMousePos requests (optional, rarely used)
+    io.BackendFlags.HasMouseCursors = true; // We can honor GetMouseCursor() values (optional)
+    io.BackendFlags.HasSetMousePos = true; // We can honor io.WantSetMousePos requests (optional, rarely used)
     io.BackendPlatformName = "imgui_impl_glfw";
 
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array.
@@ -190,7 +190,7 @@ fn UpdateMousePosAndButtons() void {
 
 fn UpdateMouseCursor() void {
     const io = imgui.GetIO();
-    if ((io.ConfigFlags & imgui.ConfigFlagBits.NoMouseCursorChange) != 0 or glfw.glfwGetInputMode(g_Window, glfw.GLFW_CURSOR) == glfw.GLFW_CURSOR_DISABLED)
+    if (io.ConfigFlags.NoMouseCursorChange or glfw.glfwGetInputMode(g_Window, glfw.GLFW_CURSOR) == glfw.GLFW_CURSOR_DISABLED)
         return;
 
     var imgui_cursor = imgui.GetMouseCursor();
@@ -221,7 +221,7 @@ fn MAP_ANALOG(io: *imgui.IO, axes: []const f32, NAV_NO: imgui.NavInput, AXIS_NO:
 fn UpdateGamepads() void {
     const io = imgui.GetIO();
     std.mem.set(f32, &io.NavInputs, 0);
-    if ((io.ConfigFlags & imgui.ConfigFlagBits.NavEnableGamepad) == 0)
+    if (!io.ConfigFlags.NavEnableGamepad)
         return;
 
     // Update gamepad inputs
@@ -247,11 +247,7 @@ fn UpdateGamepads() void {
     MAP_ANALOG(io, axes, .LStickRight, 0, 0.3, 0.9);
     MAP_ANALOG(io, axes, .LStickUp, 1, 0.3, 0.9);
     MAP_ANALOG(io, axes, .LStickDown, 1, -0.3, -0.9);
-    if (axes_count > 0 and buttons_count > 0) {
-        io.BackendFlags |= imgui.BackendFlagBits.HasGamepad;
-    } else {
-        io.BackendFlags &= ~imgui.BackendFlagBits.HasGamepad;
-    }
+    io.BackendFlags.HasGamepad = axes_count > 0 and buttons_count > 0;
 }
 
 fn GetClipboardText(user_data: ?*c_void) callconv(.C) ?[*:0]const u8 {

@@ -38,11 +38,8 @@ typeConversions = {
     'ImGuiCond': 'CondFlags',
 }
 
-MightBeArray = (
-    'ImVec2',
-    'ImVec4',
-    'ImWchar'
-)
+def isEnum(cName):
+    return cName.endswith('Flags') or cName == 'ImGuiCond'
 
 Structure = namedtuple('Structure', ['zigName', 'fieldsDecl', 'functions'])
 TemplateInfo = namedtuple('TemplateInfo', ['zigName', 'implementations', 'functions'])
@@ -126,13 +123,54 @@ class ZigData:
             rawName = name[:-len('Flags_')]
             zigRawName = self.convertTypeName(rawName)
         zigFlagsName = zigRawName + 'Flags'
-        zigValuesName = zigRawName + 'FlagBits'
-        decl = 'pub const '+zigFlagsName+' = u32;\n'
-        decl += 'pub const '+zigValuesName+' = struct {\n'
+
+        # list of (name, int_value)
+        aliases = []
+
+        def bitIndex(flag):
+            low = (flag & -flag)
+            lowBit = -1
+            while (low):
+                low >>= 1
+                lowBit += 1
+            return lowBit
+
+        bits = [None] * 32
         for value in jsonValues:
             valueName = value['name'].replace(name, '')
-            valueValue = str(value['value']).replace(name, '')
-            decl += '    pub const '+valueName+': '+zigFlagsName+' = '+valueValue+';\n'
+            intValue = value['calc_value']
+            if intValue != 0 and (intValue & (intValue - 1)) == 0:
+                bitIndex = -1;
+                while (intValue):
+                    intValue >>= 1
+                    bitIndex += 1
+                if bits[bitIndex] == None:
+                    bits[bitIndex] = valueName
+                else:
+                    aliases.append((valueName, 1<<bitIndex))
+            else:
+                aliases.append((valueName, intValue))
+
+        for i in range(32):
+            if bits[i] is None:
+                bits[i] = '__reserved_bit_%02d' % i
+
+        decl = 'pub const '+zigFlagsName+' = packed struct {\n'
+        for bitName in bits:
+            decl += '    ' + bitName + ': bool = false,\n'
+        if aliases:
+            decl += '\n    const Self = @This();\n'
+            for alias, intValue in aliases:
+                values = [ '.' + bits[x] + '=true' for x in range(32) if (intValue & (1<<x)) != 0 ]
+                if values:
+                    init = 'Self{ ' + ', '.join(values) + ' }'
+                else:
+                    init = 'Self{}'
+                decl += '    pub const ' + alias + ' = ' + init + ';\n'
+            decl += '\n    pub usingnamespace FlagsMixin(Self);\n'
+        else:
+            decl += '\n    pub usingnamespace FlagsMixin(@This());\n'
+            
         decl += '};'
         self.bitsets.append(decl)
         
@@ -320,11 +358,16 @@ class ZigData:
         zigValue = buffers
         if numPointers > 0:
             zigValue += getPointers(numPointers, valueType, context)
+            if isEnum(valueType):
+                zigValue += 'align(4) '
         if valueConst and not zigValue.endswith('const '):
             zigValue += 'const '
 
         innerType = self.convertTypeName(valueType, template)
         zigValue += innerType
+        
+        if numPointers == 0 and isEnum(valueType) and context.type == CT_FIELD:
+            zigValue += ' align(4)'
             
         return zigValue
 
@@ -346,6 +389,7 @@ class ZigData:
             return cName
             
     def writeFile(self, f):
+        f.write('const assert = @import("std").debug.assert;\n\n')
         for t in self.opaqueTypes:
             f.write('pub const '+self.convertTypeName(t)+' = @OpaqueType();\n')
 
@@ -362,6 +406,38 @@ class ZigData:
         f.write('}\n')
         
         f.write('\n')
+        f.write("""pub fn FlagsMixin(comptime FlagType: type) type {
+    comptime assert(@sizeOf(FlagType) == 4);
+    return struct {
+        pub fn toInt(self: FlagType) Flags {
+            return @bitCast(Flags, self);
+        }
+        pub fn fromInt(value: Flags) FlagType {
+            return @bitCast(FlagType, value);
+        }
+        pub fn with(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) | toInt(b));
+        }
+        pub fn only(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) & toInt(b));
+        }
+        pub fn without(a: FlagType, b: FlagType) FlagType {
+            return fromInt(toInt(a) & ~toInt(b));
+        }
+        pub fn hasAllSet(a: FlagType, b: FlagType) bool {
+            return (toInt(a) & toInt(b)) == toInt(b);
+        }
+        pub fn hasAnySet(a: FlagType, b: FlagType) bool {
+            return (toInt(a) & toInt(b)) != 0;
+        }
+        pub fn isEmpty(a: FlagType) bool {
+            return toInt(a) == 0;
+        }
+    };
+}
+
+""")
+
 
         for b in self.bitsets:
             f.write(b + '\n\n')
@@ -374,8 +450,8 @@ class ZigData:
             f.write(s.fieldsDecl+'\n')
             if s.functions:
                 f.write('\n')
-            for func in s.functions:
-                f.write(func+'\n')
+                for func in s.functions:
+                    f.write(func+'\n')
             f.write('};\n\n')
         
         for t in self.templates:
@@ -447,7 +523,8 @@ if __name__ == '__main__':
     
     jsonEnums = jsonStructs['enums']
     for enumName in jsonEnums:
-        if enumName.endswith('Flags_') or enumName == 'ImGuiCond_':
+        # enum name in this data structure ends with _, so strip that.
+        if isEnum(enumName[:-1]):
             data.addFlags(enumName, jsonEnums[enumName])
         elif enumName.endswith('_'):
             data.addEnum(enumName, jsonEnums[enumName])

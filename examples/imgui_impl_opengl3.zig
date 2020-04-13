@@ -66,7 +66,7 @@ pub fn Init(glsl_version_opt: ?[:0]const u8) bool {
     io.BackendRendererName = "imgui_impl_opengl3";
     if (IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET) {
         if (g_GlVersion >= 3200)
-            io.BackendFlags |= imgui.BackendFlagBits.RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+            io.BackendFlags.RendererHasVtxOffset = true; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
     }
 
     // Store GLSL version string so we can refer to it later in case we recreate shaders.
@@ -234,54 +234,56 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     var clip_scale = draw_data.FramebufferScale; // (1,1) unless using retina display which are often (2,2)
 
     // Render command lists
-    for (draw_data.CmdLists.?[0..@intCast(usize, draw_data.CmdListsCount)]) |cmd_list| {
-        // Upload vertex/index buffers
-        gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.VtxBuffer.len * @sizeOf(imgui.DrawVert)), cmd_list.VtxBuffer.items, gl.GL_STREAM_DRAW);
-        gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.IdxBuffer.len * @sizeOf(imgui.DrawIdx)), cmd_list.IdxBuffer.items, gl.GL_STREAM_DRAW);
+    if (draw_data.CmdListsCount > 0) {
+        for (draw_data.CmdLists.?[0..@intCast(usize, draw_data.CmdListsCount)]) |cmd_list| {
+            // Upload vertex/index buffers
+            gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.VtxBuffer.len * @sizeOf(imgui.DrawVert)), cmd_list.VtxBuffer.items, gl.GL_STREAM_DRAW);
+            gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.IdxBuffer.len * @sizeOf(imgui.DrawIdx)), cmd_list.IdxBuffer.items, gl.GL_STREAM_DRAW);
 
-        for (cmd_list.CmdBuffer.items[0..@intCast(usize, cmd_list.CmdBuffer.len)]) |pcmd| {
-            if (pcmd.UserCallback) |fnPtr| {
-                // User callback, registered via ImDrawList::AddCallback()
-                // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
-                if (fnPtr == imgui.DrawCallback_ResetRenderState) {
-                    SetupRenderState(draw_data, fb_width, fb_height, vertex_array_object);
-                } else {
-                    fnPtr(cmd_list, &pcmd);
-                }
-            } else {
-                // Project scissor/clipping rectangles into framebuffer space
-                var clip_rect = imgui.Vec4{
-                    .x = (pcmd.ClipRect.x - clip_off.x) * clip_scale.x,
-                    .y = (pcmd.ClipRect.y - clip_off.y) * clip_scale.y,
-                    .z = (pcmd.ClipRect.z - clip_off.x) * clip_scale.x,
-                    .w = (pcmd.ClipRect.w - clip_off.y) * clip_scale.y,
-                };
-
-                if (clip_rect.x < @intToFloat(f32, fb_width) and clip_rect.y < @intToFloat(f32, fb_height) and clip_rect.z >= 0.0 and clip_rect.w >= 0.0) {
-                    // Apply scissor/clipping rectangle
-                    if (clip_origin_lower_left) {
-                        gl.glScissor(@floatToInt(c_int, clip_rect.x), fb_height - @floatToInt(c_int, clip_rect.w), @floatToInt(c_int, clip_rect.z - clip_rect.x), @floatToInt(c_int, clip_rect.w - clip_rect.y));
+            for (cmd_list.CmdBuffer.items[0..@intCast(usize, cmd_list.CmdBuffer.len)]) |pcmd| {
+                if (pcmd.UserCallback) |fnPtr| {
+                    // User callback, registered via ImDrawList::AddCallback()
+                    // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
+                    if (fnPtr == imgui.DrawCallback_ResetRenderState) {
+                        SetupRenderState(draw_data, fb_width, fb_height, vertex_array_object);
                     } else {
-                        gl.glScissor(@floatToInt(c_int, clip_rect.x), @floatToInt(c_int, clip_rect.y), @floatToInt(c_int, clip_rect.z), @floatToInt(c_int, clip_rect.w)); // Support for GL 4.5 rarely used glClipControl(GL_UPPER_LEFT)
+                        fnPtr(cmd_list, &pcmd);
                     }
+                } else {
+                    // Project scissor/clipping rectangles into framebuffer space
+                    var clip_rect = imgui.Vec4{
+                        .x = (pcmd.ClipRect.x - clip_off.x) * clip_scale.x,
+                        .y = (pcmd.ClipRect.y - clip_off.y) * clip_scale.y,
+                        .z = (pcmd.ClipRect.z - clip_off.x) * clip_scale.x,
+                        .w = (pcmd.ClipRect.w - clip_off.y) * clip_scale.y,
+                    };
 
-                    // Bind texture, Draw
-                    gl.glBindTexture(gl.GL_TEXTURE_2D, @intCast(gl.GLuint, @ptrToInt(pcmd.TextureId)));
-                    if (IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET and g_GlVersion >= 3200) {
-                        gl.glDrawElementsBaseVertex(
-                            gl.GL_TRIANGLES,
-                            @intCast(gl.GLsizei, pcmd.ElemCount),
-                            if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
-                            @intToPtr(?*const c_void, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
-                            @intCast(gl.GLint, pcmd.VtxOffset),
-                        );
-                    } else {
-                        gl.glDrawElements(
-                            gl.GL_TRIANGLES,
-                            @intCast(gl.GLsizei, pcmd.ElemCount),
-                            if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
-                            @intToPtr(?*const c_void, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
-                        );
+                    if (clip_rect.x < @intToFloat(f32, fb_width) and clip_rect.y < @intToFloat(f32, fb_height) and clip_rect.z >= 0.0 and clip_rect.w >= 0.0) {
+                        // Apply scissor/clipping rectangle
+                        if (clip_origin_lower_left) {
+                            gl.glScissor(@floatToInt(c_int, clip_rect.x), fb_height - @floatToInt(c_int, clip_rect.w), @floatToInt(c_int, clip_rect.z - clip_rect.x), @floatToInt(c_int, clip_rect.w - clip_rect.y));
+                        } else {
+                            gl.glScissor(@floatToInt(c_int, clip_rect.x), @floatToInt(c_int, clip_rect.y), @floatToInt(c_int, clip_rect.z), @floatToInt(c_int, clip_rect.w)); // Support for GL 4.5 rarely used glClipControl(GL_UPPER_LEFT)
+                        }
+
+                        // Bind texture, Draw
+                        gl.glBindTexture(gl.GL_TEXTURE_2D, @intCast(gl.GLuint, @ptrToInt(pcmd.TextureId)));
+                        if (IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET and g_GlVersion >= 3200) {
+                            gl.glDrawElementsBaseVertex(
+                                gl.GL_TRIANGLES,
+                                @intCast(gl.GLsizei, pcmd.ElemCount),
+                                if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
+                                @intToPtr(?*const c_void, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
+                                @intCast(gl.GLint, pcmd.VtxOffset),
+                            );
+                        } else {
+                            gl.glDrawElements(
+                                gl.GL_TRIANGLES,
+                                @intCast(gl.GLsizei, pcmd.ElemCount),
+                                if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
+                                @intToPtr(?*const c_void, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
+                            );
+                        }
                     }
                 }
             }
