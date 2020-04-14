@@ -24,6 +24,7 @@ pub const CString = [*:0]const u8;
 pub fn FlagsMixin(comptime FlagType: type) type {
     comptime assert(@sizeOf(FlagType) == 4);
     return struct {
+        pub const IntType = Flags;
         pub fn toInt(self: FlagType) Flags {
             return @bitCast(Flags, self);
         }
@@ -4165,8 +4166,8 @@ pub extern fn vkGetPhysicalDeviceImageFormatProperties(
     format: Format,
     inType: ImageType,
     tiling: ImageTiling,
-    usage: ImageUsageFlags,
-    flags: ImageCreateFlags,
+    usage: ImageUsageFlags.IntType,
+    flags: ImageCreateFlags.IntType,
     pImageFormatProperties: *ImageFormatProperties,
 ) callconv(CallConv) Result;
 
@@ -4267,7 +4268,7 @@ pub extern fn vkMapMemory(
     memory: DeviceMemory,
     offset: DeviceSize,
     size: DeviceSize,
-    flags: MemoryMapFlags,
+    flags: MemoryMapFlags.IntType,
     ppData: ?**c_void,
 ) callconv(CallConv) Result;
 
@@ -4331,8 +4332,8 @@ pub extern fn vkGetPhysicalDeviceSparseImageFormatProperties(
     physicalDevice: PhysicalDevice,
     format: Format,
     inType: ImageType,
-    samples: SampleCountFlags,
-    usage: ImageUsageFlags,
+    samples: SampleCountFlags.IntType,
+    usage: ImageUsageFlags.IntType,
     tiling: ImageTiling,
     pPropertyCount: *u32,
     pProperties: ?[*]SparseImageFormatProperties,
@@ -4439,7 +4440,7 @@ pub extern fn vkGetQueryPoolResults(
     dataSize: usize,
     pData: ?*c_void,
     stride: DeviceSize,
-    flags: QueryResultFlags,
+    flags: QueryResultFlags.IntType,
 ) callconv(CallConv) Result;
 
 pub extern fn vkCreateBuffer(
@@ -4620,7 +4621,7 @@ pub extern fn vkDestroyDescriptorPool(
 pub extern fn vkResetDescriptorPool(
     device: Device,
     descriptorPool: DescriptorPool,
-    flags: DescriptorPoolResetFlags,
+    flags: DescriptorPoolResetFlags.IntType,
 ) callconv(CallConv) Result;
 
 pub extern fn vkAllocateDescriptorSets(
@@ -4692,7 +4693,7 @@ pub extern fn vkDestroyCommandPool(
 pub extern fn vkResetCommandPool(
     device: Device,
     commandPool: CommandPool,
-    flags: CommandPoolResetFlags,
+    flags: CommandPoolResetFlags.IntType,
 ) callconv(CallConv) Result;
 
 pub extern fn vkAllocateCommandBuffers(
@@ -4717,7 +4718,7 @@ pub extern fn vkEndCommandBuffer(commandBuffer: CommandBuffer) callconv(CallConv
 
 pub extern fn vkResetCommandBuffer(
     commandBuffer: CommandBuffer,
-    flags: CommandBufferResetFlags,
+    flags: CommandBufferResetFlags.IntType,
 ) callconv(CallConv) Result;
 
 pub extern fn vkCmdBindPipeline(
@@ -4765,19 +4766,19 @@ pub extern fn vkCmdSetDepthBounds(
 
 pub extern fn vkCmdSetStencilCompareMask(
     commandBuffer: CommandBuffer,
-    faceMask: StencilFaceFlags,
+    faceMask: StencilFaceFlags.IntType,
     compareMask: u32,
 ) callconv(CallConv) void;
 
 pub extern fn vkCmdSetStencilWriteMask(
     commandBuffer: CommandBuffer,
-    faceMask: StencilFaceFlags,
+    faceMask: StencilFaceFlags.IntType,
     writeMask: u32,
 ) callconv(CallConv) void;
 
 pub extern fn vkCmdSetStencilReference(
     commandBuffer: CommandBuffer,
-    faceMask: StencilFaceFlags,
+    faceMask: StencilFaceFlags.IntType,
     reference: u32,
 ) callconv(CallConv) void;
 
@@ -4955,21 +4956,21 @@ pub extern fn vkCmdResolveImage(
 pub extern fn vkCmdSetEvent(
     commandBuffer: CommandBuffer,
     event: Event,
-    stageMask: PipelineStageFlags,
+    stageMask: PipelineStageFlags.IntType,
 ) callconv(CallConv) void;
 
 pub extern fn vkCmdResetEvent(
     commandBuffer: CommandBuffer,
     event: Event,
-    stageMask: PipelineStageFlags,
+    stageMask: PipelineStageFlags.IntType,
 ) callconv(CallConv) void;
 
 pub extern fn vkCmdWaitEvents(
     commandBuffer: CommandBuffer,
     eventCount: u32,
     pEvents: [*]const Event,
-    srcStageMask: PipelineStageFlags,
-    dstStageMask: PipelineStageFlags,
+    srcStageMask: PipelineStageFlags.IntType,
+    dstStageMask: PipelineStageFlags.IntType,
     memoryBarrierCount: u32,
     pMemoryBarriers: [*]const MemoryBarrier,
     bufferMemoryBarrierCount: u32,
@@ -4980,9 +4981,9 @@ pub extern fn vkCmdWaitEvents(
 
 pub extern fn vkCmdPipelineBarrier(
     commandBuffer: CommandBuffer,
-    srcStageMask: PipelineStageFlags,
-    dstStageMask: PipelineStageFlags,
-    dependencyFlags: DependencyFlags,
+    srcStageMask: PipelineStageFlags.IntType,
+    dstStageMask: PipelineStageFlags.IntType,
+    dependencyFlags: DependencyFlags.IntType,
     memoryBarrierCount: u32,
     pMemoryBarriers: [*]const MemoryBarrier,
     bufferMemoryBarrierCount: u32,
@@ -4995,7 +4996,7 @@ pub extern fn vkCmdBeginQuery(
     commandBuffer: CommandBuffer,
     queryPool: QueryPool,
     query: u32,
-    flags: QueryControlFlags,
+    flags: QueryControlFlags.IntType,
 ) callconv(CallConv) void;
 
 pub extern fn vkCmdEndQuery(
@@ -5013,7 +5014,7 @@ pub extern fn vkCmdResetQueryPool(
 
 pub extern fn vkCmdWriteTimestamp(
     commandBuffer: CommandBuffer,
-    pipelineStage: PipelineStageFlags,
+    pipelineStage: PipelineStageFlags.IntType,
     queryPool: QueryPool,
     query: u32,
 ) callconv(CallConv) void;
@@ -5026,13 +5027,13 @@ pub extern fn vkCmdCopyQueryPoolResults(
     dstBuffer: Buffer,
     dstOffset: DeviceSize,
     stride: DeviceSize,
-    flags: QueryResultFlags,
+    flags: QueryResultFlags.IntType,
 ) callconv(CallConv) void;
 
 pub extern fn vkCmdPushConstants(
     commandBuffer: CommandBuffer,
     layout: PipelineLayout,
-    stageFlags: ShaderStageFlags,
+    stageFlags: ShaderStageFlags.IntType,
     offset: u32,
     size: u32,
     pValues: ?*const c_void,
@@ -5124,7 +5125,7 @@ pub inline fn GetPhysicalDeviceFormatProperties(physicalDevice: PhysicalDevice, 
 
 pub inline fn GetPhysicalDeviceImageFormatProperties(physicalDevice: PhysicalDevice, format: Format, inType: ImageType, tiling: ImageTiling, usage: ImageUsageFlags, flags: ImageCreateFlags) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_FORMAT_NOT_SUPPORTED,VK_UNDOCUMENTED_ERROR}!ImageFormatProperties {
     var out_imageFormatProperties: ImageFormatProperties = undefined;
-    const result = vkGetPhysicalDeviceImageFormatProperties(physicalDevice, format, inType, tiling, usage, flags, &out_imageFormatProperties);
+    const result = vkGetPhysicalDeviceImageFormatProperties(physicalDevice, format, inType, tiling, usage.toInt(), flags.toInt(), &out_imageFormatProperties);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -5377,7 +5378,7 @@ pub inline fn AllocateMemory(device: Device, allocateInfo: MemoryAllocateInfo, p
 pub const FreeMemory = vkFreeMemory;
 
 pub inline fn MapMemory(device: Device, memory: DeviceMemory, offset: DeviceSize, size: DeviceSize, flags: MemoryMapFlags, ppData: ?**c_void) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_MEMORY_MAP_FAILED,VK_UNDOCUMENTED_ERROR}!void {
-    const result = vkMapMemory(device, memory, offset, size, flags, ppData);
+    const result = vkMapMemory(device, memory, offset, size, flags.toInt(), ppData);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -5469,13 +5470,13 @@ pub inline fn GetImageSparseMemoryRequirementsCount(device: Device, image: Image
 pub inline fn GetPhysicalDeviceSparseImageFormatProperties(physicalDevice: PhysicalDevice, format: Format, inType: ImageType, samples: SampleCountFlags, usage: ImageUsageFlags, tiling: ImageTiling, properties: []SparseImageFormatProperties) []SparseImageFormatProperties {
     var out_properties: []SparseImageFormatProperties = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
-    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, format, inType, samples, usage, tiling, &propertyCount, properties.ptr);
+    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, format, inType, samples.toInt(), usage.toInt(), tiling, &propertyCount, properties.ptr);
     out_properties = properties[0..propertyCount];
     return out_properties;
 }
 pub inline fn GetPhysicalDeviceSparseImageFormatPropertiesCount(physicalDevice: PhysicalDevice, format: Format, inType: ImageType, samples: SampleCountFlags, usage: ImageUsageFlags, tiling: ImageTiling) u32 {
     var out_propertyCount: u32 = undefined;
-    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, format, inType, samples, usage, tiling, &out_propertyCount, null);
+    vkGetPhysicalDeviceSparseImageFormatProperties(physicalDevice, format, inType, samples.toInt(), usage.toInt(), tiling, &out_propertyCount, null);
     return out_propertyCount;
 }
 
@@ -5624,7 +5625,7 @@ pub inline fn CreateQueryPool(device: Device, createInfo: QueryPoolCreateInfo, p
 pub const DestroyQueryPool = vkDestroyQueryPool;
 
 pub inline fn GetQueryPoolResults(device: Device, queryPool: QueryPool, firstQuery: u32, queryCount: u32, data: []u8, stride: DeviceSize, flags: QueryResultFlags) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!Result {
-    const result = vkGetQueryPoolResults(device, queryPool, firstQuery, queryCount, @intCast(usize, data.len), data.ptr, stride, flags);
+    const result = vkGetQueryPoolResults(device, queryPool, firstQuery, queryCount, @intCast(usize, data.len), data.ptr, stride, flags.toInt());
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -5868,7 +5869,7 @@ pub inline fn CreateDescriptorPool(device: Device, createInfo: DescriptorPoolCre
 pub const DestroyDescriptorPool = vkDestroyDescriptorPool;
 
 pub inline fn ResetDescriptorPool(device: Device, descriptorPool: DescriptorPool, flags: DescriptorPoolResetFlags) error{VK_UNDOCUMENTED_ERROR}!void {
-    const result = vkResetDescriptorPool(device, descriptorPool, flags);
+    const result = vkResetDescriptorPool(device, descriptorPool, flags.toInt());
     if (@bitCast(c_int, result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
@@ -5951,7 +5952,7 @@ pub inline fn CreateCommandPool(device: Device, createInfo: CommandPoolCreateInf
 pub const DestroyCommandPool = vkDestroyCommandPool;
 
 pub inline fn ResetCommandPool(device: Device, commandPool: CommandPool, flags: CommandPoolResetFlags) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
-    const result = vkResetCommandPool(device, commandPool, flags);
+    const result = vkResetCommandPool(device, commandPool, flags.toInt());
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -6000,7 +6001,7 @@ pub inline fn EndCommandBuffer(commandBuffer: CommandBuffer) error{VK_OUT_OF_HOS
 }
 
 pub inline fn ResetCommandBuffer(commandBuffer: CommandBuffer, flags: CommandBufferResetFlags) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
-    const result = vkResetCommandBuffer(commandBuffer, flags);
+    const result = vkResetCommandBuffer(commandBuffer, flags.toInt());
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -6028,9 +6029,18 @@ pub inline fn CmdSetBlendConstants(commandBuffer: CommandBuffer, blendConstants:
 }
 
 pub const CmdSetDepthBounds = vkCmdSetDepthBounds;
-pub const CmdSetStencilCompareMask = vkCmdSetStencilCompareMask;
-pub const CmdSetStencilWriteMask = vkCmdSetStencilWriteMask;
-pub const CmdSetStencilReference = vkCmdSetStencilReference;
+
+pub inline fn CmdSetStencilCompareMask(commandBuffer: CommandBuffer, faceMask: StencilFaceFlags, compareMask: u32) void {
+    vkCmdSetStencilCompareMask(commandBuffer, faceMask.toInt(), compareMask);
+}
+
+pub inline fn CmdSetStencilWriteMask(commandBuffer: CommandBuffer, faceMask: StencilFaceFlags, writeMask: u32) void {
+    vkCmdSetStencilWriteMask(commandBuffer, faceMask.toInt(), writeMask);
+}
+
+pub inline fn CmdSetStencilReference(commandBuffer: CommandBuffer, faceMask: StencilFaceFlags, reference: u32) void {
+    vkCmdSetStencilReference(commandBuffer, faceMask.toInt(), reference);
+}
 
 pub inline fn CmdBindDescriptorSets(commandBuffer: CommandBuffer, pipelineBindPoint: PipelineBindPoint, layout: PipelineLayout, firstSet: u32, descriptorSets: []const DescriptorSet, dynamicOffsets: []const u32) void {
     vkCmdBindDescriptorSets(commandBuffer, pipelineBindPoint, layout, firstSet, @intCast(u32, descriptorSets.len), descriptorSets.ptr, @intCast(u32, dynamicOffsets.len), dynamicOffsets.ptr);
@@ -6092,25 +6102,39 @@ pub inline fn CmdResolveImage(commandBuffer: CommandBuffer, srcImage: Image, src
     vkCmdResolveImage(commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, @intCast(u32, regions.len), regions.ptr);
 }
 
-pub const CmdSetEvent = vkCmdSetEvent;
-pub const CmdResetEvent = vkCmdResetEvent;
+pub inline fn CmdSetEvent(commandBuffer: CommandBuffer, event: Event, stageMask: PipelineStageFlags) void {
+    vkCmdSetEvent(commandBuffer, event, stageMask.toInt());
+}
+
+pub inline fn CmdResetEvent(commandBuffer: CommandBuffer, event: Event, stageMask: PipelineStageFlags) void {
+    vkCmdResetEvent(commandBuffer, event, stageMask.toInt());
+}
 
 pub inline fn CmdWaitEvents(commandBuffer: CommandBuffer, events: []const Event, srcStageMask: PipelineStageFlags, dstStageMask: PipelineStageFlags, memoryBarriers: []const MemoryBarrier, bufferMemoryBarriers: []const BufferMemoryBarrier, imageMemoryBarriers: []const ImageMemoryBarrier) void {
-    vkCmdWaitEvents(commandBuffer, @intCast(u32, events.len), events.ptr, srcStageMask, dstStageMask, @intCast(u32, memoryBarriers.len), memoryBarriers.ptr, @intCast(u32, bufferMemoryBarriers.len), bufferMemoryBarriers.ptr, @intCast(u32, imageMemoryBarriers.len), imageMemoryBarriers.ptr);
+    vkCmdWaitEvents(commandBuffer, @intCast(u32, events.len), events.ptr, srcStageMask.toInt(), dstStageMask.toInt(), @intCast(u32, memoryBarriers.len), memoryBarriers.ptr, @intCast(u32, bufferMemoryBarriers.len), bufferMemoryBarriers.ptr, @intCast(u32, imageMemoryBarriers.len), imageMemoryBarriers.ptr);
 }
 
 pub inline fn CmdPipelineBarrier(commandBuffer: CommandBuffer, srcStageMask: PipelineStageFlags, dstStageMask: PipelineStageFlags, dependencyFlags: DependencyFlags, memoryBarriers: []const MemoryBarrier, bufferMemoryBarriers: []const BufferMemoryBarrier, imageMemoryBarriers: []const ImageMemoryBarrier) void {
-    vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, dependencyFlags, @intCast(u32, memoryBarriers.len), memoryBarriers.ptr, @intCast(u32, bufferMemoryBarriers.len), bufferMemoryBarriers.ptr, @intCast(u32, imageMemoryBarriers.len), imageMemoryBarriers.ptr);
+    vkCmdPipelineBarrier(commandBuffer, srcStageMask.toInt(), dstStageMask.toInt(), dependencyFlags.toInt(), @intCast(u32, memoryBarriers.len), memoryBarriers.ptr, @intCast(u32, bufferMemoryBarriers.len), bufferMemoryBarriers.ptr, @intCast(u32, imageMemoryBarriers.len), imageMemoryBarriers.ptr);
 }
 
-pub const CmdBeginQuery = vkCmdBeginQuery;
+pub inline fn CmdBeginQuery(commandBuffer: CommandBuffer, queryPool: QueryPool, query: u32, flags: QueryControlFlags) void {
+    vkCmdBeginQuery(commandBuffer, queryPool, query, flags.toInt());
+}
+
 pub const CmdEndQuery = vkCmdEndQuery;
 pub const CmdResetQueryPool = vkCmdResetQueryPool;
-pub const CmdWriteTimestamp = vkCmdWriteTimestamp;
-pub const CmdCopyQueryPoolResults = vkCmdCopyQueryPoolResults;
+
+pub inline fn CmdWriteTimestamp(commandBuffer: CommandBuffer, pipelineStage: PipelineStageFlags, queryPool: QueryPool, query: u32) void {
+    vkCmdWriteTimestamp(commandBuffer, pipelineStage.toInt(), queryPool, query);
+}
+
+pub inline fn CmdCopyQueryPoolResults(commandBuffer: CommandBuffer, queryPool: QueryPool, firstQuery: u32, queryCount: u32, dstBuffer: Buffer, dstOffset: DeviceSize, stride: DeviceSize, flags: QueryResultFlags) void {
+    vkCmdCopyQueryPoolResults(commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags.toInt());
+}
 
 pub inline fn CmdPushConstants(commandBuffer: CommandBuffer, layout: PipelineLayout, stageFlags: ShaderStageFlags, offset: u32, values: []const u8) void {
-    vkCmdPushConstants(commandBuffer, layout, stageFlags, offset, @intCast(u32, values.len), values.ptr);
+    vkCmdPushConstants(commandBuffer, layout, stageFlags.toInt(), offset, @intCast(u32, values.len), values.ptr);
 }
 
 pub inline fn CmdBeginRenderPass(commandBuffer: CommandBuffer, renderPassBegin: RenderPassBeginInfo, contents: SubpassContents) void {
@@ -7265,7 +7289,7 @@ pub extern fn vkGetPhysicalDeviceSparseImageFormatProperties2(
 pub extern fn vkTrimCommandPool(
     device: Device,
     commandPool: CommandPool,
-    flags: CommandPoolTrimFlags,
+    flags: CommandPoolTrimFlags.IntType,
 ) callconv(CallConv) void;
 
 pub extern fn vkGetDeviceQueue2(
@@ -7495,7 +7519,9 @@ pub inline fn GetPhysicalDeviceSparseImageFormatProperties2Count(physicalDevice:
     return out_propertyCount;
 }
 
-pub const TrimCommandPool = vkTrimCommandPool;
+pub inline fn TrimCommandPool(device: Device, commandPool: CommandPool, flags: CommandPoolTrimFlags) void {
+    vkTrimCommandPool(device, commandPool, flags.toInt());
+}
 
 pub inline fn GetDeviceQueue2(device: Device, queueInfo: DeviceQueueInfo2) Queue {
     var out_queue: Queue = undefined;
@@ -9692,10 +9718,12 @@ pub const CommandPoolTrimFlagsKHR = CommandPoolTrimFlags;
 pub extern fn vkTrimCommandPoolKHR(
     device: Device,
     commandPool: CommandPool,
-    flags: CommandPoolTrimFlags,
+    flags: CommandPoolTrimFlags.IntType,
 ) callconv(CallConv) void;
 
-pub const TrimCommandPoolKHR = vkTrimCommandPoolKHR;
+pub inline fn TrimCommandPoolKHR(device: Device, commandPool: CommandPool, flags: CommandPoolTrimFlags) void {
+    vkTrimCommandPoolKHR(device, commandPool, flags.toInt());
+}
 
 
 pub const KHR_device_group_creation = 1;
@@ -9817,7 +9845,7 @@ pub extern fn vkGetMemoryFdKHR(
 
 pub extern fn vkGetMemoryFdPropertiesKHR(
     device: Device,
-    handleType: ExternalMemoryHandleTypeFlags,
+    handleType: ExternalMemoryHandleTypeFlags.IntType,
     fd: c_int,
     pMemoryFdProperties: *MemoryFdPropertiesKHR,
 ) callconv(CallConv) Result;
@@ -9837,7 +9865,7 @@ pub inline fn GetMemoryFdKHR(device: Device, getFdInfo: MemoryGetFdInfoKHR) erro
 
 pub inline fn GetMemoryFdPropertiesKHR(device: Device, handleType: ExternalMemoryHandleTypeFlags, fd: c_int) error{VK_INVALID_EXTERNAL_HANDLE,VK_UNDOCUMENTED_ERROR}!MemoryFdPropertiesKHR {
     var out_memoryFdProperties: MemoryFdPropertiesKHR = undefined;
-    const result = vkGetMemoryFdPropertiesKHR(device, handleType, fd, &out_memoryFdProperties);
+    const result = vkGetMemoryFdPropertiesKHR(device, handleType.toInt(), fd, &out_memoryFdProperties);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_INVALID_EXTERNAL_HANDLE => error.VK_INVALID_EXTERNAL_HANDLE,
@@ -11490,7 +11518,7 @@ pub const DebugReportFlagsEXT = packed struct {
 };
 
 pub const PFN_DebugReportCallbackEXT = fn (
-    DebugReportFlagsEXT,
+    DebugReportFlagsEXT.IntType,
     DebugReportObjectTypeEXT,
     u64,
     usize,
@@ -11523,7 +11551,7 @@ pub extern fn vkDestroyDebugReportCallbackEXT(
 
 pub extern fn vkDebugReportMessageEXT(
     instance: Instance,
-    flags: DebugReportFlagsEXT,
+    flags: DebugReportFlagsEXT.IntType,
     objectType: DebugReportObjectTypeEXT,
     object: u64,
     location: usize,
@@ -11545,7 +11573,10 @@ pub inline fn CreateDebugReportCallbackEXT(instance: Instance, createInfo: Debug
 }
 
 pub const DestroyDebugReportCallbackEXT = vkDestroyDebugReportCallbackEXT;
-pub const DebugReportMessageEXT = vkDebugReportMessageEXT;
+
+pub inline fn DebugReportMessageEXT(instance: Instance, flags: DebugReportFlagsEXT, objectType: DebugReportObjectTypeEXT, object: u64, location: usize, messageCode: i32, pLayerPrefix: CString, pMessage: CString) void {
+    vkDebugReportMessageEXT(instance, flags.toInt(), objectType, object, location, messageCode, pLayerPrefix, pMessage);
+}
 
 
 pub const NV_glsl_shader = 1;
@@ -11770,7 +11801,7 @@ pub extern fn vkCmdBeginQueryIndexedEXT(
     commandBuffer: CommandBuffer,
     queryPool: QueryPool,
     query: u32,
-    flags: QueryControlFlags,
+    flags: QueryControlFlags.IntType,
     index: u32,
 ) callconv(CallConv) void;
 
@@ -11807,7 +11838,10 @@ pub inline fn CmdEndTransformFeedbackEXT(commandBuffer: CommandBuffer, firstCoun
     vkCmdEndTransformFeedbackEXT(commandBuffer, firstCounterBuffer, @intCast(u32, counterBuffers.len), counterBuffers.ptr, counterBufferOffsets.ptr);
 }
 
-pub const CmdBeginQueryIndexedEXT = vkCmdBeginQueryIndexedEXT;
+pub inline fn CmdBeginQueryIndexedEXT(commandBuffer: CommandBuffer, queryPool: QueryPool, query: u32, flags: QueryControlFlags, index: u32) void {
+    vkCmdBeginQueryIndexedEXT(commandBuffer, queryPool, query, flags.toInt(), index);
+}
+
 pub const CmdEndQueryIndexedEXT = vkCmdEndQueryIndexedEXT;
 pub const CmdDrawIndirectByteCountEXT = vkCmdDrawIndirectByteCountEXT;
 
@@ -11921,7 +11955,7 @@ pub const ShaderStatisticsInfoAMD = extern struct {
 pub extern fn vkGetShaderInfoAMD(
     device: Device,
     pipeline: Pipeline,
-    shaderStage: ShaderStageFlags,
+    shaderStage: ShaderStageFlags.IntType,
     infoType: ShaderInfoTypeAMD,
     pInfoSize: *usize,
     pInfo: ?*c_void,
@@ -11934,7 +11968,7 @@ pub const GetShaderInfoAMDResult = struct {
 pub inline fn GetShaderInfoAMD(device: Device, pipeline: Pipeline, shaderStage: ShaderStageFlags, infoType: ShaderInfoTypeAMD, info: []u8) error{VK_FEATURE_NOT_PRESENT,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!GetShaderInfoAMDResult {
     var returnValues: GetShaderInfoAMDResult = undefined;
     var infoSize: usize = @intCast(usize, info.len);
-    const result = vkGetShaderInfoAMD(device, pipeline, shaderStage, infoType, &infoSize, info.ptr);
+    const result = vkGetShaderInfoAMD(device, pipeline, shaderStage.toInt(), infoType, &infoSize, info.ptr);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_FEATURE_NOT_PRESENT => error.VK_FEATURE_NOT_PRESENT,
@@ -11948,7 +11982,7 @@ pub inline fn GetShaderInfoAMD(device: Device, pipeline: Pipeline, shaderStage: 
 }
 pub inline fn GetShaderInfoCountAMD(device: Device, pipeline: Pipeline, shaderStage: ShaderStageFlags, infoType: ShaderInfoTypeAMD) error{VK_FEATURE_NOT_PRESENT,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!usize {
     var out_infoSize: usize = undefined;
-    const result = vkGetShaderInfoAMD(device, pipeline, shaderStage, infoType, &out_infoSize, null);
+    const result = vkGetShaderInfoAMD(device, pipeline, shaderStage.toInt(), infoType, &out_infoSize, null);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_FEATURE_NOT_PRESENT => error.VK_FEATURE_NOT_PRESENT,
@@ -12071,15 +12105,15 @@ pub extern fn vkGetPhysicalDeviceExternalImageFormatPropertiesNV(
     format: Format,
     inType: ImageType,
     tiling: ImageTiling,
-    usage: ImageUsageFlags,
-    flags: ImageCreateFlags,
-    externalHandleType: ExternalMemoryHandleTypeFlagsNV,
+    usage: ImageUsageFlags.IntType,
+    flags: ImageCreateFlags.IntType,
+    externalHandleType: ExternalMemoryHandleTypeFlagsNV.IntType,
     pExternalImageFormatProperties: *ExternalImageFormatPropertiesNV,
 ) callconv(CallConv) Result;
 
 pub inline fn GetPhysicalDeviceExternalImageFormatPropertiesNV(physicalDevice: PhysicalDevice, format: Format, inType: ImageType, tiling: ImageTiling, usage: ImageUsageFlags, flags: ImageCreateFlags, externalHandleType: ExternalMemoryHandleTypeFlagsNV) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_FORMAT_NOT_SUPPORTED,VK_UNDOCUMENTED_ERROR}!ExternalImageFormatPropertiesNV {
     var out_externalImageFormatProperties: ExternalImageFormatPropertiesNV = undefined;
-    const result = vkGetPhysicalDeviceExternalImageFormatPropertiesNV(physicalDevice, format, inType, tiling, usage, flags, externalHandleType, &out_externalImageFormatProperties);
+    const result = vkGetPhysicalDeviceExternalImageFormatPropertiesNV(physicalDevice, format, inType, tiling, usage.toInt(), flags.toInt(), externalHandleType.toInt(), &out_externalImageFormatProperties);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -12780,7 +12814,7 @@ pub extern fn vkRegisterDisplayEventEXT(
 pub extern fn vkGetSwapchainCounterEXT(
     device: Device,
     swapchain: SwapchainKHR,
-    counter: SurfaceCounterFlagsEXT,
+    counter: SurfaceCounterFlagsEXT.IntType,
     pCounterValue: *u64,
 ) callconv(CallConv) Result;
 
@@ -12811,7 +12845,7 @@ pub inline fn RegisterDisplayEventEXT(device: Device, display: DisplayKHR, displ
 
 pub inline fn GetSwapchainCounterEXT(device: Device, swapchain: SwapchainKHR, counter: SurfaceCounterFlagsEXT) error{VK_DEVICE_LOST,VK_OUT_OF_DATE_KHR,VK_UNDOCUMENTED_ERROR}!u64 {
     var out_counterValue: u64 = undefined;
-    const result = vkGetSwapchainCounterEXT(device, swapchain, counter, &out_counterValue);
+    const result = vkGetSwapchainCounterEXT(device, swapchain, counter.toInt(), &out_counterValue);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_DEVICE_LOST => error.VK_DEVICE_LOST,
@@ -13261,8 +13295,8 @@ pub const DebugUtilsMessengerCallbackDataEXT = extern struct {
 };
 
 pub const PFN_DebugUtilsMessengerCallbackEXT = fn (
-    DebugUtilsMessageSeverityFlagsEXT,
-    DebugUtilsMessageTypeFlagsEXT,
+    DebugUtilsMessageSeverityFlagsEXT.IntType,
+    DebugUtilsMessageTypeFlagsEXT.IntType,
     ?[*]const DebugUtilsMessengerCallbackDataEXT,
     ?*c_void,
 ) callconv(CallConv) Bool32;
@@ -13326,8 +13360,8 @@ pub extern fn vkDestroyDebugUtilsMessengerEXT(
 
 pub extern fn vkSubmitDebugUtilsMessageEXT(
     instance: Instance,
-    messageSeverity: DebugUtilsMessageSeverityFlagsEXT,
-    messageTypes: DebugUtilsMessageTypeFlagsEXT,
+    messageSeverity: DebugUtilsMessageSeverityFlagsEXT.IntType,
+    messageTypes: DebugUtilsMessageTypeFlagsEXT.IntType,
     pCallbackData: *const DebugUtilsMessengerCallbackDataEXT,
 ) callconv(CallConv) void;
 
@@ -13388,7 +13422,7 @@ pub inline fn CreateDebugUtilsMessengerEXT(instance: Instance, createInfo: Debug
 pub const DestroyDebugUtilsMessengerEXT = vkDestroyDebugUtilsMessengerEXT;
 
 pub inline fn SubmitDebugUtilsMessageEXT(instance: Instance, messageSeverity: DebugUtilsMessageSeverityFlagsEXT, messageTypes: DebugUtilsMessageTypeFlagsEXT, callbackData: DebugUtilsMessengerCallbackDataEXT) void {
-    vkSubmitDebugUtilsMessageEXT(instance, messageSeverity, messageTypes, &callbackData);
+    vkSubmitDebugUtilsMessageEXT(instance, messageSeverity.toInt(), messageTypes.toInt(), &callbackData);
 }
 
 
@@ -13524,7 +13558,7 @@ pub extern fn vkCmdSetSampleLocationsEXT(
 
 pub extern fn vkGetPhysicalDeviceMultisamplePropertiesEXT(
     physicalDevice: PhysicalDevice,
-    samples: SampleCountFlags,
+    samples: SampleCountFlags.IntType,
     pMultisampleProperties: *MultisamplePropertiesEXT,
 ) callconv(CallConv) void;
 
@@ -13534,7 +13568,7 @@ pub inline fn CmdSetSampleLocationsEXT(commandBuffer: CommandBuffer, sampleLocat
 
 pub inline fn GetPhysicalDeviceMultisamplePropertiesEXT(physicalDevice: PhysicalDevice, samples: SampleCountFlags) MultisamplePropertiesEXT {
     var out_multisampleProperties: MultisamplePropertiesEXT = undefined;
-    vkGetPhysicalDeviceMultisamplePropertiesEXT(physicalDevice, samples, &out_multisampleProperties);
+    vkGetPhysicalDeviceMultisamplePropertiesEXT(physicalDevice, samples.toInt(), &out_multisampleProperties);
     return out_multisampleProperties;
 }
 
@@ -14490,14 +14524,14 @@ pub const PhysicalDeviceExternalMemoryHostPropertiesEXT = extern struct {
 
 pub extern fn vkGetMemoryHostPointerPropertiesEXT(
     device: Device,
-    handleType: ExternalMemoryHandleTypeFlags,
+    handleType: ExternalMemoryHandleTypeFlags.IntType,
     pHostPointer: ?*const c_void,
     pMemoryHostPointerProperties: *MemoryHostPointerPropertiesEXT,
 ) callconv(CallConv) Result;
 
 pub inline fn GetMemoryHostPointerPropertiesEXT(device: Device, handleType: ExternalMemoryHandleTypeFlags, pHostPointer: ?*const c_void) error{VK_INVALID_EXTERNAL_HANDLE,VK_UNDOCUMENTED_ERROR}!MemoryHostPointerPropertiesEXT {
     var out_memoryHostPointerProperties: MemoryHostPointerPropertiesEXT = undefined;
-    const result = vkGetMemoryHostPointerPropertiesEXT(device, handleType, pHostPointer, &out_memoryHostPointerProperties);
+    const result = vkGetMemoryHostPointerPropertiesEXT(device, handleType.toInt(), pHostPointer, &out_memoryHostPointerProperties);
     if (@bitCast(c_int, result) < 0) {
         return switch (result) {
             .ERROR_INVALID_EXTERNAL_HANDLE => error.VK_INVALID_EXTERNAL_HANDLE,
@@ -14514,13 +14548,15 @@ pub const AMD_BUFFER_MARKER_EXTENSION_NAME = "VK_AMD_buffer_marker";
 
 pub extern fn vkCmdWriteBufferMarkerAMD(
     commandBuffer: CommandBuffer,
-    pipelineStage: PipelineStageFlags,
+    pipelineStage: PipelineStageFlags.IntType,
     dstBuffer: Buffer,
     dstOffset: DeviceSize,
     marker: u32,
 ) callconv(CallConv) void;
 
-pub const CmdWriteBufferMarkerAMD = vkCmdWriteBufferMarkerAMD;
+pub inline fn CmdWriteBufferMarkerAMD(commandBuffer: CommandBuffer, pipelineStage: PipelineStageFlags, dstBuffer: Buffer, dstOffset: DeviceSize, marker: u32) void {
+    vkCmdWriteBufferMarkerAMD(commandBuffer, pipelineStage.toInt(), dstBuffer, dstOffset, marker);
+}
 
 
 pub const AMD_pipeline_compiler_control = 1;

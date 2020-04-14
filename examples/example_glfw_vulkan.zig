@@ -30,7 +30,7 @@ var g_SwapChainResizeWidth = @as(u32, 0);
 var g_SwapChainResizeHeight = @as(u32, 0);
 var g_ClearColor = imgui.Vec4{ .x = 0.5, .y = 0, .z = 1, .w = 1 };
 
-fn debug_report(flags: vk.DebugReportFlagsEXT, objectType: vk.DebugReportObjectTypeEXT, object: u64, location: usize, messageCode: i32, pLayerPrefix: ?[*]const u8, pMessage: ?[*]const u8, pUserData: ?*c_void) callconv(vk.CallConv) vk.Bool32 {
+fn debug_report(flags: vk.DebugReportFlagsEXT.IntType, objectType: vk.DebugReportObjectTypeEXT, object: u64, location: usize, messageCode: i32, pLayerPrefix: ?[*]const u8, pMessage: ?[*]const u8, pUserData: ?*c_void) callconv(vk.CallConv) vk.Bool32 {
     std.debug.warn("[vulkan] ObjectType: {}\nMessage: {}\n\n", .{objectType, pMessage});
     @panic("VK Error");
     //return vk.FALSE;
