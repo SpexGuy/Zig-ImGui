@@ -474,9 +474,7 @@ class ZigData:
             f.write('        capacity: i32,\n')
             f.write('        items: [*]T,\n')
             f.write('\n')
-            f.write('        const FTABLE = getFTABLE_'+t+'(T);\n')
-            for func in info.functions:
-                f.write('        pub const '+func+' = if (@hasDecl(FTABLE, "'+func+'")) FTABLE.'+func+' else @compileError("Invalid template instantiation");\n')
+            f.write('        pub usingnamespace getFTABLE_'+t+'(T);\n')
             f.write('    };\n')
             f.write('}\n\n')
 

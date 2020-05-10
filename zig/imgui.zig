@@ -2130,42 +2130,7 @@ pub fn Vector(comptime T: type) type {
         capacity: i32,
         items: [*]T,
 
-        const FTABLE = getFTABLE_ImVector(T);
-        pub const init = if (@hasDecl(FTABLE, "init")) FTABLE.init else @compileError("Invalid template instantiation");
-        pub const initVector = if (@hasDecl(FTABLE, "initVector")) FTABLE.initVector else @compileError("Invalid template instantiation");
-        pub const _grow_capacity = if (@hasDecl(FTABLE, "_grow_capacity")) FTABLE._grow_capacity else @compileError("Invalid template instantiation");
-        pub const back = if (@hasDecl(FTABLE, "back")) FTABLE.back else @compileError("Invalid template instantiation");
-        pub const back_const = if (@hasDecl(FTABLE, "back_const")) FTABLE.back_const else @compileError("Invalid template instantiation");
-        pub const begin = if (@hasDecl(FTABLE, "begin")) FTABLE.begin else @compileError("Invalid template instantiation");
-        pub const begin_const = if (@hasDecl(FTABLE, "begin_const")) FTABLE.begin_const else @compileError("Invalid template instantiation");
-        pub const capacity = if (@hasDecl(FTABLE, "capacity")) FTABLE.capacity else @compileError("Invalid template instantiation");
-        pub const clear = if (@hasDecl(FTABLE, "clear")) FTABLE.clear else @compileError("Invalid template instantiation");
-        pub const contains = if (@hasDecl(FTABLE, "contains")) FTABLE.contains else @compileError("Invalid template instantiation");
-        pub const deinit = if (@hasDecl(FTABLE, "deinit")) FTABLE.deinit else @compileError("Invalid template instantiation");
-        pub const empty = if (@hasDecl(FTABLE, "empty")) FTABLE.empty else @compileError("Invalid template instantiation");
-        pub const end = if (@hasDecl(FTABLE, "end")) FTABLE.end else @compileError("Invalid template instantiation");
-        pub const end_const = if (@hasDecl(FTABLE, "end_const")) FTABLE.end_const else @compileError("Invalid template instantiation");
-        pub const erase = if (@hasDecl(FTABLE, "erase")) FTABLE.erase else @compileError("Invalid template instantiation");
-        pub const eraseTPtr = if (@hasDecl(FTABLE, "eraseTPtr")) FTABLE.eraseTPtr else @compileError("Invalid template instantiation");
-        pub const erase_unsorted = if (@hasDecl(FTABLE, "erase_unsorted")) FTABLE.erase_unsorted else @compileError("Invalid template instantiation");
-        pub const find = if (@hasDecl(FTABLE, "find")) FTABLE.find else @compileError("Invalid template instantiation");
-        pub const find_const = if (@hasDecl(FTABLE, "find_const")) FTABLE.find_const else @compileError("Invalid template instantiation");
-        pub const find_erase = if (@hasDecl(FTABLE, "find_erase")) FTABLE.find_erase else @compileError("Invalid template instantiation");
-        pub const find_erase_unsorted = if (@hasDecl(FTABLE, "find_erase_unsorted")) FTABLE.find_erase_unsorted else @compileError("Invalid template instantiation");
-        pub const front = if (@hasDecl(FTABLE, "front")) FTABLE.front else @compileError("Invalid template instantiation");
-        pub const front_const = if (@hasDecl(FTABLE, "front_const")) FTABLE.front_const else @compileError("Invalid template instantiation");
-        pub const index_from_ptr = if (@hasDecl(FTABLE, "index_from_ptr")) FTABLE.index_from_ptr else @compileError("Invalid template instantiation");
-        pub const insert = if (@hasDecl(FTABLE, "insert")) FTABLE.insert else @compileError("Invalid template instantiation");
-        pub const pop_back = if (@hasDecl(FTABLE, "pop_back")) FTABLE.pop_back else @compileError("Invalid template instantiation");
-        pub const push_back = if (@hasDecl(FTABLE, "push_back")) FTABLE.push_back else @compileError("Invalid template instantiation");
-        pub const push_front = if (@hasDecl(FTABLE, "push_front")) FTABLE.push_front else @compileError("Invalid template instantiation");
-        pub const reserve = if (@hasDecl(FTABLE, "reserve")) FTABLE.reserve else @compileError("Invalid template instantiation");
-        pub const resize = if (@hasDecl(FTABLE, "resize")) FTABLE.resize else @compileError("Invalid template instantiation");
-        pub const resizeT = if (@hasDecl(FTABLE, "resizeT")) FTABLE.resizeT else @compileError("Invalid template instantiation");
-        pub const shrink = if (@hasDecl(FTABLE, "shrink")) FTABLE.shrink else @compileError("Invalid template instantiation");
-        pub const size = if (@hasDecl(FTABLE, "size")) FTABLE.size else @compileError("Invalid template instantiation");
-        pub const size_in_bytes = if (@hasDecl(FTABLE, "size_in_bytes")) FTABLE.size_in_bytes else @compileError("Invalid template instantiation");
-        pub const swap = if (@hasDecl(FTABLE, "swap")) FTABLE.swap else @compileError("Invalid template instantiation");
+        pub usingnamespace getFTABLE_ImVector(T);
     };
 }
 
