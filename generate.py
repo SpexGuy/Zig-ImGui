@@ -39,7 +39,7 @@ typeConversions = {
     'ImGuiCond': 'CondFlags',
 }
 
-def isEnum(cName):
+def isFlags(cName):
     return cName.endswith('Flags') or cName == 'ImGuiCond'
 
 Structure = namedtuple('Structure', ['zigName', 'fieldsDecl', 'functions'])
@@ -128,14 +128,6 @@ class ZigData:
         # list of (name, int_value)
         aliases = []
 
-        def bitIndex(flag):
-            low = (flag & -flag)
-            lowBit = -1
-            while (low):
-                low >>= 1
-                lowBit += 1
-            return lowBit
-
         bits = [None] * 32
         for value in jsonValues:
             valueName = value['name'].replace(name, '')
@@ -156,7 +148,8 @@ class ZigData:
             if bits[i] is None:
                 bits[i] = '__reserved_bit_%02d' % i
 
-        decl = 'pub const '+zigFlagsName+' = packed struct {\n'
+        decl = 'pub const '+zigFlagsName+'Int = FlagsInt;\n'
+        decl += 'pub const '+zigFlagsName+' = packed struct {\n'
         for bitName in bits:
             decl += '    ' + bitName + ': bool = false,\n'
         if aliases:
@@ -296,21 +289,55 @@ class ZigData:
         declName = self.makeZigFunctionName(jFunc, baseName, stname)
 
         if not isVarargs:
+            wrappedName = declName
+            needsWrap = False
+            beforeCall = []
+            wrappedRetType = retType
+            returnName = None
+
+            paramStrs = []
+            passStrs = []
+
+            if 'Flags' in wrappedRetType:
+                print("Warning: flags return type not supported for "+baseName);
+
             if 'nonUDT' in jFunc and jFunc['nonUDT'] == 1:
                 assert(retType == 'void')
+                needsWrap = True
 
-                paramStrs = [ name + ': ' + typeStr for name, typeStr in params[1:] ]
-                passStrs = [ name for name, typeStr in params[1:] ]
-                wrappedRetType = params[0][1]
+                returnParam = params[0];
+                params = params[1:]
+
+                assert(returnParam[0] == 'pOut')
+                wrappedRetType = returnParam[1]
                 # strip one pointer
                 assert(wrappedRetType[0] == '*')
                 wrappedRetType = wrappedRetType[1:]
 
+                beforeCall.append('var out: '+wrappedRetType+' = undefined;')
+                passStrs.append('&out')
+                returnName = 'out'
+
+            for name, typeStr in params:
+                if typeStr.endswith('FlagsInt') and not ('*' in typeStr):
+                    needsWrap = True
+                    paramStrs.append(name + ': ' + typeStr.replace('FlagsInt', 'Flags'))
+                    passStrs.append(name + '.toInt()')
+                else:
+                    paramStrs.append(name + ': ' + typeStr)
+                    passStrs.append(name)
+
+            if needsWrap:
                 wrapper = []
-                wrapper.append('pub fn '+declName+'(' + ', '.join(paramStrs) + ') '+wrappedRetType+' {')
-                wrapper.append('    var out: '+wrappedRetType+' = undefined;')
-                wrapper.append('    raw.'+rawName+'(&out, '+', '.join(passStrs)+');')
-                wrapper.append('    return out;')
+                wrapper.append('pub inline fn '+wrappedName+'(' + ', '.join(paramStrs) + ') '+wrappedRetType+' {')
+                for line in beforeCall:
+                    wrapper.append('    ' + line)
+                callStr = 'raw.'+rawName+'('+', '.join(passStrs)+');'
+                if returnName is None:
+                    wrapper.append('    return '+callStr)
+                else:
+                    wrapper.append('    '+callStr)
+                    wrapper.append('    return '+returnName+';')
                 wrapper.append('}')
                 return wrapper
 
@@ -410,7 +437,7 @@ class ZigData:
         zigValue = buffers
         if numPointers > 0:
             zigValue += getPointers(numPointers, valueType, context)
-            if isEnum(valueType):
+            if isFlags(valueType):
                 zigValue += 'align(4) '
         if valueConst and not zigValue.endswith('const '):
             zigValue += 'const '
@@ -418,8 +445,11 @@ class ZigData:
         innerType = self.convertTypeName(valueType, template)
         zigValue += innerType
         
-        if numPointers == 0 and isEnum(valueType) and context.type == CT_FIELD:
-            zigValue += ' align(4)'
+        if numPointers == 0 and isFlags(valueType):
+            if context.type == CT_PARAM:
+                zigValue += 'Int'
+            if context.type == CT_FIELD:
+                zigValue += ' align(4)'
             
         return zigValue
 
@@ -458,13 +488,14 @@ class ZigData:
         f.write('}\n')
         
         f.write('\n')
-        f.write("""pub fn FlagsMixin(comptime FlagType: type) type {
+        f.write("""pub const FlagsInt = u32;
+pub fn FlagsMixin(comptime FlagType: type) type {
     comptime assert(@sizeOf(FlagType) == 4);
     return struct {
-        pub fn toInt(self: FlagType) Flags {
+        pub fn toInt(self: FlagType) FlagsInt {
             return @bitCast(Flags, self);
         }
-        pub fn fromInt(value: Flags) FlagType {
+        pub fn fromInt(value: FlagsInt) FlagType {
             return @bitCast(FlagType, value);
         }
         pub fn with(a: FlagType, b: FlagType) FlagType {
@@ -574,7 +605,7 @@ if __name__ == '__main__':
     jsonEnums = jsonStructs['enums']
     for enumName in jsonEnums:
         # enum name in this data structure ends with _, so strip that.
-        if isEnum(enumName[:-1]):
+        if isFlags(enumName[:-1]):
             data.addFlags(enumName, jsonEnums[enumName])
         elif enumName.endswith('_'):
             data.addEnum(enumName, jsonEnums[enumName])

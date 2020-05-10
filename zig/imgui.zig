@@ -18,13 +18,14 @@ pub fn CHECKVERSION() void {
     }
 }
 
+pub const FlagsInt = u32;
 pub fn FlagsMixin(comptime FlagType: type) type {
     comptime assert(@sizeOf(FlagType) == 4);
     return struct {
-        pub fn toInt(self: FlagType) Flags {
+        pub fn toInt(self: FlagType) FlagsInt {
             return @bitCast(Flags, self);
         }
-        pub fn fromInt(value: Flags) FlagType {
+        pub fn fromInt(value: FlagsInt) FlagType {
             return @bitCast(FlagType, value);
         }
         pub fn with(a: FlagType, b: FlagType) FlagType {
@@ -48,6 +49,7 @@ pub fn FlagsMixin(comptime FlagType: type) type {
     };
 }
 
+pub const DrawCornerFlagsInt = FlagsInt;
 pub const DrawCornerFlags = packed struct {
     TopLeft: bool = false,
     TopRight: bool = false,
@@ -93,6 +95,7 @@ pub const DrawCornerFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const DrawListFlagsInt = FlagsInt;
 pub const DrawListFlags = packed struct {
     AntiAliasedLines: bool = false,
     AntiAliasedFill: bool = false,
@@ -133,6 +136,7 @@ pub const DrawListFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const FontAtlasFlagsInt = FlagsInt;
 pub const FontAtlasFlags = packed struct {
     NoPowerOfTwoHeight: bool = false,
     NoMouseCursors: bool = false,
@@ -173,6 +177,7 @@ pub const FontAtlasFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const BackendFlagsInt = FlagsInt;
 pub const BackendFlags = packed struct {
     HasGamepad: bool = false,
     HasMouseCursors: bool = false,
@@ -213,6 +218,7 @@ pub const BackendFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const ColorEditFlagsInt = FlagsInt;
 pub const ColorEditFlags = packed struct {
     __reserved_bit_00: bool = false,
     NoAlpha: bool = false,
@@ -258,6 +264,7 @@ pub const ColorEditFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const ComboFlagsInt = FlagsInt;
 pub const ComboFlags = packed struct {
     PopupAlignLeft: bool = false,
     HeightSmall: bool = false,
@@ -299,6 +306,7 @@ pub const ComboFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const CondFlagsInt = FlagsInt;
 pub const CondFlags = packed struct {
     Always: bool = false,
     Once: bool = false,
@@ -336,6 +344,7 @@ pub const CondFlags = packed struct {
     pub usingnamespace FlagsMixin(@This());
 };
 
+pub const ConfigFlagsInt = FlagsInt;
 pub const ConfigFlags = packed struct {
     NavEnableKeyboard: bool = false,
     NavEnableGamepad: bool = false,
@@ -376,6 +385,7 @@ pub const ConfigFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const DragDropFlagsInt = FlagsInt;
 pub const DragDropFlags = packed struct {
     SourceNoPreviewTooltip: bool = false,
     SourceNoDisableHover: bool = false,
@@ -417,6 +427,7 @@ pub const DragDropFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const FocusedFlagsInt = FlagsInt;
 pub const FocusedFlags = packed struct {
     ChildWindows: bool = false,
     RootWindow: bool = false,
@@ -458,6 +469,7 @@ pub const FocusedFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const HoveredFlagsInt = FlagsInt;
 pub const HoveredFlags = packed struct {
     ChildWindows: bool = false,
     RootWindow: bool = false,
@@ -500,6 +512,7 @@ pub const HoveredFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const InputTextFlagsInt = FlagsInt;
 pub const InputTextFlags = packed struct {
     CharsDecimal: bool = false,
     CharsHexadecimal: bool = false,
@@ -540,6 +553,7 @@ pub const InputTextFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const SelectableFlagsInt = FlagsInt;
 pub const SelectableFlags = packed struct {
     DontClosePopups: bool = false,
     SpanAllColumns: bool = false,
@@ -580,6 +594,7 @@ pub const SelectableFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const TabBarFlagsInt = FlagsInt;
 pub const TabBarFlags = packed struct {
     Reorderable: bool = false,
     AutoSelectNewTabs: bool = false,
@@ -622,6 +637,7 @@ pub const TabBarFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const TabItemFlagsInt = FlagsInt;
 pub const TabItemFlags = packed struct {
     UnsavedDocument: bool = false,
     SetSelected: bool = false,
@@ -662,6 +678,7 @@ pub const TabItemFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const TreeNodeFlagsInt = FlagsInt;
 pub const TreeNodeFlags = packed struct {
     Selected: bool = false,
     Framed: bool = false,
@@ -703,6 +720,7 @@ pub const TreeNodeFlags = packed struct {
     pub usingnamespace FlagsMixin(Self);
 };
 
+pub const WindowFlagsInt = FlagsInt;
 pub const WindowFlags = packed struct {
     NoTitleBar: bool = false,
     NoResize: bool = false,
@@ -926,7 +944,7 @@ pub const StyleVar = extern enum {
 pub const Color = extern struct {
     Value: Vec4,
 
-    pub fn HSV(self: *Color, h: f32, s: f32, v: f32, a: f32) Color {
+    pub inline fn HSV(self: *Color, h: f32, s: f32, v: f32, a: f32) Color {
         var out: Color = undefined;
         raw.ImColor_HSV_nonUDT(&out, self, h, s, v, a);
         return out;
@@ -999,15 +1017,21 @@ pub const DrawList = extern struct {
     pub const AddDrawCmd = raw.ImDrawList_AddDrawCmd;
     pub const AddImage = raw.ImDrawList_AddImage;
     pub const AddImageQuad = raw.ImDrawList_AddImageQuad;
-    pub const AddImageRounded = raw.ImDrawList_AddImageRounded;
+    pub inline fn AddImageRounded(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags) void {
+        return raw.ImDrawList_AddImageRounded(self, user_texture_id, p_min, p_max, uv_min, uv_max, col, rounding, rounding_corners.toInt());
+    }
     pub const AddLine = raw.ImDrawList_AddLine;
     pub const AddNgon = raw.ImDrawList_AddNgon;
     pub const AddNgonFilled = raw.ImDrawList_AddNgonFilled;
     pub const AddPolyline = raw.ImDrawList_AddPolyline;
     pub const AddQuad = raw.ImDrawList_AddQuad;
     pub const AddQuadFilled = raw.ImDrawList_AddQuadFilled;
-    pub const AddRect = raw.ImDrawList_AddRect;
-    pub const AddRectFilled = raw.ImDrawList_AddRectFilled;
+    pub inline fn AddRect(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags, thickness: f32) void {
+        return raw.ImDrawList_AddRect(self, p_min, p_max, col, rounding, rounding_corners.toInt(), thickness);
+    }
+    pub inline fn AddRectFilled(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags) void {
+        return raw.ImDrawList_AddRectFilled(self, p_min, p_max, col, rounding, rounding_corners.toInt());
+    }
     pub const AddRectFilledMultiColor = raw.ImDrawList_AddRectFilledMultiColor;
     pub const AddTextVec2 = raw.ImDrawList_AddTextVec2;
     pub const AddTextFontPtr = raw.ImDrawList_AddTextFontPtr;
@@ -1019,12 +1043,12 @@ pub const DrawList = extern struct {
     pub const Clear = raw.ImDrawList_Clear;
     pub const ClearFreeMemory = raw.ImDrawList_ClearFreeMemory;
     pub const CloneOutput = raw.ImDrawList_CloneOutput;
-    pub fn GetClipRectMax(self: *const DrawList) Vec2 {
+    pub inline fn GetClipRectMax(self: *const DrawList) Vec2 {
         var out: Vec2 = undefined;
         raw.ImDrawList_GetClipRectMax_nonUDT(&out, self);
         return out;
     }
-    pub fn GetClipRectMin(self: *const DrawList) Vec2 {
+    pub inline fn GetClipRectMin(self: *const DrawList) Vec2 {
         var out: Vec2 = undefined;
         raw.ImDrawList_GetClipRectMin_nonUDT(&out, self);
         return out;
@@ -1037,7 +1061,9 @@ pub const DrawList = extern struct {
     pub const PathFillConvex = raw.ImDrawList_PathFillConvex;
     pub const PathLineTo = raw.ImDrawList_PathLineTo;
     pub const PathLineToMergeDuplicate = raw.ImDrawList_PathLineToMergeDuplicate;
-    pub const PathRect = raw.ImDrawList_PathRect;
+    pub inline fn PathRect(self: *DrawList, rect_min: Vec2, rect_max: Vec2, rounding: f32, rounding_corners: DrawCornerFlags) void {
+        return raw.ImDrawList_PathRect(self, rect_min, rect_max, rounding, rounding_corners.toInt());
+    }
     pub const PathStroke = raw.ImDrawList_PathStroke;
     pub const PopClipRect = raw.ImDrawList_PopClipRect;
     pub const PopTextureID = raw.ImDrawList_PopTextureID;
@@ -1099,7 +1125,7 @@ pub const Font = extern struct {
     pub const AddGlyph = raw.ImFont_AddGlyph;
     pub const AddRemapChar = raw.ImFont_AddRemapChar;
     pub const BuildLookupTable = raw.ImFont_BuildLookupTable;
-    pub fn CalcTextSizeA(self: *const Font, size: f32, max_width: f32, wrap_width: f32, text_begin: ?[*]const u8, text_end: ?[*]const u8, remaining: ?*?[*:0]const u8) Vec2 {
+    pub inline fn CalcTextSizeA(self: *const Font, size: f32, max_width: f32, wrap_width: f32, text_begin: ?[*]const u8, text_end: ?[*]const u8, remaining: ?*?[*:0]const u8) Vec2 {
         var out: Vec2 = undefined;
         raw.ImFont_CalcTextSizeA_nonUDT(&out, self, size, max_width, wrap_width, text_begin, text_end, remaining);
         return out;
@@ -2150,34 +2176,56 @@ pub fn Vector(comptime T: type) type {
     };
 }
 
-pub const AcceptDragDropPayload = raw.igAcceptDragDropPayload;
+pub inline fn AcceptDragDropPayload(type: ?[*:0]const u8, flags: DragDropFlags) ?*const Payload {
+    return raw.igAcceptDragDropPayload(type, flags.toInt());
+}
 pub const AlignTextToFramePadding = raw.igAlignTextToFramePadding;
 pub const ArrowButton = raw.igArrowButton;
-pub const Begin = raw.igBegin;
-pub const BeginChildStr = raw.igBeginChildStr;
-pub const BeginChildID = raw.igBeginChildID;
-pub const BeginChildFrame = raw.igBeginChildFrame;
-pub const BeginCombo = raw.igBeginCombo;
-pub const BeginDragDropSource = raw.igBeginDragDropSource;
+pub inline fn Begin(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlags) bool {
+    return raw.igBegin(name, p_open, flags.toInt());
+}
+pub inline fn BeginChildStr(str_id: ?[*:0]const u8, size: Vec2, border: bool, flags: WindowFlags) bool {
+    return raw.igBeginChildStr(str_id, size, border, flags.toInt());
+}
+pub inline fn BeginChildID(id: ID, size: Vec2, border: bool, flags: WindowFlags) bool {
+    return raw.igBeginChildID(id, size, border, flags.toInt());
+}
+pub inline fn BeginChildFrame(id: ID, size: Vec2, flags: WindowFlags) bool {
+    return raw.igBeginChildFrame(id, size, flags.toInt());
+}
+pub inline fn BeginCombo(label: ?[*:0]const u8, preview_value: ?[*:0]const u8, flags: ComboFlags) bool {
+    return raw.igBeginCombo(label, preview_value, flags.toInt());
+}
+pub inline fn BeginDragDropSource(flags: DragDropFlags) bool {
+    return raw.igBeginDragDropSource(flags.toInt());
+}
 pub const BeginDragDropTarget = raw.igBeginDragDropTarget;
 pub const BeginGroup = raw.igBeginGroup;
 pub const BeginMainMenuBar = raw.igBeginMainMenuBar;
 pub const BeginMenu = raw.igBeginMenu;
 pub const BeginMenuBar = raw.igBeginMenuBar;
-pub const BeginPopup = raw.igBeginPopup;
+pub inline fn BeginPopup(str_id: ?[*:0]const u8, flags: WindowFlags) bool {
+    return raw.igBeginPopup(str_id, flags.toInt());
+}
 pub const BeginPopupContextItem = raw.igBeginPopupContextItem;
 pub const BeginPopupContextVoid = raw.igBeginPopupContextVoid;
 pub const BeginPopupContextWindow = raw.igBeginPopupContextWindow;
-pub const BeginPopupModal = raw.igBeginPopupModal;
-pub const BeginTabBar = raw.igBeginTabBar;
-pub const BeginTabItem = raw.igBeginTabItem;
+pub inline fn BeginPopupModal(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlags) bool {
+    return raw.igBeginPopupModal(name, p_open, flags.toInt());
+}
+pub inline fn BeginTabBar(str_id: ?[*:0]const u8, flags: TabBarFlags) bool {
+    return raw.igBeginTabBar(str_id, flags.toInt());
+}
+pub inline fn BeginTabItem(label: ?[*:0]const u8, p_open: ?*bool, flags: TabItemFlags) bool {
+    return raw.igBeginTabItem(label, p_open, flags.toInt());
+}
 pub const BeginTooltip = raw.igBeginTooltip;
 pub const Bullet = raw.igBullet;
 pub const BulletText = raw.igBulletText;
 pub const Button = raw.igButton;
 pub const CalcItemWidth = raw.igCalcItemWidth;
 pub const CalcListClipping = raw.igCalcListClipping;
-pub fn CalcTextSize(text: ?[*]const u8, text_end: ?[*]const u8, hide_text_after_double_hash: bool, wrap_width: f32) Vec2 {
+pub inline fn CalcTextSize(text: ?[*]const u8, text_end: ?[*]const u8, hide_text_after_double_hash: bool, wrap_width: f32) Vec2 {
     var out: Vec2 = undefined;
     raw.igCalcTextSize_nonUDT(&out, text, text_end, hide_text_after_double_hash, wrap_width);
     return out;
@@ -2187,21 +2235,35 @@ pub const CaptureMouseFromApp = raw.igCaptureMouseFromApp;
 pub const Checkbox = raw.igCheckbox;
 pub const CheckboxFlags = raw.igCheckboxFlags;
 pub const CloseCurrentPopup = raw.igCloseCurrentPopup;
-pub const CollapsingHeader = raw.igCollapsingHeader;
-pub const CollapsingHeaderBoolPtr = raw.igCollapsingHeaderBoolPtr;
-pub const ColorButton = raw.igColorButton;
+pub inline fn CollapsingHeader(label: ?[*:0]const u8, flags: TreeNodeFlags) bool {
+    return raw.igCollapsingHeader(label, flags.toInt());
+}
+pub inline fn CollapsingHeaderBoolPtr(label: ?[*:0]const u8, p_open: ?*bool, flags: TreeNodeFlags) bool {
+    return raw.igCollapsingHeaderBoolPtr(label, p_open, flags.toInt());
+}
+pub inline fn ColorButton(desc_id: ?[*:0]const u8, col: Vec4, flags: ColorEditFlags, size: Vec2) bool {
+    return raw.igColorButton(desc_id, col, flags.toInt(), size);
+}
 pub const ColorConvertFloat4ToU32 = raw.igColorConvertFloat4ToU32;
 pub const ColorConvertHSVtoRGB = raw.igColorConvertHSVtoRGB;
 pub const ColorConvertRGBtoHSV = raw.igColorConvertRGBtoHSV;
-pub fn ColorConvertU32ToFloat4(in: u32) Vec4 {
+pub inline fn ColorConvertU32ToFloat4(in: u32) Vec4 {
     var out: Vec4 = undefined;
     raw.igColorConvertU32ToFloat4_nonUDT(&out, in);
     return out;
 }
-pub const ColorEdit3 = raw.igColorEdit3;
-pub const ColorEdit4 = raw.igColorEdit4;
-pub const ColorPicker3 = raw.igColorPicker3;
-pub const ColorPicker4 = raw.igColorPicker4;
+pub inline fn ColorEdit3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool {
+    return raw.igColorEdit3(label, col, flags.toInt());
+}
+pub inline fn ColorEdit4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags) bool {
+    return raw.igColorEdit4(label, col, flags.toInt());
+}
+pub inline fn ColorPicker3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool {
+    return raw.igColorPicker3(label, col, flags.toInt());
+}
+pub inline fn ColorPicker4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags, ref_col: ?*[4]const f32) bool {
+    return raw.igColorPicker4(label, col, flags.toInt(), ref_col);
+}
 pub const Columns = raw.igColumns;
 pub const Combo = raw.igCombo;
 pub const ComboStr = raw.igComboStr;
@@ -2246,32 +2308,32 @@ pub const GetColumnIndex = raw.igGetColumnIndex;
 pub const GetColumnOffset = raw.igGetColumnOffset;
 pub const GetColumnWidth = raw.igGetColumnWidth;
 pub const GetColumnsCount = raw.igGetColumnsCount;
-pub fn GetContentRegionAvail() Vec2 {
+pub inline fn GetContentRegionAvail() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetContentRegionAvail_nonUDT(&out, );
+    raw.igGetContentRegionAvail_nonUDT(&out);
     return out;
 }
-pub fn GetContentRegionMax() Vec2 {
+pub inline fn GetContentRegionMax() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetContentRegionMax_nonUDT(&out, );
+    raw.igGetContentRegionMax_nonUDT(&out);
     return out;
 }
 pub const GetCurrentContext = raw.igGetCurrentContext;
-pub fn GetCursorPos() Vec2 {
+pub inline fn GetCursorPos() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetCursorPos_nonUDT(&out, );
+    raw.igGetCursorPos_nonUDT(&out);
     return out;
 }
 pub const GetCursorPosX = raw.igGetCursorPosX;
 pub const GetCursorPosY = raw.igGetCursorPosY;
-pub fn GetCursorScreenPos() Vec2 {
+pub inline fn GetCursorScreenPos() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetCursorScreenPos_nonUDT(&out, );
+    raw.igGetCursorScreenPos_nonUDT(&out);
     return out;
 }
-pub fn GetCursorStartPos() Vec2 {
+pub inline fn GetCursorStartPos() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetCursorStartPos_nonUDT(&out, );
+    raw.igGetCursorStartPos_nonUDT(&out);
     return out;
 }
 pub const GetDragDropPayload = raw.igGetDragDropPayload;
@@ -2279,9 +2341,9 @@ pub const GetDrawData = raw.igGetDrawData;
 pub const GetDrawListSharedData = raw.igGetDrawListSharedData;
 pub const GetFont = raw.igGetFont;
 pub const GetFontSize = raw.igGetFontSize;
-pub fn GetFontTexUvWhitePixel() Vec2 {
+pub inline fn GetFontTexUvWhitePixel() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetFontTexUvWhitePixel_nonUDT(&out, );
+    raw.igGetFontTexUvWhitePixel_nonUDT(&out);
     return out;
 }
 pub const GetForegroundDrawList = raw.igGetForegroundDrawList;
@@ -2292,37 +2354,37 @@ pub const GetIDStr = raw.igGetIDStr;
 pub const GetIDRange = raw.igGetIDRange;
 pub const GetIDPtr = raw.igGetIDPtr;
 pub const GetIO = raw.igGetIO;
-pub fn GetItemRectMax() Vec2 {
+pub inline fn GetItemRectMax() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetItemRectMax_nonUDT(&out, );
+    raw.igGetItemRectMax_nonUDT(&out);
     return out;
 }
-pub fn GetItemRectMin() Vec2 {
+pub inline fn GetItemRectMin() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetItemRectMin_nonUDT(&out, );
+    raw.igGetItemRectMin_nonUDT(&out);
     return out;
 }
-pub fn GetItemRectSize() Vec2 {
+pub inline fn GetItemRectSize() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetItemRectSize_nonUDT(&out, );
+    raw.igGetItemRectSize_nonUDT(&out);
     return out;
 }
 pub const GetKeyIndex = raw.igGetKeyIndex;
 pub const GetKeyPressedAmount = raw.igGetKeyPressedAmount;
 pub const GetMouseCursor = raw.igGetMouseCursor;
-pub fn GetMouseDragDelta(button: MouseButton, lock_threshold: f32) Vec2 {
+pub inline fn GetMouseDragDelta(button: MouseButton, lock_threshold: f32) Vec2 {
     var out: Vec2 = undefined;
     raw.igGetMouseDragDelta_nonUDT(&out, button, lock_threshold);
     return out;
 }
-pub fn GetMousePos() Vec2 {
+pub inline fn GetMousePos() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetMousePos_nonUDT(&out, );
+    raw.igGetMousePos_nonUDT(&out);
     return out;
 }
-pub fn GetMousePosOnOpeningCurrentPopup() Vec2 {
+pub inline fn GetMousePosOnOpeningCurrentPopup() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetMousePosOnOpeningCurrentPopup_nonUDT(&out, );
+    raw.igGetMousePosOnOpeningCurrentPopup_nonUDT(&out);
     return out;
 }
 pub const GetScrollMaxX = raw.igGetScrollMaxX;
@@ -2338,47 +2400,75 @@ pub const GetTextLineHeightWithSpacing = raw.igGetTextLineHeightWithSpacing;
 pub const GetTime = raw.igGetTime;
 pub const GetTreeNodeToLabelSpacing = raw.igGetTreeNodeToLabelSpacing;
 pub const GetVersion = raw.igGetVersion;
-pub fn GetWindowContentRegionMax() Vec2 {
+pub inline fn GetWindowContentRegionMax() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetWindowContentRegionMax_nonUDT(&out, );
+    raw.igGetWindowContentRegionMax_nonUDT(&out);
     return out;
 }
-pub fn GetWindowContentRegionMin() Vec2 {
+pub inline fn GetWindowContentRegionMin() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetWindowContentRegionMin_nonUDT(&out, );
+    raw.igGetWindowContentRegionMin_nonUDT(&out);
     return out;
 }
 pub const GetWindowContentRegionWidth = raw.igGetWindowContentRegionWidth;
 pub const GetWindowDrawList = raw.igGetWindowDrawList;
 pub const GetWindowHeight = raw.igGetWindowHeight;
-pub fn GetWindowPos() Vec2 {
+pub inline fn GetWindowPos() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetWindowPos_nonUDT(&out, );
+    raw.igGetWindowPos_nonUDT(&out);
     return out;
 }
-pub fn GetWindowSize() Vec2 {
+pub inline fn GetWindowSize() Vec2 {
     var out: Vec2 = undefined;
-    raw.igGetWindowSize_nonUDT(&out, );
+    raw.igGetWindowSize_nonUDT(&out);
     return out;
 }
 pub const GetWindowWidth = raw.igGetWindowWidth;
 pub const Image = raw.igImage;
 pub const ImageButton = raw.igImageButton;
 pub const Indent = raw.igIndent;
-pub const InputDouble = raw.igInputDouble;
-pub const InputFloat = raw.igInputFloat;
-pub const InputFloat2 = raw.igInputFloat2;
-pub const InputFloat3 = raw.igInputFloat3;
-pub const InputFloat4 = raw.igInputFloat4;
-pub const InputInt = raw.igInputInt;
-pub const InputInt2 = raw.igInputInt2;
-pub const InputInt3 = raw.igInputInt3;
-pub const InputInt4 = raw.igInputInt4;
-pub const InputScalar = raw.igInputScalar;
-pub const InputScalarN = raw.igInputScalarN;
-pub const InputText = raw.igInputText;
-pub const InputTextMultiline = raw.igInputTextMultiline;
-pub const InputTextWithHint = raw.igInputTextWithHint;
+pub inline fn InputDouble(label: ?[*:0]const u8, v: *f64, step: f64, step_fast: f64, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+    return raw.igInputDouble(label, v, step, step_fast, format, flags.toInt());
+}
+pub inline fn InputFloat(label: ?[*:0]const u8, v: *f32, step: f32, step_fast: f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+    return raw.igInputFloat(label, v, step, step_fast, format, flags.toInt());
+}
+pub inline fn InputFloat2(label: ?[*:0]const u8, v: *[2]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+    return raw.igInputFloat2(label, v, format, flags.toInt());
+}
+pub inline fn InputFloat3(label: ?[*:0]const u8, v: *[3]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+    return raw.igInputFloat3(label, v, format, flags.toInt());
+}
+pub inline fn InputFloat4(label: ?[*:0]const u8, v: *[4]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+    return raw.igInputFloat4(label, v, format, flags.toInt());
+}
+pub inline fn InputInt(label: ?[*:0]const u8, v: *i32, step: i32, step_fast: i32, flags: InputTextFlags) bool {
+    return raw.igInputInt(label, v, step, step_fast, flags.toInt());
+}
+pub inline fn InputInt2(label: ?[*:0]const u8, v: *[2]i32, flags: InputTextFlags) bool {
+    return raw.igInputInt2(label, v, flags.toInt());
+}
+pub inline fn InputInt3(label: ?[*:0]const u8, v: *[3]i32, flags: InputTextFlags) bool {
+    return raw.igInputInt3(label, v, flags.toInt());
+}
+pub inline fn InputInt4(label: ?[*:0]const u8, v: *[4]i32, flags: InputTextFlags) bool {
+    return raw.igInputInt4(label, v, flags.toInt());
+}
+pub inline fn InputScalar(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+    return raw.igInputScalar(label, data_type, p_data, p_step, p_step_fast, format, flags.toInt());
+}
+pub inline fn InputScalarN(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+    return raw.igInputScalarN(label, data_type, p_data, components, p_step, p_step_fast, format, flags.toInt());
+}
+pub inline fn InputText(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
+    return raw.igInputText(label, buf, buf_size, flags.toInt(), callback, user_data);
+}
+pub inline fn InputTextMultiline(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, size: Vec2, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
+    return raw.igInputTextMultiline(label, buf, buf_size, size, flags.toInt(), callback, user_data);
+}
+pub inline fn InputTextWithHint(label: ?[*:0]const u8, hint: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
+    return raw.igInputTextWithHint(label, hint, buf, buf_size, flags.toInt(), callback, user_data);
+}
 pub const InvisibleButton = raw.igInvisibleButton;
 pub const IsAnyItemActive = raw.igIsAnyItemActive;
 pub const IsAnyItemFocused = raw.igIsAnyItemFocused;
@@ -2391,7 +2481,9 @@ pub const IsItemDeactivated = raw.igIsItemDeactivated;
 pub const IsItemDeactivatedAfterEdit = raw.igIsItemDeactivatedAfterEdit;
 pub const IsItemEdited = raw.igIsItemEdited;
 pub const IsItemFocused = raw.igIsItemFocused;
-pub const IsItemHovered = raw.igIsItemHovered;
+pub inline fn IsItemHovered(flags: HoveredFlags) bool {
+    return raw.igIsItemHovered(flags.toInt());
+}
 pub const IsItemToggledOpen = raw.igIsItemToggledOpen;
 pub const IsItemVisible = raw.igIsItemVisible;
 pub const IsKeyDown = raw.igIsKeyDown;
@@ -2409,8 +2501,12 @@ pub const IsRectVisible = raw.igIsRectVisible;
 pub const IsRectVisibleVec2 = raw.igIsRectVisibleVec2;
 pub const IsWindowAppearing = raw.igIsWindowAppearing;
 pub const IsWindowCollapsed = raw.igIsWindowCollapsed;
-pub const IsWindowFocused = raw.igIsWindowFocused;
-pub const IsWindowHovered = raw.igIsWindowHovered;
+pub inline fn IsWindowFocused(flags: FocusedFlags) bool {
+    return raw.igIsWindowFocused(flags.toInt());
+}
+pub inline fn IsWindowHovered(flags: HoveredFlags) bool {
+    return raw.igIsWindowHovered(flags.toInt());
+}
 pub const LabelText = raw.igLabelText;
 pub const ListBoxStr_arr = raw.igListBoxStr_arr;
 pub const ListBoxFnPtr = raw.igListBoxFnPtr;
@@ -2469,12 +2565,18 @@ pub const ResetMouseDragDelta = raw.igResetMouseDragDelta;
 pub const SameLine = raw.igSameLine;
 pub const SaveIniSettingsToDisk = raw.igSaveIniSettingsToDisk;
 pub const SaveIniSettingsToMemory = raw.igSaveIniSettingsToMemory;
-pub const SelectableBool = raw.igSelectableBool;
-pub const SelectableBoolPtr = raw.igSelectableBoolPtr;
+pub inline fn SelectableBool(label: ?[*:0]const u8, selected: bool, flags: SelectableFlags, size: Vec2) bool {
+    return raw.igSelectableBool(label, selected, flags.toInt(), size);
+}
+pub inline fn SelectableBoolPtr(label: ?[*:0]const u8, p_selected: ?*bool, flags: SelectableFlags, size: Vec2) bool {
+    return raw.igSelectableBoolPtr(label, p_selected, flags.toInt(), size);
+}
 pub const Separator = raw.igSeparator;
 pub const SetAllocatorFunctions = raw.igSetAllocatorFunctions;
 pub const SetClipboardText = raw.igSetClipboardText;
-pub const SetColorEditOptions = raw.igSetColorEditOptions;
+pub inline fn SetColorEditOptions(flags: ColorEditFlags) void {
+    return raw.igSetColorEditOptions(flags.toInt());
+}
 pub const SetColumnOffset = raw.igSetColumnOffset;
 pub const SetColumnWidth = raw.igSetColumnWidth;
 pub const SetCurrentContext = raw.igSetCurrentContext;
@@ -2482,19 +2584,29 @@ pub const SetCursorPos = raw.igSetCursorPos;
 pub const SetCursorPosX = raw.igSetCursorPosX;
 pub const SetCursorPosY = raw.igSetCursorPosY;
 pub const SetCursorScreenPos = raw.igSetCursorScreenPos;
-pub const SetDragDropPayload = raw.igSetDragDropPayload;
+pub inline fn SetDragDropPayload(type: ?[*:0]const u8, data: ?*const c_void, sz: usize, cond: CondFlags) bool {
+    return raw.igSetDragDropPayload(type, data, sz, cond.toInt());
+}
 pub const SetItemAllowOverlap = raw.igSetItemAllowOverlap;
 pub const SetItemDefaultFocus = raw.igSetItemDefaultFocus;
 pub const SetKeyboardFocusHere = raw.igSetKeyboardFocusHere;
 pub const SetMouseCursor = raw.igSetMouseCursor;
-pub const SetNextItemOpen = raw.igSetNextItemOpen;
+pub inline fn SetNextItemOpen(is_open: bool, cond: CondFlags) void {
+    return raw.igSetNextItemOpen(is_open, cond.toInt());
+}
 pub const SetNextItemWidth = raw.igSetNextItemWidth;
 pub const SetNextWindowBgAlpha = raw.igSetNextWindowBgAlpha;
-pub const SetNextWindowCollapsed = raw.igSetNextWindowCollapsed;
+pub inline fn SetNextWindowCollapsed(collapsed: bool, cond: CondFlags) void {
+    return raw.igSetNextWindowCollapsed(collapsed, cond.toInt());
+}
 pub const SetNextWindowContentSize = raw.igSetNextWindowContentSize;
 pub const SetNextWindowFocus = raw.igSetNextWindowFocus;
-pub const SetNextWindowPos = raw.igSetNextWindowPos;
-pub const SetNextWindowSize = raw.igSetNextWindowSize;
+pub inline fn SetNextWindowPos(pos: Vec2, cond: CondFlags, pivot: Vec2) void {
+    return raw.igSetNextWindowPos(pos, cond.toInt(), pivot);
+}
+pub inline fn SetNextWindowSize(size: Vec2, cond: CondFlags) void {
+    return raw.igSetNextWindowSize(size, cond.toInt());
+}
 pub const SetNextWindowSizeConstraints = raw.igSetNextWindowSizeConstraints;
 pub const SetScrollFromPosX = raw.igSetScrollFromPosX;
 pub const SetScrollFromPosY = raw.igSetScrollFromPosY;
@@ -2505,15 +2617,27 @@ pub const SetScrollY = raw.igSetScrollY;
 pub const SetStateStorage = raw.igSetStateStorage;
 pub const SetTabItemClosed = raw.igSetTabItemClosed;
 pub const SetTooltip = raw.igSetTooltip;
-pub const SetWindowCollapsedBool = raw.igSetWindowCollapsedBool;
-pub const SetWindowCollapsedStr = raw.igSetWindowCollapsedStr;
+pub inline fn SetWindowCollapsedBool(collapsed: bool, cond: CondFlags) void {
+    return raw.igSetWindowCollapsedBool(collapsed, cond.toInt());
+}
+pub inline fn SetWindowCollapsedStr(name: ?[*:0]const u8, collapsed: bool, cond: CondFlags) void {
+    return raw.igSetWindowCollapsedStr(name, collapsed, cond.toInt());
+}
 pub const SetWindowFocus = raw.igSetWindowFocus;
 pub const SetWindowFocusStr = raw.igSetWindowFocusStr;
 pub const SetWindowFontScale = raw.igSetWindowFontScale;
-pub const SetWindowPosVec2 = raw.igSetWindowPosVec2;
-pub const SetWindowPosStr = raw.igSetWindowPosStr;
-pub const SetWindowSizeVec2 = raw.igSetWindowSizeVec2;
-pub const SetWindowSizeStr = raw.igSetWindowSizeStr;
+pub inline fn SetWindowPosVec2(pos: Vec2, cond: CondFlags) void {
+    return raw.igSetWindowPosVec2(pos, cond.toInt());
+}
+pub inline fn SetWindowPosStr(name: ?[*:0]const u8, pos: Vec2, cond: CondFlags) void {
+    return raw.igSetWindowPosStr(name, pos, cond.toInt());
+}
+pub inline fn SetWindowSizeVec2(size: Vec2, cond: CondFlags) void {
+    return raw.igSetWindowSizeVec2(size, cond.toInt());
+}
+pub inline fn SetWindowSizeStr(name: ?[*:0]const u8, size: Vec2, cond: CondFlags) void {
+    return raw.igSetWindowSizeStr(name, size, cond.toInt());
+}
 pub const ShowAboutWindow = raw.igShowAboutWindow;
 pub const ShowDemoWindow = raw.igShowDemoWindow;
 pub const ShowFontSelector = raw.igShowFontSelector;
@@ -2545,7 +2669,9 @@ pub const TextWrapped = raw.igTextWrapped;
 pub const TreeNodeStr = raw.igTreeNodeStr;
 pub const TreeNodeStrStr = raw.igTreeNodeStrStr;
 pub const TreeNodePtr = raw.igTreeNodePtr;
-pub const TreeNodeExStr = raw.igTreeNodeExStr;
+pub inline fn TreeNodeExStr(label: ?[*:0]const u8, flags: TreeNodeFlags) bool {
+    return raw.igTreeNodeExStr(label, flags.toInt());
+}
 pub const TreeNodeExStrStr = raw.igTreeNodeExStrStr;
 pub const TreeNodeExPtr = raw.igTreeNodeExPtr;
 pub const TreePop = raw.igTreePop;
@@ -2591,15 +2717,15 @@ pub const raw = struct {
     pub extern fn ImDrawList_AddDrawCmd(self: *DrawList) void;
     pub extern fn ImDrawList_AddImage(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32) void;
     pub extern fn ImDrawList_AddImageQuad(self: *DrawList, user_texture_id: TextureID, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, uv1: Vec2, uv2: Vec2, uv3: Vec2, uv4: Vec2, col: u32) void;
-    pub extern fn ImDrawList_AddImageRounded(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags) void;
+    pub extern fn ImDrawList_AddImageRounded(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlagsInt) void;
     pub extern fn ImDrawList_AddLine(self: *DrawList, p1: Vec2, p2: Vec2, col: u32, thickness: f32) void;
     pub extern fn ImDrawList_AddNgon(self: *DrawList, center: Vec2, radius: f32, col: u32, num_segments: i32, thickness: f32) void;
     pub extern fn ImDrawList_AddNgonFilled(self: *DrawList, center: Vec2, radius: f32, col: u32, num_segments: i32) void;
     pub extern fn ImDrawList_AddPolyline(self: *DrawList, points: ?[*]const Vec2, num_points: i32, col: u32, closed: bool, thickness: f32) void;
     pub extern fn ImDrawList_AddQuad(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, col: u32, thickness: f32) void;
     pub extern fn ImDrawList_AddQuadFilled(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, col: u32) void;
-    pub extern fn ImDrawList_AddRect(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags, thickness: f32) void;
-    pub extern fn ImDrawList_AddRectFilled(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags) void;
+    pub extern fn ImDrawList_AddRect(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlagsInt, thickness: f32) void;
+    pub extern fn ImDrawList_AddRectFilled(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlagsInt) void;
     pub extern fn ImDrawList_AddRectFilledMultiColor(self: *DrawList, p_min: Vec2, p_max: Vec2, col_upr_left: u32, col_upr_right: u32, col_bot_right: u32, col_bot_left: u32) void;
     pub extern fn ImDrawList_AddTextVec2(self: *DrawList, pos: Vec2, col: u32, text_begin: ?[*]const u8, text_end: ?[*]const u8) void;
     pub extern fn ImDrawList_AddTextFontPtr(self: *DrawList, font: ?*const Font, font_size: f32, pos: Vec2, col: u32, text_begin: ?[*]const u8, text_end: ?[*]const u8, wrap_width: f32, cpu_fine_clip_rect: ?*const Vec4) void;
@@ -2621,7 +2747,7 @@ pub const raw = struct {
     pub extern fn ImDrawList_PathFillConvex(self: *DrawList, col: u32) void;
     pub extern fn ImDrawList_PathLineTo(self: *DrawList, pos: Vec2) void;
     pub extern fn ImDrawList_PathLineToMergeDuplicate(self: *DrawList, pos: Vec2) void;
-    pub extern fn ImDrawList_PathRect(self: *DrawList, rect_min: Vec2, rect_max: Vec2, rounding: f32, rounding_corners: DrawCornerFlags) void;
+    pub extern fn ImDrawList_PathRect(self: *DrawList, rect_min: Vec2, rect_max: Vec2, rounding: f32, rounding_corners: DrawCornerFlagsInt) void;
     pub extern fn ImDrawList_PathStroke(self: *DrawList, col: u32, closed: bool, thickness: f32) void;
     pub extern fn ImDrawList_PopClipRect(self: *DrawList) void;
     pub extern fn ImDrawList_PopTextureID(self: *DrawList) void;
@@ -3319,27 +3445,27 @@ pub const raw = struct {
     pub extern fn ImVector_ImWchar_swap(self: *Vector(Wchar), rhs: *Vector(Wchar)) void;
     pub extern fn ImVector_char_swap(self: *Vector(u8), rhs: *Vector(u8)) void;
     pub extern fn ImVector_float_swap(self: *Vector(f32), rhs: *Vector(f32)) void;
-    pub extern fn igAcceptDragDropPayload(type: ?[*:0]const u8, flags: DragDropFlags) ?*const Payload;
+    pub extern fn igAcceptDragDropPayload(type: ?[*:0]const u8, flags: DragDropFlagsInt) ?*const Payload;
     pub extern fn igAlignTextToFramePadding() void;
     pub extern fn igArrowButton(str_id: ?[*:0]const u8, dir: Dir) bool;
-    pub extern fn igBegin(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlags) bool;
-    pub extern fn igBeginChildStr(str_id: ?[*:0]const u8, size: Vec2, border: bool, flags: WindowFlags) bool;
-    pub extern fn igBeginChildID(id: ID, size: Vec2, border: bool, flags: WindowFlags) bool;
-    pub extern fn igBeginChildFrame(id: ID, size: Vec2, flags: WindowFlags) bool;
-    pub extern fn igBeginCombo(label: ?[*:0]const u8, preview_value: ?[*:0]const u8, flags: ComboFlags) bool;
-    pub extern fn igBeginDragDropSource(flags: DragDropFlags) bool;
+    pub extern fn igBegin(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlagsInt) bool;
+    pub extern fn igBeginChildStr(str_id: ?[*:0]const u8, size: Vec2, border: bool, flags: WindowFlagsInt) bool;
+    pub extern fn igBeginChildID(id: ID, size: Vec2, border: bool, flags: WindowFlagsInt) bool;
+    pub extern fn igBeginChildFrame(id: ID, size: Vec2, flags: WindowFlagsInt) bool;
+    pub extern fn igBeginCombo(label: ?[*:0]const u8, preview_value: ?[*:0]const u8, flags: ComboFlagsInt) bool;
+    pub extern fn igBeginDragDropSource(flags: DragDropFlagsInt) bool;
     pub extern fn igBeginDragDropTarget() bool;
     pub extern fn igBeginGroup() void;
     pub extern fn igBeginMainMenuBar() bool;
     pub extern fn igBeginMenu(label: ?[*:0]const u8, enabled: bool) bool;
     pub extern fn igBeginMenuBar() bool;
-    pub extern fn igBeginPopup(str_id: ?[*:0]const u8, flags: WindowFlags) bool;
+    pub extern fn igBeginPopup(str_id: ?[*:0]const u8, flags: WindowFlagsInt) bool;
     pub extern fn igBeginPopupContextItem(str_id: ?[*:0]const u8, mouse_button: MouseButton) bool;
     pub extern fn igBeginPopupContextVoid(str_id: ?[*:0]const u8, mouse_button: MouseButton) bool;
     pub extern fn igBeginPopupContextWindow(str_id: ?[*:0]const u8, mouse_button: MouseButton, also_over_items: bool) bool;
-    pub extern fn igBeginPopupModal(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlags) bool;
-    pub extern fn igBeginTabBar(str_id: ?[*:0]const u8, flags: TabBarFlags) bool;
-    pub extern fn igBeginTabItem(label: ?[*:0]const u8, p_open: ?*bool, flags: TabItemFlags) bool;
+    pub extern fn igBeginPopupModal(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlagsInt) bool;
+    pub extern fn igBeginTabBar(str_id: ?[*:0]const u8, flags: TabBarFlagsInt) bool;
+    pub extern fn igBeginTabItem(label: ?[*:0]const u8, p_open: ?*bool, flags: TabItemFlagsInt) bool;
     pub extern fn igBeginTooltip() void;
     pub extern fn igBullet() void;
     pub extern fn igBulletText(fmt: ?[*:0]const u8, ...) void;
@@ -3352,17 +3478,17 @@ pub const raw = struct {
     pub extern fn igCheckbox(label: ?[*:0]const u8, v: *bool) bool;
     pub extern fn igCheckboxFlags(label: ?[*:0]const u8, flags: ?*u32, flags_value: u32) bool;
     pub extern fn igCloseCurrentPopup() void;
-    pub extern fn igCollapsingHeader(label: ?[*:0]const u8, flags: TreeNodeFlags) bool;
-    pub extern fn igCollapsingHeaderBoolPtr(label: ?[*:0]const u8, p_open: ?*bool, flags: TreeNodeFlags) bool;
-    pub extern fn igColorButton(desc_id: ?[*:0]const u8, col: Vec4, flags: ColorEditFlags, size: Vec2) bool;
+    pub extern fn igCollapsingHeader(label: ?[*:0]const u8, flags: TreeNodeFlagsInt) bool;
+    pub extern fn igCollapsingHeaderBoolPtr(label: ?[*:0]const u8, p_open: ?*bool, flags: TreeNodeFlagsInt) bool;
+    pub extern fn igColorButton(desc_id: ?[*:0]const u8, col: Vec4, flags: ColorEditFlagsInt, size: Vec2) bool;
     pub extern fn igColorConvertFloat4ToU32(in: Vec4) u32;
     pub extern fn igColorConvertHSVtoRGB(h: f32, s: f32, v: f32, out_r: *f32, out_g: *f32, out_b: *f32) void;
     pub extern fn igColorConvertRGBtoHSV(r: f32, g: f32, b: f32, out_h: *f32, out_s: *f32, out_v: *f32) void;
     pub extern fn igColorConvertU32ToFloat4_nonUDT(pOut: *Vec4, in: u32) void;
-    pub extern fn igColorEdit3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool;
-    pub extern fn igColorEdit4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags) bool;
-    pub extern fn igColorPicker3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool;
-    pub extern fn igColorPicker4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags, ref_col: ?*[4]const f32) bool;
+    pub extern fn igColorEdit3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlagsInt) bool;
+    pub extern fn igColorEdit4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlagsInt) bool;
+    pub extern fn igColorPicker3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlagsInt) bool;
+    pub extern fn igColorPicker4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlagsInt, ref_col: ?*[4]const f32) bool;
     pub extern fn igColumns(count: i32, id: ?[*:0]const u8, border: bool) void;
     pub extern fn igCombo(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const [*:0]const u8, items_count: i32, popup_max_height_in_items: i32) bool;
     pub extern fn igComboStr(label: ?[*:0]const u8, current_item: ?*i32, items_separated_by_zeros: ?[*]const u8, popup_max_height_in_items: i32) bool;
@@ -3462,20 +3588,20 @@ pub const raw = struct {
     pub extern fn igImage(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, tint_col: Vec4, border_col: Vec4) void;
     pub extern fn igImageButton(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, frame_padding: i32, bg_col: Vec4, tint_col: Vec4) bool;
     pub extern fn igIndent(indent_w: f32) void;
-    pub extern fn igInputDouble(label: ?[*:0]const u8, v: *f64, step: f64, step_fast: f64, format: ?[*:0]const u8, flags: InputTextFlags) bool;
-    pub extern fn igInputFloat(label: ?[*:0]const u8, v: *f32, step: f32, step_fast: f32, format: ?[*:0]const u8, flags: InputTextFlags) bool;
-    pub extern fn igInputFloat2(label: ?[*:0]const u8, v: *[2]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool;
-    pub extern fn igInputFloat3(label: ?[*:0]const u8, v: *[3]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool;
-    pub extern fn igInputFloat4(label: ?[*:0]const u8, v: *[4]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool;
-    pub extern fn igInputInt(label: ?[*:0]const u8, v: *i32, step: i32, step_fast: i32, flags: InputTextFlags) bool;
-    pub extern fn igInputInt2(label: ?[*:0]const u8, v: *[2]i32, flags: InputTextFlags) bool;
-    pub extern fn igInputInt3(label: ?[*:0]const u8, v: *[3]i32, flags: InputTextFlags) bool;
-    pub extern fn igInputInt4(label: ?[*:0]const u8, v: *[4]i32, flags: InputTextFlags) bool;
-    pub extern fn igInputScalar(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlags) bool;
-    pub extern fn igInputScalarN(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlags) bool;
-    pub extern fn igInputText(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool;
-    pub extern fn igInputTextMultiline(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, size: Vec2, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool;
-    pub extern fn igInputTextWithHint(label: ?[*:0]const u8, hint: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool;
+    pub extern fn igInputDouble(label: ?[*:0]const u8, v: *f64, step: f64, step_fast: f64, format: ?[*:0]const u8, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputFloat(label: ?[*:0]const u8, v: *f32, step: f32, step_fast: f32, format: ?[*:0]const u8, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputFloat2(label: ?[*:0]const u8, v: *[2]f32, format: ?[*:0]const u8, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputFloat3(label: ?[*:0]const u8, v: *[3]f32, format: ?[*:0]const u8, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputFloat4(label: ?[*:0]const u8, v: *[4]f32, format: ?[*:0]const u8, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputInt(label: ?[*:0]const u8, v: *i32, step: i32, step_fast: i32, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputInt2(label: ?[*:0]const u8, v: *[2]i32, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputInt3(label: ?[*:0]const u8, v: *[3]i32, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputInt4(label: ?[*:0]const u8, v: *[4]i32, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputScalar(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputScalarN(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlagsInt) bool;
+    pub extern fn igInputText(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlagsInt, callback: InputTextCallback, user_data: ?*c_void) bool;
+    pub extern fn igInputTextMultiline(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, size: Vec2, flags: InputTextFlagsInt, callback: InputTextCallback, user_data: ?*c_void) bool;
+    pub extern fn igInputTextWithHint(label: ?[*:0]const u8, hint: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlagsInt, callback: InputTextCallback, user_data: ?*c_void) bool;
     pub extern fn igInvisibleButton(str_id: ?[*:0]const u8, size: Vec2) bool;
     pub extern fn igIsAnyItemActive() bool;
     pub extern fn igIsAnyItemFocused() bool;
@@ -3488,7 +3614,7 @@ pub const raw = struct {
     pub extern fn igIsItemDeactivatedAfterEdit() bool;
     pub extern fn igIsItemEdited() bool;
     pub extern fn igIsItemFocused() bool;
-    pub extern fn igIsItemHovered(flags: HoveredFlags) bool;
+    pub extern fn igIsItemHovered(flags: HoveredFlagsInt) bool;
     pub extern fn igIsItemToggledOpen() bool;
     pub extern fn igIsItemVisible() bool;
     pub extern fn igIsKeyDown(user_key_index: i32) bool;
@@ -3506,8 +3632,8 @@ pub const raw = struct {
     pub extern fn igIsRectVisibleVec2(rect_min: Vec2, rect_max: Vec2) bool;
     pub extern fn igIsWindowAppearing() bool;
     pub extern fn igIsWindowCollapsed() bool;
-    pub extern fn igIsWindowFocused(flags: FocusedFlags) bool;
-    pub extern fn igIsWindowHovered(flags: HoveredFlags) bool;
+    pub extern fn igIsWindowFocused(flags: FocusedFlagsInt) bool;
+    pub extern fn igIsWindowHovered(flags: HoveredFlagsInt) bool;
     pub extern fn igLabelText(label: ?[*:0]const u8, fmt: ?[*:0]const u8, ...) void;
     pub extern fn igListBoxStr_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const [*:0]const u8, items_count: i32, height_in_items: i32) bool;
     pub extern fn igListBoxFnPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*c_void, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*c_void, items_count: i32, height_in_items: i32) bool;
@@ -3566,12 +3692,12 @@ pub const raw = struct {
     pub extern fn igSameLine(offset_from_start_x: f32, spacing: f32) void;
     pub extern fn igSaveIniSettingsToDisk(ini_filename: ?[*:0]const u8) void;
     pub extern fn igSaveIniSettingsToMemory(out_ini_size: *usize) ?[*:0]const u8;
-    pub extern fn igSelectableBool(label: ?[*:0]const u8, selected: bool, flags: SelectableFlags, size: Vec2) bool;
-    pub extern fn igSelectableBoolPtr(label: ?[*:0]const u8, p_selected: ?*bool, flags: SelectableFlags, size: Vec2) bool;
+    pub extern fn igSelectableBool(label: ?[*:0]const u8, selected: bool, flags: SelectableFlagsInt, size: Vec2) bool;
+    pub extern fn igSelectableBoolPtr(label: ?[*:0]const u8, p_selected: ?*bool, flags: SelectableFlagsInt, size: Vec2) bool;
     pub extern fn igSeparator() void;
     pub extern fn igSetAllocatorFunctions(alloc_func: ?fn (sz: usize, user_data: ?*c_void) callconv(.C) ?*c_void, free_func: ?fn (ptr: ?*c_void, user_data: ?*c_void) callconv(.C) void, user_data: ?*c_void) void;
     pub extern fn igSetClipboardText(text: ?[*:0]const u8) void;
-    pub extern fn igSetColorEditOptions(flags: ColorEditFlags) void;
+    pub extern fn igSetColorEditOptions(flags: ColorEditFlagsInt) void;
     pub extern fn igSetColumnOffset(column_index: i32, offset_x: f32) void;
     pub extern fn igSetColumnWidth(column_index: i32, width: f32) void;
     pub extern fn igSetCurrentContext(ctx: ?*Context) void;
@@ -3579,19 +3705,19 @@ pub const raw = struct {
     pub extern fn igSetCursorPosX(local_x: f32) void;
     pub extern fn igSetCursorPosY(local_y: f32) void;
     pub extern fn igSetCursorScreenPos(pos: Vec2) void;
-    pub extern fn igSetDragDropPayload(type: ?[*:0]const u8, data: ?*const c_void, sz: usize, cond: CondFlags) bool;
+    pub extern fn igSetDragDropPayload(type: ?[*:0]const u8, data: ?*const c_void, sz: usize, cond: CondFlagsInt) bool;
     pub extern fn igSetItemAllowOverlap() void;
     pub extern fn igSetItemDefaultFocus() void;
     pub extern fn igSetKeyboardFocusHere(offset: i32) void;
     pub extern fn igSetMouseCursor(cursor_type: MouseCursor) void;
-    pub extern fn igSetNextItemOpen(is_open: bool, cond: CondFlags) void;
+    pub extern fn igSetNextItemOpen(is_open: bool, cond: CondFlagsInt) void;
     pub extern fn igSetNextItemWidth(item_width: f32) void;
     pub extern fn igSetNextWindowBgAlpha(alpha: f32) void;
-    pub extern fn igSetNextWindowCollapsed(collapsed: bool, cond: CondFlags) void;
+    pub extern fn igSetNextWindowCollapsed(collapsed: bool, cond: CondFlagsInt) void;
     pub extern fn igSetNextWindowContentSize(size: Vec2) void;
     pub extern fn igSetNextWindowFocus() void;
-    pub extern fn igSetNextWindowPos(pos: Vec2, cond: CondFlags, pivot: Vec2) void;
-    pub extern fn igSetNextWindowSize(size: Vec2, cond: CondFlags) void;
+    pub extern fn igSetNextWindowPos(pos: Vec2, cond: CondFlagsInt, pivot: Vec2) void;
+    pub extern fn igSetNextWindowSize(size: Vec2, cond: CondFlagsInt) void;
     pub extern fn igSetNextWindowSizeConstraints(size_min: Vec2, size_max: Vec2, custom_callback: SizeCallback, custom_callback_data: ?*c_void) void;
     pub extern fn igSetScrollFromPosX(local_x: f32, center_x_ratio: f32) void;
     pub extern fn igSetScrollFromPosY(local_y: f32, center_y_ratio: f32) void;
@@ -3602,15 +3728,15 @@ pub const raw = struct {
     pub extern fn igSetStateStorage(storage: ?*Storage) void;
     pub extern fn igSetTabItemClosed(tab_or_docked_window_label: ?[*:0]const u8) void;
     pub extern fn igSetTooltip(fmt: ?[*:0]const u8, ...) void;
-    pub extern fn igSetWindowCollapsedBool(collapsed: bool, cond: CondFlags) void;
-    pub extern fn igSetWindowCollapsedStr(name: ?[*:0]const u8, collapsed: bool, cond: CondFlags) void;
+    pub extern fn igSetWindowCollapsedBool(collapsed: bool, cond: CondFlagsInt) void;
+    pub extern fn igSetWindowCollapsedStr(name: ?[*:0]const u8, collapsed: bool, cond: CondFlagsInt) void;
     pub extern fn igSetWindowFocus() void;
     pub extern fn igSetWindowFocusStr(name: ?[*:0]const u8) void;
     pub extern fn igSetWindowFontScale(scale: f32) void;
-    pub extern fn igSetWindowPosVec2(pos: Vec2, cond: CondFlags) void;
-    pub extern fn igSetWindowPosStr(name: ?[*:0]const u8, pos: Vec2, cond: CondFlags) void;
-    pub extern fn igSetWindowSizeVec2(size: Vec2, cond: CondFlags) void;
-    pub extern fn igSetWindowSizeStr(name: ?[*:0]const u8, size: Vec2, cond: CondFlags) void;
+    pub extern fn igSetWindowPosVec2(pos: Vec2, cond: CondFlagsInt) void;
+    pub extern fn igSetWindowPosStr(name: ?[*:0]const u8, pos: Vec2, cond: CondFlagsInt) void;
+    pub extern fn igSetWindowSizeVec2(size: Vec2, cond: CondFlagsInt) void;
+    pub extern fn igSetWindowSizeStr(name: ?[*:0]const u8, size: Vec2, cond: CondFlagsInt) void;
     pub extern fn igShowAboutWindow(p_open: ?*bool) void;
     pub extern fn igShowDemoWindow(p_open: ?*bool) void;
     pub extern fn igShowFontSelector(label: ?[*:0]const u8) void;
@@ -3642,9 +3768,9 @@ pub const raw = struct {
     pub extern fn igTreeNodeStr(label: ?[*:0]const u8) bool;
     pub extern fn igTreeNodeStrStr(str_id: ?[*:0]const u8, fmt: ?[*:0]const u8, ...) bool;
     pub extern fn igTreeNodePtr(ptr_id: ?*const c_void, fmt: ?[*:0]const u8, ...) bool;
-    pub extern fn igTreeNodeExStr(label: ?[*:0]const u8, flags: TreeNodeFlags) bool;
-    pub extern fn igTreeNodeExStrStr(str_id: ?[*:0]const u8, flags: TreeNodeFlags, fmt: ?[*:0]const u8, ...) bool;
-    pub extern fn igTreeNodeExPtr(ptr_id: ?*const c_void, flags: TreeNodeFlags, fmt: ?[*:0]const u8, ...) bool;
+    pub extern fn igTreeNodeExStr(label: ?[*:0]const u8, flags: TreeNodeFlagsInt) bool;
+    pub extern fn igTreeNodeExStrStr(str_id: ?[*:0]const u8, flags: TreeNodeFlagsInt, fmt: ?[*:0]const u8, ...) bool;
+    pub extern fn igTreeNodeExPtr(ptr_id: ?*const c_void, flags: TreeNodeFlagsInt, fmt: ?[*:0]const u8, ...) bool;
     pub extern fn igTreePop() void;
     pub extern fn igTreePushStr(str_id: ?[*:0]const u8) void;
     pub extern fn igTreePushPtr(ptr_id: ?*const c_void) void;
