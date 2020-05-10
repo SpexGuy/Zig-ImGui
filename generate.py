@@ -275,7 +275,7 @@ class ZigData:
         paramStrs = [ '...' if typeStr == '...' else (name + ': ' + typeStr) for name, typeStr in params ]
         retType = self.convertComplexType(retType, ParamContext('return', functionContext), template)
 
-        rawDecl = '    pub extern fn '+rawName+'('+', '.join(paramStrs)+') '+retType+';'
+        rawDecl = '    pub extern fn '+rawName+'('+', '.join(paramStrs)+') callconv(.C) '+retType+';'
         self.rawCommands.append(rawDecl)
 
         wrapper = self.makeWrapper(jFunc, baseName, rawName, stname, params, retType, isVarargs, template)
