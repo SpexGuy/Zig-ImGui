@@ -11,6 +11,7 @@ OUTPUT_FILE = 'imgui.zig'
 
 import json
 from collections import namedtuple
+from collections import defaultdict
 from os import makedirs
 from pointer_rules import *
 
@@ -230,8 +231,7 @@ class ZigData:
             decl = decl[:-1]
         self.structures[name] = Structure(zigName, decl, [])
     
-    def addFunction(self, jFunc):
-        if 'nonUDT' in jFunc: return
+    def addFunction(self, name, jFunc):
         rawName = jFunc['ov_cimguiname']
         stname = jFunc['stname'] if 'stname' in jFunc else None
         if 'templated' in jFunc and jFunc['templated'] == True:
@@ -240,42 +240,94 @@ class ZigData:
             for cVariant in instantiations:
                 instance = instantiations[cVariant]
                 if not(rawName in instance.nogenerate):
-                    self.makeFunction(jFunc, rawName.replace(stname, cVariant), cVariant, instantiations, instance.map)
+                    self.makeFunction(jFunc, name.replace(stname, cVariant), rawName.replace(stname, cVariant), cVariant, instantiations, instance.map)
             info.functions.append(self.makeZigFunctionName(jFunc, rawName, stname))
         else:
-            self.makeFunction(jFunc, rawName, stname, self.structures)
+            self.makeFunction(jFunc, name, rawName, stname, self.structures)
+
+    def addFunctionSet(self, jSet):
+        byName = {}
+        for func in jSet:
+            if 'nonUDT' in func:
+                if func['nonUDT'] == 1:
+                    rootName = func['ov_cimguiname'].replace('_nonUDT', '')
+                    byName[rootName] = func
+            else:
+                rootName = func['ov_cimguiname']
+                if not (rootName in byName):
+                    byName[rootName] = func
+
+        for name, func in byName.items():
+            self.addFunction(name, func);
     
-    def makeFunction(self, jFunc, rawName, stname, parentTable, template=None):
+    def makeFunction(self, jFunc, baseName, rawName, stname, parentTable, template=None):
         functionContext = FunctionContext(rawName, stname)
         if 'ret' in jFunc:
             retType = jFunc['ret']
         else:
             retType = 'void'
         params = []
+        isVarargs = False
         for arg in jFunc['argsT']:
             if arg['type'] == 'va_list':
                 return # skip this function entirely
-            if arg['type'] == '...': params.append('...')
+            if arg['type'] == '...':
+                params.append(('...', '...'))
+                isVarargs = True
             else:
                 argName = arg['name']
-                params.append(argName+': '+self.convertComplexType(arg['type'], ParamContext(argName, functionContext), template))
-        rawDecl = '    pub extern fn '+rawName+'('+', '.join(params)+') '+self.convertComplexType(retType, ParamContext('return', functionContext), template)+';'
-        self.rawCommands.append(rawDecl)
-        if stname:
-            declName = self.makeZigFunctionName(jFunc, rawName, stname)
-            decl = '    pub const '+declName+' = raw.'+rawName+';'
-            parentTable[stname].functions.append(decl)
-        else:
-            assert(rawName[0:2] == 'ig')
-            decl = 'pub const '+rawName[2:]+' = raw.'+rawName+';'
-            self.rootFunctions.append(decl)
+                argType = self.convertComplexType(arg['type'], ParamContext(argName, functionContext), template)
+                params.append((argName, argType))
 
-    def makeZigFunctionName(self, jFunc, rawName, struct):
-        declName = rawName.replace(struct+'_', '')
-        if 'constructor' in jFunc:
-            declName = declName.replace(struct, 'init')
-        elif 'destructor' in jFunc:
-            declName = declName.replace('destroy', 'deinit')
+        paramStrs = [ '...' if typeStr == '...' else (name + ': ' + typeStr) for name, typeStr in params ]
+        retType = self.convertComplexType(retType, ParamContext('return', functionContext), template)
+
+        rawDecl = '    pub extern fn '+rawName+'('+', '.join(paramStrs)+') '+retType+';'
+        self.rawCommands.append(rawDecl)
+
+        wrapper = self.makeWrapper(jFunc, baseName, rawName, stname, params, retType, isVarargs, template)
+        if stname:
+            wrapperStr = '    ' + '\n    '.join(wrapper);
+            parentTable[stname].functions.append(wrapperStr)
+        else:
+            self.rootFunctions.append('\n'.join(wrapper))
+
+    def makeWrapper(self, jFunc, baseName, rawName, stname, params, retType, isVarargs, template):
+        declName = self.makeZigFunctionName(jFunc, baseName, stname)
+
+        if not isVarargs:
+            if 'nonUDT' in jFunc and jFunc['nonUDT'] == 1:
+                assert(retType == 'void')
+
+                paramStrs = [ name + ': ' + typeStr for name, typeStr in params[1:] ]
+                passStrs = [ name for name, typeStr in params[1:] ]
+                wrappedRetType = params[0][1]
+                # strip one pointer
+                assert(wrappedRetType[0] == '*')
+                wrappedRetType = wrappedRetType[1:]
+
+                wrapper = []
+                wrapper.append('pub fn '+declName+'(' + ', '.join(paramStrs) + ') '+wrappedRetType+' {')
+                wrapper.append('    var out: '+wrappedRetType+' = undefined;')
+                wrapper.append('    raw.'+rawName+'(&out, '+', '.join(passStrs)+');')
+                wrapper.append('    return out;')
+                wrapper.append('}')
+                return wrapper
+
+
+        return ['pub const '+declName+' = raw.'+rawName+';']
+
+    def makeZigFunctionName(self, jFunc, baseName, struct):
+        if struct:
+            declName = baseName.replace(struct+'_', '')
+            if 'constructor' in jFunc:
+                declName = declName.replace(struct, 'init')
+            elif 'destructor' in jFunc:
+                declName = declName.replace('destroy', 'deinit')
+        else:
+            assert(baseName[0:2] == 'ig')
+            declName = baseName[2:]
+
         return declName
         
     def convertComplexType(self, type, context, template=None):
@@ -534,8 +586,7 @@ if __name__ == '__main__':
         data.addStruct(structName, jsonStructures[structName])
         
     for overrides in jsonCommands.values():
-        for func in overrides:
-            data.addFunction(func)
+        data.addFunctionSet(overrides)
     
     makedirs(OUTPUT_DIR, exist_ok=True)
     with open(OUTPUT_DIR+'/'+OUTPUT_FILE, "w", newline='\n') as f:

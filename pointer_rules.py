@@ -230,6 +230,7 @@ Rules = {
             ([StartsWith('ImFontAtlas_GetTexData'), 'out_pixels'], '*?[*]'),
             (['ImDrawData', 'CmdLists'], '?[*]*'),
             (['ImFont_CalcTextSizeA', 'remaining'], '?*?[*:0]'),
+            (['ImFont_CalcTextSizeA_nonUDT', 'remaining'], '?*?[*:0]'),
         ]),
     ],
 }
@@ -247,6 +248,8 @@ def getPointers(numPointers, valueType, context):
         if context.type == CT_TEMPLATE:
             return '*'
         if context.type == CT_PARAM and context.parent.stname and context.name == 'self':
+            return '*'
+        if context.type == CT_PARAM and context.name == 'pOut' and context.parent.name.endswith('_nonUDT'):
             return '*'
             
     ## Search for a matching rule

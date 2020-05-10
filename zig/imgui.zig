@@ -926,7 +926,11 @@ pub const StyleVar = extern enum {
 pub const Color = extern struct {
     Value: Vec4,
 
-    pub const HSV = raw.ImColor_HSV;
+    pub fn HSV(self: *Color, h: f32, s: f32, v: f32, a: f32) Color {
+        var out: Color = undefined;
+        raw.ImColor_HSV_nonUDT(&out, self, h, s, v, a);
+        return out;
+    }
     pub const init = raw.ImColor_ImColor;
     pub const initInt = raw.ImColor_ImColorInt;
     pub const initU32 = raw.ImColor_ImColorU32;
@@ -1015,8 +1019,16 @@ pub const DrawList = extern struct {
     pub const Clear = raw.ImDrawList_Clear;
     pub const ClearFreeMemory = raw.ImDrawList_ClearFreeMemory;
     pub const CloneOutput = raw.ImDrawList_CloneOutput;
-    pub const GetClipRectMax = raw.ImDrawList_GetClipRectMax;
-    pub const GetClipRectMin = raw.ImDrawList_GetClipRectMin;
+    pub fn GetClipRectMax(self: *const DrawList) Vec2 {
+        var out: Vec2 = undefined;
+        raw.ImDrawList_GetClipRectMax_nonUDT(&out, self);
+        return out;
+    }
+    pub fn GetClipRectMin(self: *const DrawList) Vec2 {
+        var out: Vec2 = undefined;
+        raw.ImDrawList_GetClipRectMin_nonUDT(&out, self);
+        return out;
+    }
     pub const init = raw.ImDrawList_ImDrawList;
     pub const PathArcTo = raw.ImDrawList_PathArcTo;
     pub const PathArcToFast = raw.ImDrawList_PathArcToFast;
@@ -1087,7 +1099,11 @@ pub const Font = extern struct {
     pub const AddGlyph = raw.ImFont_AddGlyph;
     pub const AddRemapChar = raw.ImFont_AddRemapChar;
     pub const BuildLookupTable = raw.ImFont_BuildLookupTable;
-    pub const CalcTextSizeA = raw.ImFont_CalcTextSizeA;
+    pub fn CalcTextSizeA(self: *const Font, size: f32, max_width: f32, wrap_width: f32, text_begin: ?[*]const u8, text_end: ?[*]const u8, remaining: ?*?[*:0]const u8) Vec2 {
+        var out: Vec2 = undefined;
+        raw.ImFont_CalcTextSizeA_nonUDT(&out, self, size, max_width, wrap_width, text_begin, text_end, remaining);
+        return out;
+    }
     pub const CalcWordWrapPositionA = raw.ImFont_CalcWordWrapPositionA;
     pub const ClearOutputData = raw.ImFont_ClearOutputData;
     pub const FindGlyph = raw.ImFont_FindGlyph;
@@ -2161,7 +2177,11 @@ pub const BulletText = raw.igBulletText;
 pub const Button = raw.igButton;
 pub const CalcItemWidth = raw.igCalcItemWidth;
 pub const CalcListClipping = raw.igCalcListClipping;
-pub const CalcTextSize = raw.igCalcTextSize;
+pub fn CalcTextSize(text: ?[*]const u8, text_end: ?[*]const u8, hide_text_after_double_hash: bool, wrap_width: f32) Vec2 {
+    var out: Vec2 = undefined;
+    raw.igCalcTextSize_nonUDT(&out, text, text_end, hide_text_after_double_hash, wrap_width);
+    return out;
+}
 pub const CaptureKeyboardFromApp = raw.igCaptureKeyboardFromApp;
 pub const CaptureMouseFromApp = raw.igCaptureMouseFromApp;
 pub const Checkbox = raw.igCheckbox;
@@ -2173,7 +2193,11 @@ pub const ColorButton = raw.igColorButton;
 pub const ColorConvertFloat4ToU32 = raw.igColorConvertFloat4ToU32;
 pub const ColorConvertHSVtoRGB = raw.igColorConvertHSVtoRGB;
 pub const ColorConvertRGBtoHSV = raw.igColorConvertRGBtoHSV;
-pub const ColorConvertU32ToFloat4 = raw.igColorConvertU32ToFloat4;
+pub fn ColorConvertU32ToFloat4(in: u32) Vec4 {
+    var out: Vec4 = undefined;
+    raw.igColorConvertU32ToFloat4_nonUDT(&out, in);
+    return out;
+}
 pub const ColorEdit3 = raw.igColorEdit3;
 pub const ColorEdit4 = raw.igColorEdit4;
 pub const ColorPicker3 = raw.igColorPicker3;
@@ -2222,20 +2246,44 @@ pub const GetColumnIndex = raw.igGetColumnIndex;
 pub const GetColumnOffset = raw.igGetColumnOffset;
 pub const GetColumnWidth = raw.igGetColumnWidth;
 pub const GetColumnsCount = raw.igGetColumnsCount;
-pub const GetContentRegionAvail = raw.igGetContentRegionAvail;
-pub const GetContentRegionMax = raw.igGetContentRegionMax;
+pub fn GetContentRegionAvail() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetContentRegionAvail_nonUDT(&out, );
+    return out;
+}
+pub fn GetContentRegionMax() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetContentRegionMax_nonUDT(&out, );
+    return out;
+}
 pub const GetCurrentContext = raw.igGetCurrentContext;
-pub const GetCursorPos = raw.igGetCursorPos;
+pub fn GetCursorPos() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetCursorPos_nonUDT(&out, );
+    return out;
+}
 pub const GetCursorPosX = raw.igGetCursorPosX;
 pub const GetCursorPosY = raw.igGetCursorPosY;
-pub const GetCursorScreenPos = raw.igGetCursorScreenPos;
-pub const GetCursorStartPos = raw.igGetCursorStartPos;
+pub fn GetCursorScreenPos() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetCursorScreenPos_nonUDT(&out, );
+    return out;
+}
+pub fn GetCursorStartPos() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetCursorStartPos_nonUDT(&out, );
+    return out;
+}
 pub const GetDragDropPayload = raw.igGetDragDropPayload;
 pub const GetDrawData = raw.igGetDrawData;
 pub const GetDrawListSharedData = raw.igGetDrawListSharedData;
 pub const GetFont = raw.igGetFont;
 pub const GetFontSize = raw.igGetFontSize;
-pub const GetFontTexUvWhitePixel = raw.igGetFontTexUvWhitePixel;
+pub fn GetFontTexUvWhitePixel() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetFontTexUvWhitePixel_nonUDT(&out, );
+    return out;
+}
 pub const GetForegroundDrawList = raw.igGetForegroundDrawList;
 pub const GetFrameCount = raw.igGetFrameCount;
 pub const GetFrameHeight = raw.igGetFrameHeight;
@@ -2244,15 +2292,39 @@ pub const GetIDStr = raw.igGetIDStr;
 pub const GetIDRange = raw.igGetIDRange;
 pub const GetIDPtr = raw.igGetIDPtr;
 pub const GetIO = raw.igGetIO;
-pub const GetItemRectMax = raw.igGetItemRectMax;
-pub const GetItemRectMin = raw.igGetItemRectMin;
-pub const GetItemRectSize = raw.igGetItemRectSize;
+pub fn GetItemRectMax() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetItemRectMax_nonUDT(&out, );
+    return out;
+}
+pub fn GetItemRectMin() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetItemRectMin_nonUDT(&out, );
+    return out;
+}
+pub fn GetItemRectSize() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetItemRectSize_nonUDT(&out, );
+    return out;
+}
 pub const GetKeyIndex = raw.igGetKeyIndex;
 pub const GetKeyPressedAmount = raw.igGetKeyPressedAmount;
 pub const GetMouseCursor = raw.igGetMouseCursor;
-pub const GetMouseDragDelta = raw.igGetMouseDragDelta;
-pub const GetMousePos = raw.igGetMousePos;
-pub const GetMousePosOnOpeningCurrentPopup = raw.igGetMousePosOnOpeningCurrentPopup;
+pub fn GetMouseDragDelta(button: MouseButton, lock_threshold: f32) Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetMouseDragDelta_nonUDT(&out, button, lock_threshold);
+    return out;
+}
+pub fn GetMousePos() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetMousePos_nonUDT(&out, );
+    return out;
+}
+pub fn GetMousePosOnOpeningCurrentPopup() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetMousePosOnOpeningCurrentPopup_nonUDT(&out, );
+    return out;
+}
 pub const GetScrollMaxX = raw.igGetScrollMaxX;
 pub const GetScrollMaxY = raw.igGetScrollMaxY;
 pub const GetScrollX = raw.igGetScrollX;
@@ -2266,13 +2338,29 @@ pub const GetTextLineHeightWithSpacing = raw.igGetTextLineHeightWithSpacing;
 pub const GetTime = raw.igGetTime;
 pub const GetTreeNodeToLabelSpacing = raw.igGetTreeNodeToLabelSpacing;
 pub const GetVersion = raw.igGetVersion;
-pub const GetWindowContentRegionMax = raw.igGetWindowContentRegionMax;
-pub const GetWindowContentRegionMin = raw.igGetWindowContentRegionMin;
+pub fn GetWindowContentRegionMax() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetWindowContentRegionMax_nonUDT(&out, );
+    return out;
+}
+pub fn GetWindowContentRegionMin() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetWindowContentRegionMin_nonUDT(&out, );
+    return out;
+}
 pub const GetWindowContentRegionWidth = raw.igGetWindowContentRegionWidth;
 pub const GetWindowDrawList = raw.igGetWindowDrawList;
 pub const GetWindowHeight = raw.igGetWindowHeight;
-pub const GetWindowPos = raw.igGetWindowPos;
-pub const GetWindowSize = raw.igGetWindowSize;
+pub fn GetWindowPos() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetWindowPos_nonUDT(&out, );
+    return out;
+}
+pub fn GetWindowSize() Vec2 {
+    var out: Vec2 = undefined;
+    raw.igGetWindowSize_nonUDT(&out, );
+    return out;
+}
 pub const GetWindowWidth = raw.igGetWindowWidth;
 pub const Image = raw.igImage;
 pub const ImageButton = raw.igImageButton;
@@ -2473,7 +2561,7 @@ pub const ValueUint = raw.igValueUint;
 pub const ValueFloat = raw.igValueFloat;
 
 pub const raw = struct {
-    pub extern fn ImColor_HSV(self: *Color, h: f32, s: f32, v: f32, a: f32) Color;
+    pub extern fn ImColor_HSV_nonUDT(pOut: *Color, self: *Color, h: f32, s: f32, v: f32, a: f32) void;
     pub extern fn ImColor_ImColor(self: *Color) void;
     pub extern fn ImColor_ImColorInt(self: *Color, r: i32, g: i32, b: i32, a: i32) void;
     pub extern fn ImColor_ImColorU32(self: *Color, rgba: u32) void;
@@ -2523,8 +2611,8 @@ pub const raw = struct {
     pub extern fn ImDrawList_Clear(self: *DrawList) void;
     pub extern fn ImDrawList_ClearFreeMemory(self: *DrawList) void;
     pub extern fn ImDrawList_CloneOutput(self: *const DrawList) ?*DrawList;
-    pub extern fn ImDrawList_GetClipRectMax(self: *const DrawList) Vec2;
-    pub extern fn ImDrawList_GetClipRectMin(self: *const DrawList) Vec2;
+    pub extern fn ImDrawList_GetClipRectMax_nonUDT(pOut: *Vec2, self: *const DrawList) void;
+    pub extern fn ImDrawList_GetClipRectMin_nonUDT(pOut: *Vec2, self: *const DrawList) void;
     pub extern fn ImDrawList_ImDrawList(self: *DrawList, shared_data: ?*const DrawListSharedData) void;
     pub extern fn ImDrawList_PathArcTo(self: *DrawList, center: Vec2, radius: f32, a_min: f32, a_max: f32, num_segments: i32) void;
     pub extern fn ImDrawList_PathArcToFast(self: *DrawList, center: Vec2, radius: f32, a_min_of_12: i32, a_max_of_12: i32) void;
@@ -2598,7 +2686,7 @@ pub const raw = struct {
     pub extern fn ImFont_AddGlyph(self: *Font, c: Wchar, x0: f32, y0: f32, x1: f32, y1: f32, u0: f32, v0: f32, u1: f32, v1: f32, advance_x: f32) void;
     pub extern fn ImFont_AddRemapChar(self: *Font, dst: Wchar, src: Wchar, overwrite_dst: bool) void;
     pub extern fn ImFont_BuildLookupTable(self: *Font) void;
-    pub extern fn ImFont_CalcTextSizeA(self: *const Font, size: f32, max_width: f32, wrap_width: f32, text_begin: ?[*]const u8, text_end: ?[*]const u8, remaining: ?*?[*:0]const u8) Vec2;
+    pub extern fn ImFont_CalcTextSizeA_nonUDT(pOut: *Vec2, self: *const Font, size: f32, max_width: f32, wrap_width: f32, text_begin: ?[*]const u8, text_end: ?[*]const u8, remaining: ?*?[*:0]const u8) void;
     pub extern fn ImFont_CalcWordWrapPositionA(self: *const Font, scale: f32, text: ?[*]const u8, text_end: ?[*]const u8, wrap_width: f32) ?[*]const u8;
     pub extern fn ImFont_ClearOutputData(self: *Font) void;
     pub extern fn ImFont_FindGlyph(self: *const Font, c: Wchar) ?*const FontGlyph;
@@ -3258,7 +3346,7 @@ pub const raw = struct {
     pub extern fn igButton(label: ?[*:0]const u8, size: Vec2) bool;
     pub extern fn igCalcItemWidth() f32;
     pub extern fn igCalcListClipping(items_count: i32, items_height: f32, out_items_display_start: *i32, out_items_display_end: *i32) void;
-    pub extern fn igCalcTextSize(text: ?[*]const u8, text_end: ?[*]const u8, hide_text_after_double_hash: bool, wrap_width: f32) Vec2;
+    pub extern fn igCalcTextSize_nonUDT(pOut: *Vec2, text: ?[*]const u8, text_end: ?[*]const u8, hide_text_after_double_hash: bool, wrap_width: f32) void;
     pub extern fn igCaptureKeyboardFromApp(want_capture_keyboard_value: bool) void;
     pub extern fn igCaptureMouseFromApp(want_capture_mouse_value: bool) void;
     pub extern fn igCheckbox(label: ?[*:0]const u8, v: *bool) bool;
@@ -3270,7 +3358,7 @@ pub const raw = struct {
     pub extern fn igColorConvertFloat4ToU32(in: Vec4) u32;
     pub extern fn igColorConvertHSVtoRGB(h: f32, s: f32, v: f32, out_r: *f32, out_g: *f32, out_b: *f32) void;
     pub extern fn igColorConvertRGBtoHSV(r: f32, g: f32, b: f32, out_h: *f32, out_s: *f32, out_v: *f32) void;
-    pub extern fn igColorConvertU32ToFloat4(in: u32) Vec4;
+    pub extern fn igColorConvertU32ToFloat4_nonUDT(pOut: *Vec4, in: u32) void;
     pub extern fn igColorEdit3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool;
     pub extern fn igColorEdit4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags) bool;
     pub extern fn igColorPicker3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool;
@@ -3319,20 +3407,20 @@ pub const raw = struct {
     pub extern fn igGetColumnOffset(column_index: i32) f32;
     pub extern fn igGetColumnWidth(column_index: i32) f32;
     pub extern fn igGetColumnsCount() i32;
-    pub extern fn igGetContentRegionAvail() Vec2;
-    pub extern fn igGetContentRegionMax() Vec2;
+    pub extern fn igGetContentRegionAvail_nonUDT(pOut: *Vec2) void;
+    pub extern fn igGetContentRegionMax_nonUDT(pOut: *Vec2) void;
     pub extern fn igGetCurrentContext() ?*Context;
-    pub extern fn igGetCursorPos() Vec2;
+    pub extern fn igGetCursorPos_nonUDT(pOut: *Vec2) void;
     pub extern fn igGetCursorPosX() f32;
     pub extern fn igGetCursorPosY() f32;
-    pub extern fn igGetCursorScreenPos() Vec2;
-    pub extern fn igGetCursorStartPos() Vec2;
+    pub extern fn igGetCursorScreenPos_nonUDT(pOut: *Vec2) void;
+    pub extern fn igGetCursorStartPos_nonUDT(pOut: *Vec2) void;
     pub extern fn igGetDragDropPayload() ?*const Payload;
     pub extern fn igGetDrawData() *DrawData;
     pub extern fn igGetDrawListSharedData() ?*DrawListSharedData;
     pub extern fn igGetFont() ?*Font;
     pub extern fn igGetFontSize() f32;
-    pub extern fn igGetFontTexUvWhitePixel() Vec2;
+    pub extern fn igGetFontTexUvWhitePixel_nonUDT(pOut: *Vec2) void;
     pub extern fn igGetForegroundDrawList() ?*DrawList;
     pub extern fn igGetFrameCount() i32;
     pub extern fn igGetFrameHeight() f32;
@@ -3341,15 +3429,15 @@ pub const raw = struct {
     pub extern fn igGetIDRange(str_id_begin: ?[*]const u8, str_id_end: ?[*]const u8) ID;
     pub extern fn igGetIDPtr(ptr_id: ?*const c_void) ID;
     pub extern fn igGetIO() *IO;
-    pub extern fn igGetItemRectMax() Vec2;
-    pub extern fn igGetItemRectMin() Vec2;
-    pub extern fn igGetItemRectSize() Vec2;
+    pub extern fn igGetItemRectMax_nonUDT(pOut: *Vec2) void;
+    pub extern fn igGetItemRectMin_nonUDT(pOut: *Vec2) void;
+    pub extern fn igGetItemRectSize_nonUDT(pOut: *Vec2) void;
     pub extern fn igGetKeyIndex(imgui_key: Key) i32;
     pub extern fn igGetKeyPressedAmount(key_index: i32, repeat_delay: f32, rate: f32) i32;
     pub extern fn igGetMouseCursor() MouseCursor;
-    pub extern fn igGetMouseDragDelta(button: MouseButton, lock_threshold: f32) Vec2;
-    pub extern fn igGetMousePos() Vec2;
-    pub extern fn igGetMousePosOnOpeningCurrentPopup() Vec2;
+    pub extern fn igGetMouseDragDelta_nonUDT(pOut: *Vec2, button: MouseButton, lock_threshold: f32) void;
+    pub extern fn igGetMousePos_nonUDT(pOut: *Vec2) void;
+    pub extern fn igGetMousePosOnOpeningCurrentPopup_nonUDT(pOut: *Vec2) void;
     pub extern fn igGetScrollMaxX() f32;
     pub extern fn igGetScrollMaxY() f32;
     pub extern fn igGetScrollX() f32;
@@ -3363,13 +3451,13 @@ pub const raw = struct {
     pub extern fn igGetTime() f64;
     pub extern fn igGetTreeNodeToLabelSpacing() f32;
     pub extern fn igGetVersion() ?[*:0]const u8;
-    pub extern fn igGetWindowContentRegionMax() Vec2;
-    pub extern fn igGetWindowContentRegionMin() Vec2;
+    pub extern fn igGetWindowContentRegionMax_nonUDT(pOut: *Vec2) void;
+    pub extern fn igGetWindowContentRegionMin_nonUDT(pOut: *Vec2) void;
     pub extern fn igGetWindowContentRegionWidth() f32;
     pub extern fn igGetWindowDrawList() ?*DrawList;
     pub extern fn igGetWindowHeight() f32;
-    pub extern fn igGetWindowPos() Vec2;
-    pub extern fn igGetWindowSize() Vec2;
+    pub extern fn igGetWindowPos_nonUDT(pOut: *Vec2) void;
+    pub extern fn igGetWindowSize_nonUDT(pOut: *Vec2) void;
     pub extern fn igGetWindowWidth() f32;
     pub extern fn igImage(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, tint_col: Vec4, border_col: Vec4) void;
     pub extern fn igImageButton(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, frame_padding: i32, bg_col: Vec4, tint_col: Vec4) bool;
