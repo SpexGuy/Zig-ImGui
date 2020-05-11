@@ -18,12 +18,13 @@ pub fn CHECKVERSION() void {
     }
 }
 
+pub const FLT_MAX = @import("std").math.f32_max;
 pub const FlagsInt = u32;
 pub fn FlagsMixin(comptime FlagType: type) type {
     comptime assert(@sizeOf(FlagType) == 4);
     return struct {
         pub fn toInt(self: FlagType) FlagsInt {
-            return @bitCast(Flags, self);
+            return @bitCast(FlagsInt, self);
         }
         pub fn fromInt(value: FlagsInt) FlagType {
             return @bitCast(FlagType, value);
@@ -944,17 +945,43 @@ pub const StyleVar = extern enum {
 pub const Color = extern struct {
     Value: Vec4,
 
-    pub inline fn HSV(self: *Color, h: f32, s: f32, v: f32, a: f32) Color {
+    pub inline fn HSVExt(self: *Color, h: f32, s: f32, v: f32, a: f32) Color {
         var out: Color = undefined;
         raw.ImColor_HSV_nonUDT(&out, self, h, s, v, a);
         return out;
     }
+    pub inline fn HSV(self: *Color, h: f32, s: f32, v: f32) Color {
+        return HSVExt(self, h, s, v, 1.0);
+    }
+
+    /// init(self: *Color) void
     pub const init = raw.ImColor_ImColor;
-    pub const initInt = raw.ImColor_ImColorInt;
+
+    /// initIntExt(self: *Color, r: i32, g: i32, b: i32, a: i32) void
+    pub const initIntExt = raw.ImColor_ImColorInt;
+    pub inline fn initInt(self: *Color, r: i32, g: i32, b: i32) void {
+        return initIntExt(self, r, g, b, 255);
+    }
+
+    /// initU32(self: *Color, rgba: u32) void
     pub const initU32 = raw.ImColor_ImColorU32;
-    pub const initFloat = raw.ImColor_ImColorFloat;
+
+    /// initFloatExt(self: *Color, r: f32, g: f32, b: f32, a: f32) void
+    pub const initFloatExt = raw.ImColor_ImColorFloat;
+    pub inline fn initFloat(self: *Color, r: f32, g: f32, b: f32) void {
+        return initFloatExt(self, r, g, b, 1.0);
+    }
+
+    /// initVec4(self: *Color, col: Vec4) void
     pub const initVec4 = raw.ImColor_ImColorVec4;
-    pub const SetHSV = raw.ImColor_SetHSV;
+
+    /// SetHSVExt(self: *Color, h: f32, s: f32, v: f32, a: f32) void
+    pub const SetHSVExt = raw.ImColor_SetHSV;
+    pub inline fn SetHSV(self: *Color, h: f32, s: f32, v: f32) void {
+        return SetHSVExt(self, h, s, v, 1.0);
+    }
+
+    /// deinit(self: *Color) void
     pub const deinit = raw.ImColor_destroy;
 };
 
@@ -972,7 +999,10 @@ pub const DrawCmd = extern struct {
     UserCallback: DrawCallback,
     UserCallbackData: ?*c_void,
 
+    /// init(self: *DrawCmd) void
     pub const init = raw.ImDrawCmd_ImDrawCmd;
+
+    /// deinit(self: *DrawCmd) void
     pub const deinit = raw.ImDrawCmd_destroy;
 };
 
@@ -986,10 +1016,19 @@ pub const DrawData = extern struct {
     DisplaySize: Vec2,
     FramebufferScale: Vec2,
 
+    /// Clear(self: *DrawData) void
     pub const Clear = raw.ImDrawData_Clear;
+
+    /// DeIndexAllBuffers(self: *DrawData) void
     pub const DeIndexAllBuffers = raw.ImDrawData_DeIndexAllBuffers;
+
+    /// init(self: *DrawData) void
     pub const init = raw.ImDrawData_ImDrawData;
+
+    /// ScaleClipRects(self: *DrawData, fb_scale: Vec2) void
     pub const ScaleClipRects = raw.ImDrawData_ScaleClipRects;
+
+    /// deinit(self: *DrawData) void
     pub const deinit = raw.ImDrawData_destroy;
 };
 
@@ -1009,77 +1048,239 @@ pub const DrawList = extern struct {
     _Path: Vector(Vec2),
     _Splitter: DrawListSplitter,
 
-    pub const AddBezierCurve = raw.ImDrawList_AddBezierCurve;
+    /// AddBezierCurveExt(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, col: u32, thickness: f32, num_segments: i32) void
+    pub const AddBezierCurveExt = raw.ImDrawList_AddBezierCurve;
+    pub inline fn AddBezierCurve(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, col: u32, thickness: f32) void {
+        return AddBezierCurveExt(self, p1, p2, p3, p4, col, thickness, 0);
+    }
+
+    /// AddCallback(self: *DrawList, callback: DrawCallback, callback_data: ?*c_void) void
     pub const AddCallback = raw.ImDrawList_AddCallback;
-    pub const AddCircle = raw.ImDrawList_AddCircle;
-    pub const AddCircleFilled = raw.ImDrawList_AddCircleFilled;
+
+    /// AddCircleExt(self: *DrawList, center: Vec2, radius: f32, col: u32, num_segments: i32, thickness: f32) void
+    pub const AddCircleExt = raw.ImDrawList_AddCircle;
+    pub inline fn AddCircle(self: *DrawList, center: Vec2, radius: f32, col: u32) void {
+        return AddCircleExt(self, center, radius, col, 12, 1.0);
+    }
+
+    /// AddCircleFilledExt(self: *DrawList, center: Vec2, radius: f32, col: u32, num_segments: i32) void
+    pub const AddCircleFilledExt = raw.ImDrawList_AddCircleFilled;
+    pub inline fn AddCircleFilled(self: *DrawList, center: Vec2, radius: f32, col: u32) void {
+        return AddCircleFilledExt(self, center, radius, col, 12);
+    }
+
+    /// AddConvexPolyFilled(self: *DrawList, points: ?[*]const Vec2, num_points: i32, col: u32) void
     pub const AddConvexPolyFilled = raw.ImDrawList_AddConvexPolyFilled;
+
+    /// AddDrawCmd(self: *DrawList) void
     pub const AddDrawCmd = raw.ImDrawList_AddDrawCmd;
-    pub const AddImage = raw.ImDrawList_AddImage;
-    pub const AddImageQuad = raw.ImDrawList_AddImageQuad;
-    pub inline fn AddImageRounded(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags) void {
+
+    /// AddImageExt(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32) void
+    pub const AddImageExt = raw.ImDrawList_AddImage;
+    pub inline fn AddImage(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2) void {
+        return AddImageExt(self, user_texture_id, p_min, p_max, .{.x=0,.y=0}, .{.x=1,.y=1}, 0xFFFFFFFF);
+    }
+
+    /// AddImageQuadExt(self: *DrawList, user_texture_id: TextureID, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, uv1: Vec2, uv2: Vec2, uv3: Vec2, uv4: Vec2, col: u32) void
+    pub const AddImageQuadExt = raw.ImDrawList_AddImageQuad;
+    pub inline fn AddImageQuad(self: *DrawList, user_texture_id: TextureID, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2) void {
+        return AddImageQuadExt(self, user_texture_id, p1, p2, p3, p4, .{.x=0,.y=0}, .{.x=1,.y=0}, .{.x=1,.y=1}, .{.x=0,.y=1}, 0xFFFFFFFF);
+    }
+
+    pub inline fn AddImageRoundedExt(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags) void {
         return raw.ImDrawList_AddImageRounded(self, user_texture_id, p_min, p_max, uv_min, uv_max, col, rounding, rounding_corners.toInt());
     }
-    pub const AddLine = raw.ImDrawList_AddLine;
-    pub const AddNgon = raw.ImDrawList_AddNgon;
+    pub inline fn AddImageRounded(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32, rounding: f32) void {
+        return AddImageRoundedExt(self, user_texture_id, p_min, p_max, uv_min, uv_max, col, rounding, DrawCornerFlags.All);
+    }
+
+    /// AddLineExt(self: *DrawList, p1: Vec2, p2: Vec2, col: u32, thickness: f32) void
+    pub const AddLineExt = raw.ImDrawList_AddLine;
+    pub inline fn AddLine(self: *DrawList, p1: Vec2, p2: Vec2, col: u32) void {
+        return AddLineExt(self, p1, p2, col, 1.0);
+    }
+
+    /// AddNgonExt(self: *DrawList, center: Vec2, radius: f32, col: u32, num_segments: i32, thickness: f32) void
+    pub const AddNgonExt = raw.ImDrawList_AddNgon;
+    pub inline fn AddNgon(self: *DrawList, center: Vec2, radius: f32, col: u32, num_segments: i32) void {
+        return AddNgonExt(self, center, radius, col, num_segments, 1.0);
+    }
+
+    /// AddNgonFilled(self: *DrawList, center: Vec2, radius: f32, col: u32, num_segments: i32) void
     pub const AddNgonFilled = raw.ImDrawList_AddNgonFilled;
+
+    /// AddPolyline(self: *DrawList, points: ?[*]const Vec2, num_points: i32, col: u32, closed: bool, thickness: f32) void
     pub const AddPolyline = raw.ImDrawList_AddPolyline;
-    pub const AddQuad = raw.ImDrawList_AddQuad;
+
+    /// AddQuadExt(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, col: u32, thickness: f32) void
+    pub const AddQuadExt = raw.ImDrawList_AddQuad;
+    pub inline fn AddQuad(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, col: u32) void {
+        return AddQuadExt(self, p1, p2, p3, p4, col, 1.0);
+    }
+
+    /// AddQuadFilled(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, col: u32) void
     pub const AddQuadFilled = raw.ImDrawList_AddQuadFilled;
-    pub inline fn AddRect(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags, thickness: f32) void {
+
+    pub inline fn AddRectExt(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags, thickness: f32) void {
         return raw.ImDrawList_AddRect(self, p_min, p_max, col, rounding, rounding_corners.toInt(), thickness);
     }
-    pub inline fn AddRectFilled(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags) void {
+    pub inline fn AddRect(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32) void {
+        return AddRectExt(self, p_min, p_max, col, 0.0, DrawCornerFlags.All, 1.0);
+    }
+
+    pub inline fn AddRectFilledExt(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32, rounding: f32, rounding_corners: DrawCornerFlags) void {
         return raw.ImDrawList_AddRectFilled(self, p_min, p_max, col, rounding, rounding_corners.toInt());
     }
+    pub inline fn AddRectFilled(self: *DrawList, p_min: Vec2, p_max: Vec2, col: u32) void {
+        return AddRectFilledExt(self, p_min, p_max, col, 0.0, DrawCornerFlags.All);
+    }
+
+    /// AddRectFilledMultiColor(self: *DrawList, p_min: Vec2, p_max: Vec2, col_upr_left: u32, col_upr_right: u32, col_bot_right: u32, col_bot_left: u32) void
     pub const AddRectFilledMultiColor = raw.ImDrawList_AddRectFilledMultiColor;
-    pub const AddTextVec2 = raw.ImDrawList_AddTextVec2;
-    pub const AddTextFontPtr = raw.ImDrawList_AddTextFontPtr;
-    pub const AddTriangle = raw.ImDrawList_AddTriangle;
+
+    /// AddTextVec2Ext(self: *DrawList, pos: Vec2, col: u32, text_begin: ?[*]const u8, text_end: ?[*]const u8) void
+    pub const AddTextVec2Ext = raw.ImDrawList_AddTextVec2;
+    pub inline fn AddTextVec2(self: *DrawList, pos: Vec2, col: u32, text_begin: ?[*]const u8) void {
+        return AddTextVec2Ext(self, pos, col, text_begin, null);
+    }
+
+    /// AddTextFontPtrExt(self: *DrawList, font: ?*const Font, font_size: f32, pos: Vec2, col: u32, text_begin: ?[*]const u8, text_end: ?[*]const u8, wrap_width: f32, cpu_fine_clip_rect: ?*const Vec4) void
+    pub const AddTextFontPtrExt = raw.ImDrawList_AddTextFontPtr;
+    pub inline fn AddTextFontPtr(self: *DrawList, font: ?*const Font, font_size: f32, pos: Vec2, col: u32, text_begin: ?[*]const u8) void {
+        return AddTextFontPtrExt(self, font, font_size, pos, col, text_begin, null, 0.0, null);
+    }
+
+    /// AddTriangleExt(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, col: u32, thickness: f32) void
+    pub const AddTriangleExt = raw.ImDrawList_AddTriangle;
+    pub inline fn AddTriangle(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, col: u32) void {
+        return AddTriangleExt(self, p1, p2, p3, col, 1.0);
+    }
+
+    /// AddTriangleFilled(self: *DrawList, p1: Vec2, p2: Vec2, p3: Vec2, col: u32) void
     pub const AddTriangleFilled = raw.ImDrawList_AddTriangleFilled;
+
+    /// ChannelsMerge(self: *DrawList) void
     pub const ChannelsMerge = raw.ImDrawList_ChannelsMerge;
+
+    /// ChannelsSetCurrent(self: *DrawList, n: i32) void
     pub const ChannelsSetCurrent = raw.ImDrawList_ChannelsSetCurrent;
+
+    /// ChannelsSplit(self: *DrawList, count: i32) void
     pub const ChannelsSplit = raw.ImDrawList_ChannelsSplit;
+
+    /// Clear(self: *DrawList) void
     pub const Clear = raw.ImDrawList_Clear;
+
+    /// ClearFreeMemory(self: *DrawList) void
     pub const ClearFreeMemory = raw.ImDrawList_ClearFreeMemory;
+
+    /// CloneOutput(self: *const DrawList) ?*DrawList
     pub const CloneOutput = raw.ImDrawList_CloneOutput;
+
     pub inline fn GetClipRectMax(self: *const DrawList) Vec2 {
         var out: Vec2 = undefined;
         raw.ImDrawList_GetClipRectMax_nonUDT(&out, self);
         return out;
     }
+
     pub inline fn GetClipRectMin(self: *const DrawList) Vec2 {
         var out: Vec2 = undefined;
         raw.ImDrawList_GetClipRectMin_nonUDT(&out, self);
         return out;
     }
+
+    /// init(self: *DrawList, shared_data: ?*const DrawListSharedData) void
     pub const init = raw.ImDrawList_ImDrawList;
-    pub const PathArcTo = raw.ImDrawList_PathArcTo;
+
+    /// PathArcToExt(self: *DrawList, center: Vec2, radius: f32, a_min: f32, a_max: f32, num_segments: i32) void
+    pub const PathArcToExt = raw.ImDrawList_PathArcTo;
+    pub inline fn PathArcTo(self: *DrawList, center: Vec2, radius: f32, a_min: f32, a_max: f32) void {
+        return PathArcToExt(self, center, radius, a_min, a_max, 10);
+    }
+
+    /// PathArcToFast(self: *DrawList, center: Vec2, radius: f32, a_min_of_12: i32, a_max_of_12: i32) void
     pub const PathArcToFast = raw.ImDrawList_PathArcToFast;
-    pub const PathBezierCurveTo = raw.ImDrawList_PathBezierCurveTo;
+
+    /// PathBezierCurveToExt(self: *DrawList, p2: Vec2, p3: Vec2, p4: Vec2, num_segments: i32) void
+    pub const PathBezierCurveToExt = raw.ImDrawList_PathBezierCurveTo;
+    pub inline fn PathBezierCurveTo(self: *DrawList, p2: Vec2, p3: Vec2, p4: Vec2) void {
+        return PathBezierCurveToExt(self, p2, p3, p4, 0);
+    }
+
+    /// PathClear(self: *DrawList) void
     pub const PathClear = raw.ImDrawList_PathClear;
+
+    /// PathFillConvex(self: *DrawList, col: u32) void
     pub const PathFillConvex = raw.ImDrawList_PathFillConvex;
+
+    /// PathLineTo(self: *DrawList, pos: Vec2) void
     pub const PathLineTo = raw.ImDrawList_PathLineTo;
+
+    /// PathLineToMergeDuplicate(self: *DrawList, pos: Vec2) void
     pub const PathLineToMergeDuplicate = raw.ImDrawList_PathLineToMergeDuplicate;
-    pub inline fn PathRect(self: *DrawList, rect_min: Vec2, rect_max: Vec2, rounding: f32, rounding_corners: DrawCornerFlags) void {
+
+    pub inline fn PathRectExt(self: *DrawList, rect_min: Vec2, rect_max: Vec2, rounding: f32, rounding_corners: DrawCornerFlags) void {
         return raw.ImDrawList_PathRect(self, rect_min, rect_max, rounding, rounding_corners.toInt());
     }
-    pub const PathStroke = raw.ImDrawList_PathStroke;
+    pub inline fn PathRect(self: *DrawList, rect_min: Vec2, rect_max: Vec2) void {
+        return PathRectExt(self, rect_min, rect_max, 0.0, DrawCornerFlags.All);
+    }
+
+    /// PathStrokeExt(self: *DrawList, col: u32, closed: bool, thickness: f32) void
+    pub const PathStrokeExt = raw.ImDrawList_PathStroke;
+    pub inline fn PathStroke(self: *DrawList, col: u32, closed: bool) void {
+        return PathStrokeExt(self, col, closed, 1.0);
+    }
+
+    /// PopClipRect(self: *DrawList) void
     pub const PopClipRect = raw.ImDrawList_PopClipRect;
+
+    /// PopTextureID(self: *DrawList) void
     pub const PopTextureID = raw.ImDrawList_PopTextureID;
+
+    /// PrimQuadUV(self: *DrawList, a: Vec2, b: Vec2, c: Vec2, d: Vec2, uv_a: Vec2, uv_b: Vec2, uv_c: Vec2, uv_d: Vec2, col: u32) void
     pub const PrimQuadUV = raw.ImDrawList_PrimQuadUV;
+
+    /// PrimRect(self: *DrawList, a: Vec2, b: Vec2, col: u32) void
     pub const PrimRect = raw.ImDrawList_PrimRect;
+
+    /// PrimRectUV(self: *DrawList, a: Vec2, b: Vec2, uv_a: Vec2, uv_b: Vec2, col: u32) void
     pub const PrimRectUV = raw.ImDrawList_PrimRectUV;
+
+    /// PrimReserve(self: *DrawList, idx_count: i32, vtx_count: i32) void
     pub const PrimReserve = raw.ImDrawList_PrimReserve;
+
+    /// PrimUnreserve(self: *DrawList, idx_count: i32, vtx_count: i32) void
     pub const PrimUnreserve = raw.ImDrawList_PrimUnreserve;
+
+    /// PrimVtx(self: *DrawList, pos: Vec2, uv: Vec2, col: u32) void
     pub const PrimVtx = raw.ImDrawList_PrimVtx;
+
+    /// PrimWriteIdx(self: *DrawList, idx: DrawIdx) void
     pub const PrimWriteIdx = raw.ImDrawList_PrimWriteIdx;
+
+    /// PrimWriteVtx(self: *DrawList, pos: Vec2, uv: Vec2, col: u32) void
     pub const PrimWriteVtx = raw.ImDrawList_PrimWriteVtx;
-    pub const PushClipRect = raw.ImDrawList_PushClipRect;
+
+    /// PushClipRectExt(self: *DrawList, clip_rect_min: Vec2, clip_rect_max: Vec2, intersect_with_current_clip_rect: bool) void
+    pub const PushClipRectExt = raw.ImDrawList_PushClipRect;
+    pub inline fn PushClipRect(self: *DrawList, clip_rect_min: Vec2, clip_rect_max: Vec2) void {
+        return PushClipRectExt(self, clip_rect_min, clip_rect_max, false);
+    }
+
+    /// PushClipRectFullScreen(self: *DrawList) void
     pub const PushClipRectFullScreen = raw.ImDrawList_PushClipRectFullScreen;
+
+    /// PushTextureID(self: *DrawList, texture_id: TextureID) void
     pub const PushTextureID = raw.ImDrawList_PushTextureID;
+
+    /// UpdateClipRect(self: *DrawList) void
     pub const UpdateClipRect = raw.ImDrawList_UpdateClipRect;
+
+    /// UpdateTextureID(self: *DrawList) void
     pub const UpdateTextureID = raw.ImDrawList_UpdateTextureID;
+
+    /// deinit(self: *DrawList) void
     pub const deinit = raw.ImDrawList_destroy;
 };
 
@@ -1088,12 +1289,25 @@ pub const DrawListSplitter = extern struct {
     _Count: i32,
     _Channels: Vector(DrawChannel),
 
+    /// Clear(self: *DrawListSplitter) void
     pub const Clear = raw.ImDrawListSplitter_Clear;
+
+    /// ClearFreeMemory(self: *DrawListSplitter) void
     pub const ClearFreeMemory = raw.ImDrawListSplitter_ClearFreeMemory;
+
+    /// init(self: *DrawListSplitter) void
     pub const init = raw.ImDrawListSplitter_ImDrawListSplitter;
+
+    /// Merge(self: *DrawListSplitter, draw_list: ?*DrawList) void
     pub const Merge = raw.ImDrawListSplitter_Merge;
+
+    /// SetCurrentChannel(self: *DrawListSplitter, draw_list: ?*DrawList, channel_idx: i32) void
     pub const SetCurrentChannel = raw.ImDrawListSplitter_SetCurrentChannel;
+
+    /// Split(self: *DrawListSplitter, draw_list: ?*DrawList, count: i32) void
     pub const Split = raw.ImDrawListSplitter_Split;
+
+    /// deinit(self: *DrawListSplitter) void
     pub const deinit = raw.ImDrawListSplitter_destroy;
 };
 
@@ -1122,26 +1336,67 @@ pub const Font = extern struct {
     Descent: f32,
     MetricsTotalSurface: i32,
 
+    /// AddGlyph(self: *Font, c: Wchar, x0: f32, y0: f32, x1: f32, y1: f32, u0: f32, v0: f32, u1: f32, v1: f32, advance_x: f32) void
     pub const AddGlyph = raw.ImFont_AddGlyph;
-    pub const AddRemapChar = raw.ImFont_AddRemapChar;
+
+    /// AddRemapCharExt(self: *Font, dst: Wchar, src: Wchar, overwrite_dst: bool) void
+    pub const AddRemapCharExt = raw.ImFont_AddRemapChar;
+    pub inline fn AddRemapChar(self: *Font, dst: Wchar, src: Wchar) void {
+        return AddRemapCharExt(self, dst, src, true);
+    }
+
+    /// BuildLookupTable(self: *Font) void
     pub const BuildLookupTable = raw.ImFont_BuildLookupTable;
-    pub inline fn CalcTextSizeA(self: *const Font, size: f32, max_width: f32, wrap_width: f32, text_begin: ?[*]const u8, text_end: ?[*]const u8, remaining: ?*?[*:0]const u8) Vec2 {
+
+    pub inline fn CalcTextSizeAExt(self: *const Font, size: f32, max_width: f32, wrap_width: f32, text_begin: ?[*]const u8, text_end: ?[*]const u8, remaining: ?*?[*:0]const u8) Vec2 {
         var out: Vec2 = undefined;
         raw.ImFont_CalcTextSizeA_nonUDT(&out, self, size, max_width, wrap_width, text_begin, text_end, remaining);
         return out;
     }
+    pub inline fn CalcTextSizeA(self: *const Font, size: f32, max_width: f32, wrap_width: f32, text_begin: ?[*]const u8) Vec2 {
+        return CalcTextSizeAExt(self, size, max_width, wrap_width, text_begin, null, null);
+    }
+
+    /// CalcWordWrapPositionA(self: *const Font, scale: f32, text: ?[*]const u8, text_end: ?[*]const u8, wrap_width: f32) ?[*]const u8
     pub const CalcWordWrapPositionA = raw.ImFont_CalcWordWrapPositionA;
+
+    /// ClearOutputData(self: *Font) void
     pub const ClearOutputData = raw.ImFont_ClearOutputData;
+
+    /// FindGlyph(self: *const Font, c: Wchar) ?*const FontGlyph
     pub const FindGlyph = raw.ImFont_FindGlyph;
+
+    /// FindGlyphNoFallback(self: *const Font, c: Wchar) ?*const FontGlyph
     pub const FindGlyphNoFallback = raw.ImFont_FindGlyphNoFallback;
+
+    /// GetCharAdvance(self: *const Font, c: Wchar) f32
     pub const GetCharAdvance = raw.ImFont_GetCharAdvance;
+
+    /// GetDebugName(self: *const Font) ?[*:0]const u8
     pub const GetDebugName = raw.ImFont_GetDebugName;
+
+    /// GrowIndex(self: *Font, new_size: i32) void
     pub const GrowIndex = raw.ImFont_GrowIndex;
+
+    /// init(self: *Font) void
     pub const init = raw.ImFont_ImFont;
+
+    /// IsLoaded(self: *const Font) bool
     pub const IsLoaded = raw.ImFont_IsLoaded;
+
+    /// RenderChar(self: *const Font, draw_list: ?*DrawList, size: f32, pos: Vec2, col: u32, c: Wchar) void
     pub const RenderChar = raw.ImFont_RenderChar;
-    pub const RenderText = raw.ImFont_RenderText;
+
+    /// RenderTextExt(self: *const Font, draw_list: ?*DrawList, size: f32, pos: Vec2, col: u32, clip_rect: Vec4, text_begin: ?[*]const u8, text_end: ?[*]const u8, wrap_width: f32, cpu_fine_clip: bool) void
+    pub const RenderTextExt = raw.ImFont_RenderText;
+    pub inline fn RenderText(self: *const Font, draw_list: ?*DrawList, size: f32, pos: Vec2, col: u32, clip_rect: Vec4, text_begin: ?[*]const u8, text_end: ?[*]const u8) void {
+        return RenderTextExt(self, draw_list, size, pos, col, clip_rect, text_begin, text_end, 0.0, false);
+    }
+
+    /// SetFallbackChar(self: *Font, c: Wchar) void
     pub const SetFallbackChar = raw.ImFont_SetFallbackChar;
+
+    /// deinit(self: *Font) void
     pub const deinit = raw.ImFont_destroy;
 };
 
@@ -1162,35 +1417,118 @@ pub const FontAtlas = extern struct {
     ConfigData: Vector(FontConfig),
     CustomRectIds: [1]i32,
 
-    pub const AddCustomRectFontGlyph = raw.ImFontAtlas_AddCustomRectFontGlyph;
+    /// AddCustomRectFontGlyphExt(self: *FontAtlas, font: ?*Font, id: Wchar, width: i32, height: i32, advance_x: f32, offset: Vec2) i32
+    pub const AddCustomRectFontGlyphExt = raw.ImFontAtlas_AddCustomRectFontGlyph;
+    pub inline fn AddCustomRectFontGlyph(self: *FontAtlas, font: ?*Font, id: Wchar, width: i32, height: i32, advance_x: f32) i32 {
+        return AddCustomRectFontGlyphExt(self, font, id, width, height, advance_x, .{.x=0,.y=0});
+    }
+
+    /// AddCustomRectRegular(self: *FontAtlas, id: u32, width: i32, height: i32) i32
     pub const AddCustomRectRegular = raw.ImFontAtlas_AddCustomRectRegular;
+
+    /// AddFont(self: *FontAtlas, font_cfg: ?*const FontConfig) ?*Font
     pub const AddFont = raw.ImFontAtlas_AddFont;
-    pub const AddFontDefault = raw.ImFontAtlas_AddFontDefault;
-    pub const AddFontFromFileTTF = raw.ImFontAtlas_AddFontFromFileTTF;
-    pub const AddFontFromMemoryCompressedBase85TTF = raw.ImFontAtlas_AddFontFromMemoryCompressedBase85TTF;
-    pub const AddFontFromMemoryCompressedTTF = raw.ImFontAtlas_AddFontFromMemoryCompressedTTF;
-    pub const AddFontFromMemoryTTF = raw.ImFontAtlas_AddFontFromMemoryTTF;
+
+    /// AddFontDefaultExt(self: *FontAtlas, font_cfg: ?*const FontConfig) ?*Font
+    pub const AddFontDefaultExt = raw.ImFontAtlas_AddFontDefault;
+    pub inline fn AddFontDefault(self: *FontAtlas) ?*Font {
+        return AddFontDefaultExt(self, null);
+    }
+
+    /// AddFontFromFileTTFExt(self: *FontAtlas, filename: ?[*:0]const u8, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) ?*Font
+    pub const AddFontFromFileTTFExt = raw.ImFontAtlas_AddFontFromFileTTF;
+    pub inline fn AddFontFromFileTTF(self: *FontAtlas, filename: ?[*:0]const u8, size_pixels: f32) ?*Font {
+        return AddFontFromFileTTFExt(self, filename, size_pixels, null, null);
+    }
+
+    /// AddFontFromMemoryCompressedBase85TTFExt(self: *FontAtlas, compressed_font_data_base85: ?[*]const u8, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) ?*Font
+    pub const AddFontFromMemoryCompressedBase85TTFExt = raw.ImFontAtlas_AddFontFromMemoryCompressedBase85TTF;
+    pub inline fn AddFontFromMemoryCompressedBase85TTF(self: *FontAtlas, compressed_font_data_base85: ?[*]const u8, size_pixels: f32) ?*Font {
+        return AddFontFromMemoryCompressedBase85TTFExt(self, compressed_font_data_base85, size_pixels, null, null);
+    }
+
+    /// AddFontFromMemoryCompressedTTFExt(self: *FontAtlas, compressed_font_data: ?*const c_void, compressed_font_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) ?*Font
+    pub const AddFontFromMemoryCompressedTTFExt = raw.ImFontAtlas_AddFontFromMemoryCompressedTTF;
+    pub inline fn AddFontFromMemoryCompressedTTF(self: *FontAtlas, compressed_font_data: ?*const c_void, compressed_font_size: i32, size_pixels: f32) ?*Font {
+        return AddFontFromMemoryCompressedTTFExt(self, compressed_font_data, compressed_font_size, size_pixels, null, null);
+    }
+
+    /// AddFontFromMemoryTTFExt(self: *FontAtlas, font_data: ?*c_void, font_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) ?*Font
+    pub const AddFontFromMemoryTTFExt = raw.ImFontAtlas_AddFontFromMemoryTTF;
+    pub inline fn AddFontFromMemoryTTF(self: *FontAtlas, font_data: ?*c_void, font_size: i32, size_pixels: f32) ?*Font {
+        return AddFontFromMemoryTTFExt(self, font_data, font_size, size_pixels, null, null);
+    }
+
+    /// Build(self: *FontAtlas) bool
     pub const Build = raw.ImFontAtlas_Build;
+
+    /// CalcCustomRectUV(self: *const FontAtlas, rect: ?*const FontAtlasCustomRect, out_uv_min: ?*Vec2, out_uv_max: ?*Vec2) void
     pub const CalcCustomRectUV = raw.ImFontAtlas_CalcCustomRectUV;
+
+    /// Clear(self: *FontAtlas) void
     pub const Clear = raw.ImFontAtlas_Clear;
+
+    /// ClearFonts(self: *FontAtlas) void
     pub const ClearFonts = raw.ImFontAtlas_ClearFonts;
+
+    /// ClearInputData(self: *FontAtlas) void
     pub const ClearInputData = raw.ImFontAtlas_ClearInputData;
+
+    /// ClearTexData(self: *FontAtlas) void
     pub const ClearTexData = raw.ImFontAtlas_ClearTexData;
+
+    /// GetCustomRectByIndex(self: *const FontAtlas, index: i32) ?*const FontAtlasCustomRect
     pub const GetCustomRectByIndex = raw.ImFontAtlas_GetCustomRectByIndex;
+
+    /// GetGlyphRangesChineseFull(self: *FontAtlas) ?*const Wchar
     pub const GetGlyphRangesChineseFull = raw.ImFontAtlas_GetGlyphRangesChineseFull;
+
+    /// GetGlyphRangesChineseSimplifiedCommon(self: *FontAtlas) ?*const Wchar
     pub const GetGlyphRangesChineseSimplifiedCommon = raw.ImFontAtlas_GetGlyphRangesChineseSimplifiedCommon;
+
+    /// GetGlyphRangesCyrillic(self: *FontAtlas) ?*const Wchar
     pub const GetGlyphRangesCyrillic = raw.ImFontAtlas_GetGlyphRangesCyrillic;
+
+    /// GetGlyphRangesDefault(self: *FontAtlas) ?*const Wchar
     pub const GetGlyphRangesDefault = raw.ImFontAtlas_GetGlyphRangesDefault;
+
+    /// GetGlyphRangesJapanese(self: *FontAtlas) ?*const Wchar
     pub const GetGlyphRangesJapanese = raw.ImFontAtlas_GetGlyphRangesJapanese;
+
+    /// GetGlyphRangesKorean(self: *FontAtlas) ?*const Wchar
     pub const GetGlyphRangesKorean = raw.ImFontAtlas_GetGlyphRangesKorean;
+
+    /// GetGlyphRangesThai(self: *FontAtlas) ?*const Wchar
     pub const GetGlyphRangesThai = raw.ImFontAtlas_GetGlyphRangesThai;
+
+    /// GetGlyphRangesVietnamese(self: *FontAtlas) ?*const Wchar
     pub const GetGlyphRangesVietnamese = raw.ImFontAtlas_GetGlyphRangesVietnamese;
+
+    /// GetMouseCursorTexData(self: *FontAtlas, cursor: MouseCursor, out_offset: ?*Vec2, out_size: ?*Vec2, out_uv_border: *[2]Vec2, out_uv_fill: *[2]Vec2) bool
     pub const GetMouseCursorTexData = raw.ImFontAtlas_GetMouseCursorTexData;
-    pub const GetTexDataAsAlpha8 = raw.ImFontAtlas_GetTexDataAsAlpha8;
-    pub const GetTexDataAsRGBA32 = raw.ImFontAtlas_GetTexDataAsRGBA32;
+
+    /// GetTexDataAsAlpha8Ext(self: *FontAtlas, out_pixels: *?[*]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: ?*i32) void
+    pub const GetTexDataAsAlpha8Ext = raw.ImFontAtlas_GetTexDataAsAlpha8;
+    pub inline fn GetTexDataAsAlpha8(self: *FontAtlas, out_pixels: *?[*]u8, out_width: *i32, out_height: *i32) void {
+        return GetTexDataAsAlpha8Ext(self, out_pixels, out_width, out_height, null);
+    }
+
+    /// GetTexDataAsRGBA32Ext(self: *FontAtlas, out_pixels: *?[*]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: ?*i32) void
+    pub const GetTexDataAsRGBA32Ext = raw.ImFontAtlas_GetTexDataAsRGBA32;
+    pub inline fn GetTexDataAsRGBA32(self: *FontAtlas, out_pixels: *?[*]u8, out_width: *i32, out_height: *i32) void {
+        return GetTexDataAsRGBA32Ext(self, out_pixels, out_width, out_height, null);
+    }
+
+    /// init(self: *FontAtlas) void
     pub const init = raw.ImFontAtlas_ImFontAtlas;
+
+    /// IsBuilt(self: *const FontAtlas) bool
     pub const IsBuilt = raw.ImFontAtlas_IsBuilt;
+
+    /// SetTexID(self: *FontAtlas, id: TextureID) void
     pub const SetTexID = raw.ImFontAtlas_SetTexID;
+
+    /// deinit(self: *FontAtlas) void
     pub const deinit = raw.ImFontAtlas_destroy;
 };
 
@@ -1204,8 +1542,13 @@ pub const FontAtlasCustomRect = extern struct {
     GlyphOffset: Vec2,
     Font: ?*Font,
 
+    /// init(self: *FontAtlasCustomRect) void
     pub const init = raw.ImFontAtlasCustomRect_ImFontAtlasCustomRect;
+
+    /// IsPacked(self: *const FontAtlasCustomRect) bool
     pub const IsPacked = raw.ImFontAtlasCustomRect_IsPacked;
+
+    /// deinit(self: *FontAtlasCustomRect) void
     pub const deinit = raw.ImFontAtlasCustomRect_destroy;
 };
 
@@ -1230,7 +1573,10 @@ pub const FontConfig = extern struct {
     Name: [40]u8,
     DstFont: ?*Font,
 
+    /// init(self: *FontConfig) void
     pub const init = raw.ImFontConfig_ImFontConfig;
+
+    /// deinit(self: *FontConfig) void
     pub const deinit = raw.ImFontConfig_destroy;
 };
 
@@ -1250,14 +1596,34 @@ pub const FontGlyph = extern struct {
 pub const FontGlyphRangesBuilder = extern struct {
     UsedChars: Vector(u32),
 
+    /// AddChar(self: *FontGlyphRangesBuilder, c: Wchar) void
     pub const AddChar = raw.ImFontGlyphRangesBuilder_AddChar;
+
+    /// AddRanges(self: *FontGlyphRangesBuilder, ranges: ?[*:0]const Wchar) void
     pub const AddRanges = raw.ImFontGlyphRangesBuilder_AddRanges;
-    pub const AddText = raw.ImFontGlyphRangesBuilder_AddText;
+
+    /// AddTextExt(self: *FontGlyphRangesBuilder, text: ?[*]const u8, text_end: ?[*]const u8) void
+    pub const AddTextExt = raw.ImFontGlyphRangesBuilder_AddText;
+    pub inline fn AddText(self: *FontGlyphRangesBuilder, text: ?[*]const u8) void {
+        return AddTextExt(self, text, null);
+    }
+
+    /// BuildRanges(self: *FontGlyphRangesBuilder, out_ranges: *Vector(Wchar)) void
     pub const BuildRanges = raw.ImFontGlyphRangesBuilder_BuildRanges;
+
+    /// Clear(self: *FontGlyphRangesBuilder) void
     pub const Clear = raw.ImFontGlyphRangesBuilder_Clear;
+
+    /// GetBit(self: *const FontGlyphRangesBuilder, n: i32) bool
     pub const GetBit = raw.ImFontGlyphRangesBuilder_GetBit;
+
+    /// init(self: *FontGlyphRangesBuilder) void
     pub const init = raw.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder;
+
+    /// SetBit(self: *FontGlyphRangesBuilder, n: i32) void
     pub const SetBit = raw.ImFontGlyphRangesBuilder_SetBit;
+
+    /// deinit(self: *FontGlyphRangesBuilder) void
     pub const deinit = raw.ImFontGlyphRangesBuilder_destroy;
 };
 
@@ -1340,10 +1706,19 @@ pub const IO = extern struct {
     NavInputsDownDurationPrev: [NavInput.COUNT]f32,
     InputQueueCharacters: Vector(Wchar),
 
+    /// AddInputCharacter(self: *IO, c: u32) void
     pub const AddInputCharacter = raw.ImGuiIO_AddInputCharacter;
+
+    /// AddInputCharactersUTF8(self: *IO, str: ?[*:0]const u8) void
     pub const AddInputCharactersUTF8 = raw.ImGuiIO_AddInputCharactersUTF8;
+
+    /// ClearInputCharacters(self: *IO) void
     pub const ClearInputCharacters = raw.ImGuiIO_ClearInputCharacters;
+
+    /// init(self: *IO) void
     pub const init = raw.ImGuiIO_ImGuiIO;
+
+    /// deinit(self: *IO) void
     pub const deinit = raw.ImGuiIO_destroy;
 };
 
@@ -1361,10 +1736,22 @@ pub const InputTextCallbackData = extern struct {
     SelectionStart: i32,
     SelectionEnd: i32,
 
+    /// DeleteChars(self: *InputTextCallbackData, pos: i32, bytes_count: i32) void
     pub const DeleteChars = raw.ImGuiInputTextCallbackData_DeleteChars;
+
+    /// HasSelection(self: *const InputTextCallbackData) bool
     pub const HasSelection = raw.ImGuiInputTextCallbackData_HasSelection;
+
+    /// init(self: *InputTextCallbackData) void
     pub const init = raw.ImGuiInputTextCallbackData_ImGuiInputTextCallbackData;
-    pub const InsertChars = raw.ImGuiInputTextCallbackData_InsertChars;
+
+    /// InsertCharsExt(self: *InputTextCallbackData, pos: i32, text: ?[*]const u8, text_end: ?[*]const u8) void
+    pub const InsertCharsExt = raw.ImGuiInputTextCallbackData_InsertChars;
+    pub inline fn InsertChars(self: *InputTextCallbackData, pos: i32, text: ?[*]const u8) void {
+        return InsertCharsExt(self, pos, text, null);
+    }
+
+    /// deinit(self: *InputTextCallbackData) void
     pub const deinit = raw.ImGuiInputTextCallbackData_destroy;
 };
 
@@ -1376,17 +1763,35 @@ pub const ListClipper = extern struct {
     ItemsHeight: f32,
     StartPosY: f32,
 
-    pub const Begin = raw.ImGuiListClipper_Begin;
+    /// BeginExt(self: *ListClipper, items_count: i32, items_height: f32) void
+    pub const BeginExt = raw.ImGuiListClipper_Begin;
+    pub inline fn Begin(self: *ListClipper, items_count: i32) void {
+        return BeginExt(self, items_count, -1.0);
+    }
+
+    /// End(self: *ListClipper) void
     pub const End = raw.ImGuiListClipper_End;
-    pub const init = raw.ImGuiListClipper_ImGuiListClipper;
+
+    /// initExt(self: *ListClipper, items_count: i32, items_height: f32) void
+    pub const initExt = raw.ImGuiListClipper_ImGuiListClipper;
+    pub inline fn init(self: *ListClipper) void {
+        return initExt(self, -1, -1.0);
+    }
+
+    /// Step(self: *ListClipper) bool
     pub const Step = raw.ImGuiListClipper_Step;
+
+    /// deinit(self: *ListClipper) void
     pub const deinit = raw.ImGuiListClipper_destroy;
 };
 
 pub const OnceUponAFrame = extern struct {
     RefFrame: i32,
 
+    /// init(self: *OnceUponAFrame) void
     pub const init = raw.ImGuiOnceUponAFrame_ImGuiOnceUponAFrame;
+
+    /// deinit(self: *OnceUponAFrame) void
     pub const deinit = raw.ImGuiOnceUponAFrame_destroy;
 };
 
@@ -1400,11 +1805,22 @@ pub const Payload = extern struct {
     Preview: bool,
     Delivery: bool,
 
+    /// Clear(self: *Payload) void
     pub const Clear = raw.ImGuiPayload_Clear;
+
+    /// init(self: *Payload) void
     pub const init = raw.ImGuiPayload_ImGuiPayload;
+
+    /// IsDataType(self: *const Payload, kind: ?[*:0]const u8) bool
     pub const IsDataType = raw.ImGuiPayload_IsDataType;
+
+    /// IsDelivery(self: *const Payload) bool
     pub const IsDelivery = raw.ImGuiPayload_IsDelivery;
+
+    /// IsPreview(self: *const Payload) bool
     pub const IsPreview = raw.ImGuiPayload_IsPreview;
+
+    /// deinit(self: *Payload) void
     pub const deinit = raw.ImGuiPayload_destroy;
 };
 
@@ -1418,20 +1834,70 @@ pub const SizeCallbackData = extern struct {
 pub const Storage = extern struct {
     Data: Vector(StoragePair),
 
+    /// BuildSortByKey(self: *Storage) void
     pub const BuildSortByKey = raw.ImGuiStorage_BuildSortByKey;
+
+    /// Clear(self: *Storage) void
     pub const Clear = raw.ImGuiStorage_Clear;
-    pub const GetBool = raw.ImGuiStorage_GetBool;
-    pub const GetBoolRef = raw.ImGuiStorage_GetBoolRef;
-    pub const GetFloat = raw.ImGuiStorage_GetFloat;
-    pub const GetFloatRef = raw.ImGuiStorage_GetFloatRef;
-    pub const GetInt = raw.ImGuiStorage_GetInt;
-    pub const GetIntRef = raw.ImGuiStorage_GetIntRef;
+
+    /// GetBoolExt(self: *const Storage, key: ID, default_val: bool) bool
+    pub const GetBoolExt = raw.ImGuiStorage_GetBool;
+    pub inline fn GetBool(self: *const Storage, key: ID) bool {
+        return GetBoolExt(self, key, false);
+    }
+
+    /// GetBoolRefExt(self: *Storage, key: ID, default_val: bool) ?*bool
+    pub const GetBoolRefExt = raw.ImGuiStorage_GetBoolRef;
+    pub inline fn GetBoolRef(self: *Storage, key: ID) ?*bool {
+        return GetBoolRefExt(self, key, false);
+    }
+
+    /// GetFloatExt(self: *const Storage, key: ID, default_val: f32) f32
+    pub const GetFloatExt = raw.ImGuiStorage_GetFloat;
+    pub inline fn GetFloat(self: *const Storage, key: ID) f32 {
+        return GetFloatExt(self, key, 0.0);
+    }
+
+    /// GetFloatRefExt(self: *Storage, key: ID, default_val: f32) ?*f32
+    pub const GetFloatRefExt = raw.ImGuiStorage_GetFloatRef;
+    pub inline fn GetFloatRef(self: *Storage, key: ID) ?*f32 {
+        return GetFloatRefExt(self, key, 0.0);
+    }
+
+    /// GetIntExt(self: *const Storage, key: ID, default_val: i32) i32
+    pub const GetIntExt = raw.ImGuiStorage_GetInt;
+    pub inline fn GetInt(self: *const Storage, key: ID) i32 {
+        return GetIntExt(self, key, 0);
+    }
+
+    /// GetIntRefExt(self: *Storage, key: ID, default_val: i32) ?*i32
+    pub const GetIntRefExt = raw.ImGuiStorage_GetIntRef;
+    pub inline fn GetIntRef(self: *Storage, key: ID) ?*i32 {
+        return GetIntRefExt(self, key, 0);
+    }
+
+    /// GetVoidPtr(self: *const Storage, key: ID) ?*c_void
     pub const GetVoidPtr = raw.ImGuiStorage_GetVoidPtr;
-    pub const GetVoidPtrRef = raw.ImGuiStorage_GetVoidPtrRef;
+
+    /// GetVoidPtrRefExt(self: *Storage, key: ID, default_val: ?*c_void) ?*?*c_void
+    pub const GetVoidPtrRefExt = raw.ImGuiStorage_GetVoidPtrRef;
+    pub inline fn GetVoidPtrRef(self: *Storage, key: ID) ?*?*c_void {
+        return GetVoidPtrRefExt(self, key, null);
+    }
+
+    /// SetAllInt(self: *Storage, val: i32) void
     pub const SetAllInt = raw.ImGuiStorage_SetAllInt;
+
+    /// SetBool(self: *Storage, key: ID, val: bool) void
     pub const SetBool = raw.ImGuiStorage_SetBool;
+
+    /// SetFloat(self: *Storage, key: ID, val: f32) void
     pub const SetFloat = raw.ImGuiStorage_SetFloat;
+
+    /// SetInt(self: *Storage, key: ID, val: i32) void
     pub const SetInt = raw.ImGuiStorage_SetInt;
+
+    /// SetVoidPtr(self: *Storage, key: ID, val: ?*c_void) void
     pub const SetVoidPtr = raw.ImGuiStorage_SetVoidPtr;
 };
 
@@ -1439,9 +1905,16 @@ pub const StoragePair = extern struct {
     key: ID,
     value: extern union { val_i: i32, val_f: f32, val_p: ?*c_void },
 
+    /// initInt(self: *StoragePair, _key: ID, _val_i: i32) void
     pub const initInt = raw.ImGuiStoragePair_ImGuiStoragePairInt;
+
+    /// initFloat(self: *StoragePair, _key: ID, _val_f: f32) void
     pub const initFloat = raw.ImGuiStoragePair_ImGuiStoragePairFloat;
+
+    /// initPtr(self: *StoragePair, _key: ID, _val_p: ?*c_void) void
     pub const initPtr = raw.ImGuiStoragePair_ImGuiStoragePairPtr;
+
+    /// deinit(self: *StoragePair) void
     pub const deinit = raw.ImGuiStoragePair_destroy;
 };
 
@@ -1483,24 +1956,53 @@ pub const Style = extern struct {
     CircleSegmentMaxError: f32,
     Colors: [Col.COUNT]Vec4,
 
+    /// init(self: *Style) void
     pub const init = raw.ImGuiStyle_ImGuiStyle;
+
+    /// ScaleAllSizes(self: *Style, scale_factor: f32) void
     pub const ScaleAllSizes = raw.ImGuiStyle_ScaleAllSizes;
+
+    /// deinit(self: *Style) void
     pub const deinit = raw.ImGuiStyle_destroy;
 };
 
 pub const TextBuffer = extern struct {
     Buf: Vector(u8),
 
+    /// init(self: *TextBuffer) void
     pub const init = raw.ImGuiTextBuffer_ImGuiTextBuffer;
-    pub const append = raw.ImGuiTextBuffer_append;
+
+    /// appendExt(self: *TextBuffer, str: ?[*]const u8, str_end: ?[*]const u8) void
+    pub const appendExt = raw.ImGuiTextBuffer_append;
+    pub inline fn append(self: *TextBuffer, str: ?[*]const u8) void {
+        return appendExt(self, str, null);
+    }
+
+    /// appendf(self: *TextBuffer, fmt: ?[*:0]const u8, ...: ...) void
     pub const appendf = raw.ImGuiTextBuffer_appendf;
+
+    /// begin(self: *const TextBuffer) [*]const u8
     pub const begin = raw.ImGuiTextBuffer_begin;
+
+    /// c_str(self: *const TextBuffer) [*:0]const u8
     pub const c_str = raw.ImGuiTextBuffer_c_str;
+
+    /// clear(self: *TextBuffer) void
     pub const clear = raw.ImGuiTextBuffer_clear;
+
+    /// deinit(self: *TextBuffer) void
     pub const deinit = raw.ImGuiTextBuffer_destroy;
+
+    /// empty(self: *const TextBuffer) bool
     pub const empty = raw.ImGuiTextBuffer_empty;
+
+    /// end(self: *const TextBuffer) [*]const u8
     pub const end = raw.ImGuiTextBuffer_end;
+
+    /// reserve(self: *TextBuffer, capacity: i32) void
     pub const reserve = raw.ImGuiTextBuffer_reserve;
+
+    /// size(self: *const TextBuffer) i32
     pub const size = raw.ImGuiTextBuffer_size;
 };
 
@@ -1509,12 +2011,34 @@ pub const TextFilter = extern struct {
     Filters: Vector(TextRange),
     CountGrep: i32,
 
+    /// Build(self: *TextFilter) void
     pub const Build = raw.ImGuiTextFilter_Build;
+
+    /// Clear(self: *TextFilter) void
     pub const Clear = raw.ImGuiTextFilter_Clear;
-    pub const Draw = raw.ImGuiTextFilter_Draw;
-    pub const init = raw.ImGuiTextFilter_ImGuiTextFilter;
+
+    /// DrawExt(self: *TextFilter, label: ?[*:0]const u8, width: f32) bool
+    pub const DrawExt = raw.ImGuiTextFilter_Draw;
+    pub inline fn Draw(self: *TextFilter) bool {
+        return DrawExt(self, "Filter(inc,-exc)", 0.0);
+    }
+
+    /// initExt(self: *TextFilter, default_filter: ?[*:0]const u8) void
+    pub const initExt = raw.ImGuiTextFilter_ImGuiTextFilter;
+    pub inline fn init(self: *TextFilter) void {
+        return initExt(self, "");
+    }
+
+    /// IsActive(self: *const TextFilter) bool
     pub const IsActive = raw.ImGuiTextFilter_IsActive;
-    pub const PassFilter = raw.ImGuiTextFilter_PassFilter;
+
+    /// PassFilterExt(self: *const TextFilter, text: ?[*]const u8, text_end: ?[*]const u8) bool
+    pub const PassFilterExt = raw.ImGuiTextFilter_PassFilter;
+    pub inline fn PassFilter(self: *const TextFilter, text: ?[*]const u8) bool {
+        return PassFilterExt(self, text, null);
+    }
+
+    /// deinit(self: *TextFilter) void
     pub const deinit = raw.ImGuiTextFilter_destroy;
 };
 
@@ -1522,10 +2046,19 @@ pub const TextRange = extern struct {
     b: ?[*]const u8,
     e: ?[*]const u8,
 
+    /// init(self: *TextRange) void
     pub const init = raw.ImGuiTextRange_ImGuiTextRange;
+
+    /// initStr(self: *TextRange, _b: ?[*]const u8, _e: ?[*]const u8) void
     pub const initStr = raw.ImGuiTextRange_ImGuiTextRangeStr;
+
+    /// deinit(self: *TextRange) void
     pub const deinit = raw.ImGuiTextRange_destroy;
+
+    /// empty(self: *const TextRange) bool
     pub const empty = raw.ImGuiTextRange_empty;
+
+    /// split(self: *const TextRange, separator: u8, out: ?*Vector(TextRange)) void
     pub const split = raw.ImGuiTextRange_split;
 };
 
@@ -1533,8 +2066,13 @@ pub const Vec2 = extern struct {
     x: f32,
     y: f32,
 
+    /// init(self: *Vec2) void
     pub const init = raw.ImVec2_ImVec2;
+
+    /// initFloat(self: *Vec2, _x: f32, _y: f32) void
     pub const initFloat = raw.ImVec2_ImVec2Float;
+
+    /// deinit(self: *Vec2) void
     pub const deinit = raw.ImVec2_destroy;
 };
 
@@ -1544,604 +2082,1154 @@ pub const Vec4 = extern struct {
     z: f32,
     w: f32,
 
+    /// init(self: *Vec4) void
     pub const init = raw.ImVec4_ImVec4;
+
+    /// initFloat(self: *Vec4, _x: f32, _y: f32, _z: f32, _w: f32) void
     pub const initFloat = raw.ImVec4_ImVec4Float;
+
+    /// deinit(self: *Vec4) void
     pub const deinit = raw.ImVec4_destroy;
 };
 
 const FTABLE_ImVector_ImDrawChannel = struct {
+    /// init(self: *Vector(DrawChannel)) void
     pub const init = raw.ImVector_ImDrawChannel_ImVector_ImDrawChannel;
+    /// initVector(self: *Vector(DrawChannel), src: Vector(DrawChannel)) void
     pub const initVector = raw.ImVector_ImDrawChannel_ImVector_ImDrawChannelVector;
+    /// _grow_capacity(self: *const Vector(DrawChannel), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImDrawChannel__grow_capacity;
+    /// back(self: *Vector(DrawChannel)) *DrawChannel
     pub const back = raw.ImVector_ImDrawChannel_back;
+    /// back_const(self: *const Vector(DrawChannel)) *const DrawChannel
     pub const back_const = raw.ImVector_ImDrawChannel_back_const;
+    /// begin(self: *Vector(DrawChannel)) [*]DrawChannel
     pub const begin = raw.ImVector_ImDrawChannel_begin;
+    /// begin_const(self: *const Vector(DrawChannel)) [*]const DrawChannel
     pub const begin_const = raw.ImVector_ImDrawChannel_begin_const;
+    /// capacity(self: *const Vector(DrawChannel)) i32
     pub const capacity = raw.ImVector_ImDrawChannel_capacity;
+    /// clear(self: *Vector(DrawChannel)) void
     pub const clear = raw.ImVector_ImDrawChannel_clear;
+    /// deinit(self: *Vector(DrawChannel)) void
     pub const deinit = raw.ImVector_ImDrawChannel_destroy;
+    /// empty(self: *const Vector(DrawChannel)) bool
     pub const empty = raw.ImVector_ImDrawChannel_empty;
+    /// end(self: *Vector(DrawChannel)) [*]DrawChannel
     pub const end = raw.ImVector_ImDrawChannel_end;
+    /// end_const(self: *const Vector(DrawChannel)) [*]const DrawChannel
     pub const end_const = raw.ImVector_ImDrawChannel_end_const;
+    /// erase(self: *Vector(DrawChannel), it: [*]const DrawChannel) [*]DrawChannel
     pub const erase = raw.ImVector_ImDrawChannel_erase;
+    /// eraseTPtr(self: *Vector(DrawChannel), it: [*]const DrawChannel, it_last: [*]const DrawChannel) [*]DrawChannel
     pub const eraseTPtr = raw.ImVector_ImDrawChannel_eraseTPtr;
+    /// erase_unsorted(self: *Vector(DrawChannel), it: [*]const DrawChannel) [*]DrawChannel
     pub const erase_unsorted = raw.ImVector_ImDrawChannel_erase_unsorted;
+    /// front(self: *Vector(DrawChannel)) *DrawChannel
     pub const front = raw.ImVector_ImDrawChannel_front;
+    /// front_const(self: *const Vector(DrawChannel)) *const DrawChannel
     pub const front_const = raw.ImVector_ImDrawChannel_front_const;
+    /// index_from_ptr(self: *const Vector(DrawChannel), it: [*]const DrawChannel) i32
     pub const index_from_ptr = raw.ImVector_ImDrawChannel_index_from_ptr;
+    /// insert(self: *Vector(DrawChannel), it: [*]const DrawChannel, v: DrawChannel) [*]DrawChannel
     pub const insert = raw.ImVector_ImDrawChannel_insert;
+    /// pop_back(self: *Vector(DrawChannel)) void
     pub const pop_back = raw.ImVector_ImDrawChannel_pop_back;
+    /// push_back(self: *Vector(DrawChannel), v: DrawChannel) void
     pub const push_back = raw.ImVector_ImDrawChannel_push_back;
+    /// push_front(self: *Vector(DrawChannel), v: DrawChannel) void
     pub const push_front = raw.ImVector_ImDrawChannel_push_front;
+    /// reserve(self: *Vector(DrawChannel), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImDrawChannel_reserve;
+    /// resize(self: *Vector(DrawChannel), new_size: i32) void
     pub const resize = raw.ImVector_ImDrawChannel_resize;
+    /// resizeT(self: *Vector(DrawChannel), new_size: i32, v: DrawChannel) void
     pub const resizeT = raw.ImVector_ImDrawChannel_resizeT;
+    /// shrink(self: *Vector(DrawChannel), new_size: i32) void
     pub const shrink = raw.ImVector_ImDrawChannel_shrink;
+    /// size(self: *const Vector(DrawChannel)) i32
     pub const size = raw.ImVector_ImDrawChannel_size;
+    /// size_in_bytes(self: *const Vector(DrawChannel)) i32
     pub const size_in_bytes = raw.ImVector_ImDrawChannel_size_in_bytes;
+    /// swap(self: *Vector(DrawChannel), rhs: *Vector(DrawChannel)) void
     pub const swap = raw.ImVector_ImDrawChannel_swap;
 };
 
 const FTABLE_ImVector_ImDrawCmd = struct {
+    /// init(self: *Vector(DrawCmd)) void
     pub const init = raw.ImVector_ImDrawCmd_ImVector_ImDrawCmd;
+    /// initVector(self: *Vector(DrawCmd), src: Vector(DrawCmd)) void
     pub const initVector = raw.ImVector_ImDrawCmd_ImVector_ImDrawCmdVector;
+    /// _grow_capacity(self: *const Vector(DrawCmd), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImDrawCmd__grow_capacity;
+    /// back(self: *Vector(DrawCmd)) *DrawCmd
     pub const back = raw.ImVector_ImDrawCmd_back;
+    /// back_const(self: *const Vector(DrawCmd)) *const DrawCmd
     pub const back_const = raw.ImVector_ImDrawCmd_back_const;
+    /// begin(self: *Vector(DrawCmd)) [*]DrawCmd
     pub const begin = raw.ImVector_ImDrawCmd_begin;
+    /// begin_const(self: *const Vector(DrawCmd)) [*]const DrawCmd
     pub const begin_const = raw.ImVector_ImDrawCmd_begin_const;
+    /// capacity(self: *const Vector(DrawCmd)) i32
     pub const capacity = raw.ImVector_ImDrawCmd_capacity;
+    /// clear(self: *Vector(DrawCmd)) void
     pub const clear = raw.ImVector_ImDrawCmd_clear;
+    /// deinit(self: *Vector(DrawCmd)) void
     pub const deinit = raw.ImVector_ImDrawCmd_destroy;
+    /// empty(self: *const Vector(DrawCmd)) bool
     pub const empty = raw.ImVector_ImDrawCmd_empty;
+    /// end(self: *Vector(DrawCmd)) [*]DrawCmd
     pub const end = raw.ImVector_ImDrawCmd_end;
+    /// end_const(self: *const Vector(DrawCmd)) [*]const DrawCmd
     pub const end_const = raw.ImVector_ImDrawCmd_end_const;
+    /// erase(self: *Vector(DrawCmd), it: [*]const DrawCmd) [*]DrawCmd
     pub const erase = raw.ImVector_ImDrawCmd_erase;
+    /// eraseTPtr(self: *Vector(DrawCmd), it: [*]const DrawCmd, it_last: [*]const DrawCmd) [*]DrawCmd
     pub const eraseTPtr = raw.ImVector_ImDrawCmd_eraseTPtr;
+    /// erase_unsorted(self: *Vector(DrawCmd), it: [*]const DrawCmd) [*]DrawCmd
     pub const erase_unsorted = raw.ImVector_ImDrawCmd_erase_unsorted;
+    /// front(self: *Vector(DrawCmd)) *DrawCmd
     pub const front = raw.ImVector_ImDrawCmd_front;
+    /// front_const(self: *const Vector(DrawCmd)) *const DrawCmd
     pub const front_const = raw.ImVector_ImDrawCmd_front_const;
+    /// index_from_ptr(self: *const Vector(DrawCmd), it: [*]const DrawCmd) i32
     pub const index_from_ptr = raw.ImVector_ImDrawCmd_index_from_ptr;
+    /// insert(self: *Vector(DrawCmd), it: [*]const DrawCmd, v: DrawCmd) [*]DrawCmd
     pub const insert = raw.ImVector_ImDrawCmd_insert;
+    /// pop_back(self: *Vector(DrawCmd)) void
     pub const pop_back = raw.ImVector_ImDrawCmd_pop_back;
+    /// push_back(self: *Vector(DrawCmd), v: DrawCmd) void
     pub const push_back = raw.ImVector_ImDrawCmd_push_back;
+    /// push_front(self: *Vector(DrawCmd), v: DrawCmd) void
     pub const push_front = raw.ImVector_ImDrawCmd_push_front;
+    /// reserve(self: *Vector(DrawCmd), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImDrawCmd_reserve;
+    /// resize(self: *Vector(DrawCmd), new_size: i32) void
     pub const resize = raw.ImVector_ImDrawCmd_resize;
+    /// resizeT(self: *Vector(DrawCmd), new_size: i32, v: DrawCmd) void
     pub const resizeT = raw.ImVector_ImDrawCmd_resizeT;
+    /// shrink(self: *Vector(DrawCmd), new_size: i32) void
     pub const shrink = raw.ImVector_ImDrawCmd_shrink;
+    /// size(self: *const Vector(DrawCmd)) i32
     pub const size = raw.ImVector_ImDrawCmd_size;
+    /// size_in_bytes(self: *const Vector(DrawCmd)) i32
     pub const size_in_bytes = raw.ImVector_ImDrawCmd_size_in_bytes;
+    /// swap(self: *Vector(DrawCmd), rhs: *Vector(DrawCmd)) void
     pub const swap = raw.ImVector_ImDrawCmd_swap;
 };
 
 const FTABLE_ImVector_ImDrawIdx = struct {
+    /// init(self: *Vector(DrawIdx)) void
     pub const init = raw.ImVector_ImDrawIdx_ImVector_ImDrawIdx;
+    /// initVector(self: *Vector(DrawIdx), src: Vector(DrawIdx)) void
     pub const initVector = raw.ImVector_ImDrawIdx_ImVector_ImDrawIdxVector;
+    /// _grow_capacity(self: *const Vector(DrawIdx), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImDrawIdx__grow_capacity;
+    /// back(self: *Vector(DrawIdx)) *DrawIdx
     pub const back = raw.ImVector_ImDrawIdx_back;
+    /// back_const(self: *const Vector(DrawIdx)) *const DrawIdx
     pub const back_const = raw.ImVector_ImDrawIdx_back_const;
+    /// begin(self: *Vector(DrawIdx)) [*]DrawIdx
     pub const begin = raw.ImVector_ImDrawIdx_begin;
+    /// begin_const(self: *const Vector(DrawIdx)) [*]const DrawIdx
     pub const begin_const = raw.ImVector_ImDrawIdx_begin_const;
+    /// capacity(self: *const Vector(DrawIdx)) i32
     pub const capacity = raw.ImVector_ImDrawIdx_capacity;
+    /// clear(self: *Vector(DrawIdx)) void
     pub const clear = raw.ImVector_ImDrawIdx_clear;
+    /// contains(self: *const Vector(DrawIdx), v: DrawIdx) bool
     pub const contains = raw.ImVector_ImDrawIdx_contains;
+    /// deinit(self: *Vector(DrawIdx)) void
     pub const deinit = raw.ImVector_ImDrawIdx_destroy;
+    /// empty(self: *const Vector(DrawIdx)) bool
     pub const empty = raw.ImVector_ImDrawIdx_empty;
+    /// end(self: *Vector(DrawIdx)) [*]DrawIdx
     pub const end = raw.ImVector_ImDrawIdx_end;
+    /// end_const(self: *const Vector(DrawIdx)) [*]const DrawIdx
     pub const end_const = raw.ImVector_ImDrawIdx_end_const;
+    /// erase(self: *Vector(DrawIdx), it: [*]const DrawIdx) [*]DrawIdx
     pub const erase = raw.ImVector_ImDrawIdx_erase;
+    /// eraseTPtr(self: *Vector(DrawIdx), it: [*]const DrawIdx, it_last: [*]const DrawIdx) [*]DrawIdx
     pub const eraseTPtr = raw.ImVector_ImDrawIdx_eraseTPtr;
+    /// erase_unsorted(self: *Vector(DrawIdx), it: [*]const DrawIdx) [*]DrawIdx
     pub const erase_unsorted = raw.ImVector_ImDrawIdx_erase_unsorted;
+    /// find(self: *Vector(DrawIdx), v: DrawIdx) [*]DrawIdx
     pub const find = raw.ImVector_ImDrawIdx_find;
+    /// find_const(self: *const Vector(DrawIdx), v: DrawIdx) [*]const DrawIdx
     pub const find_const = raw.ImVector_ImDrawIdx_find_const;
+    /// find_erase(self: *Vector(DrawIdx), v: DrawIdx) bool
     pub const find_erase = raw.ImVector_ImDrawIdx_find_erase;
+    /// find_erase_unsorted(self: *Vector(DrawIdx), v: DrawIdx) bool
     pub const find_erase_unsorted = raw.ImVector_ImDrawIdx_find_erase_unsorted;
+    /// front(self: *Vector(DrawIdx)) *DrawIdx
     pub const front = raw.ImVector_ImDrawIdx_front;
+    /// front_const(self: *const Vector(DrawIdx)) *const DrawIdx
     pub const front_const = raw.ImVector_ImDrawIdx_front_const;
+    /// index_from_ptr(self: *const Vector(DrawIdx), it: [*]const DrawIdx) i32
     pub const index_from_ptr = raw.ImVector_ImDrawIdx_index_from_ptr;
+    /// insert(self: *Vector(DrawIdx), it: [*]const DrawIdx, v: DrawIdx) [*]DrawIdx
     pub const insert = raw.ImVector_ImDrawIdx_insert;
+    /// pop_back(self: *Vector(DrawIdx)) void
     pub const pop_back = raw.ImVector_ImDrawIdx_pop_back;
+    /// push_back(self: *Vector(DrawIdx), v: DrawIdx) void
     pub const push_back = raw.ImVector_ImDrawIdx_push_back;
+    /// push_front(self: *Vector(DrawIdx), v: DrawIdx) void
     pub const push_front = raw.ImVector_ImDrawIdx_push_front;
+    /// reserve(self: *Vector(DrawIdx), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImDrawIdx_reserve;
+    /// resize(self: *Vector(DrawIdx), new_size: i32) void
     pub const resize = raw.ImVector_ImDrawIdx_resize;
+    /// resizeT(self: *Vector(DrawIdx), new_size: i32, v: DrawIdx) void
     pub const resizeT = raw.ImVector_ImDrawIdx_resizeT;
+    /// shrink(self: *Vector(DrawIdx), new_size: i32) void
     pub const shrink = raw.ImVector_ImDrawIdx_shrink;
+    /// size(self: *const Vector(DrawIdx)) i32
     pub const size = raw.ImVector_ImDrawIdx_size;
+    /// size_in_bytes(self: *const Vector(DrawIdx)) i32
     pub const size_in_bytes = raw.ImVector_ImDrawIdx_size_in_bytes;
+    /// swap(self: *Vector(DrawIdx), rhs: *Vector(DrawIdx)) void
     pub const swap = raw.ImVector_ImDrawIdx_swap;
 };
 
 const FTABLE_ImVector_ImDrawVert = struct {
+    /// init(self: *Vector(DrawVert)) void
     pub const init = raw.ImVector_ImDrawVert_ImVector_ImDrawVert;
+    /// initVector(self: *Vector(DrawVert), src: Vector(DrawVert)) void
     pub const initVector = raw.ImVector_ImDrawVert_ImVector_ImDrawVertVector;
+    /// _grow_capacity(self: *const Vector(DrawVert), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImDrawVert__grow_capacity;
+    /// back(self: *Vector(DrawVert)) *DrawVert
     pub const back = raw.ImVector_ImDrawVert_back;
+    /// back_const(self: *const Vector(DrawVert)) *const DrawVert
     pub const back_const = raw.ImVector_ImDrawVert_back_const;
+    /// begin(self: *Vector(DrawVert)) [*]DrawVert
     pub const begin = raw.ImVector_ImDrawVert_begin;
+    /// begin_const(self: *const Vector(DrawVert)) [*]const DrawVert
     pub const begin_const = raw.ImVector_ImDrawVert_begin_const;
+    /// capacity(self: *const Vector(DrawVert)) i32
     pub const capacity = raw.ImVector_ImDrawVert_capacity;
+    /// clear(self: *Vector(DrawVert)) void
     pub const clear = raw.ImVector_ImDrawVert_clear;
+    /// deinit(self: *Vector(DrawVert)) void
     pub const deinit = raw.ImVector_ImDrawVert_destroy;
+    /// empty(self: *const Vector(DrawVert)) bool
     pub const empty = raw.ImVector_ImDrawVert_empty;
+    /// end(self: *Vector(DrawVert)) [*]DrawVert
     pub const end = raw.ImVector_ImDrawVert_end;
+    /// end_const(self: *const Vector(DrawVert)) [*]const DrawVert
     pub const end_const = raw.ImVector_ImDrawVert_end_const;
+    /// erase(self: *Vector(DrawVert), it: [*]const DrawVert) [*]DrawVert
     pub const erase = raw.ImVector_ImDrawVert_erase;
+    /// eraseTPtr(self: *Vector(DrawVert), it: [*]const DrawVert, it_last: [*]const DrawVert) [*]DrawVert
     pub const eraseTPtr = raw.ImVector_ImDrawVert_eraseTPtr;
+    /// erase_unsorted(self: *Vector(DrawVert), it: [*]const DrawVert) [*]DrawVert
     pub const erase_unsorted = raw.ImVector_ImDrawVert_erase_unsorted;
+    /// front(self: *Vector(DrawVert)) *DrawVert
     pub const front = raw.ImVector_ImDrawVert_front;
+    /// front_const(self: *const Vector(DrawVert)) *const DrawVert
     pub const front_const = raw.ImVector_ImDrawVert_front_const;
+    /// index_from_ptr(self: *const Vector(DrawVert), it: [*]const DrawVert) i32
     pub const index_from_ptr = raw.ImVector_ImDrawVert_index_from_ptr;
+    /// insert(self: *Vector(DrawVert), it: [*]const DrawVert, v: DrawVert) [*]DrawVert
     pub const insert = raw.ImVector_ImDrawVert_insert;
+    /// pop_back(self: *Vector(DrawVert)) void
     pub const pop_back = raw.ImVector_ImDrawVert_pop_back;
+    /// push_back(self: *Vector(DrawVert), v: DrawVert) void
     pub const push_back = raw.ImVector_ImDrawVert_push_back;
+    /// push_front(self: *Vector(DrawVert), v: DrawVert) void
     pub const push_front = raw.ImVector_ImDrawVert_push_front;
+    /// reserve(self: *Vector(DrawVert), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImDrawVert_reserve;
+    /// resize(self: *Vector(DrawVert), new_size: i32) void
     pub const resize = raw.ImVector_ImDrawVert_resize;
+    /// resizeT(self: *Vector(DrawVert), new_size: i32, v: DrawVert) void
     pub const resizeT = raw.ImVector_ImDrawVert_resizeT;
+    /// shrink(self: *Vector(DrawVert), new_size: i32) void
     pub const shrink = raw.ImVector_ImDrawVert_shrink;
+    /// size(self: *const Vector(DrawVert)) i32
     pub const size = raw.ImVector_ImDrawVert_size;
+    /// size_in_bytes(self: *const Vector(DrawVert)) i32
     pub const size_in_bytes = raw.ImVector_ImDrawVert_size_in_bytes;
+    /// swap(self: *Vector(DrawVert), rhs: *Vector(DrawVert)) void
     pub const swap = raw.ImVector_ImDrawVert_swap;
 };
 
 const FTABLE_ImVector_ImFontPtr = struct {
+    /// init(self: *Vector(*Font)) void
     pub const init = raw.ImVector_ImFontPtr_ImVector_ImFontPtr;
+    /// initVector(self: *Vector(*Font), src: Vector(*Font)) void
     pub const initVector = raw.ImVector_ImFontPtr_ImVector_ImFontPtrVector;
+    /// _grow_capacity(self: *const Vector(*Font), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImFontPtr__grow_capacity;
+    /// back(self: *Vector(*Font)) **Font
     pub const back = raw.ImVector_ImFontPtr_back;
+    /// back_const(self: *const Vector(*Font)) *const *Font
     pub const back_const = raw.ImVector_ImFontPtr_back_const;
+    /// begin(self: *Vector(*Font)) [*]*Font
     pub const begin = raw.ImVector_ImFontPtr_begin;
+    /// begin_const(self: *const Vector(*Font)) [*]const *Font
     pub const begin_const = raw.ImVector_ImFontPtr_begin_const;
+    /// capacity(self: *const Vector(*Font)) i32
     pub const capacity = raw.ImVector_ImFontPtr_capacity;
+    /// clear(self: *Vector(*Font)) void
     pub const clear = raw.ImVector_ImFontPtr_clear;
+    /// contains(self: *const Vector(*Font), v: *Font) bool
     pub const contains = raw.ImVector_ImFontPtr_contains;
+    /// deinit(self: *Vector(*Font)) void
     pub const deinit = raw.ImVector_ImFontPtr_destroy;
+    /// empty(self: *const Vector(*Font)) bool
     pub const empty = raw.ImVector_ImFontPtr_empty;
+    /// end(self: *Vector(*Font)) [*]*Font
     pub const end = raw.ImVector_ImFontPtr_end;
+    /// end_const(self: *const Vector(*Font)) [*]const *Font
     pub const end_const = raw.ImVector_ImFontPtr_end_const;
+    /// erase(self: *Vector(*Font), it: [*]const *Font) [*]*Font
     pub const erase = raw.ImVector_ImFontPtr_erase;
+    /// eraseTPtr(self: *Vector(*Font), it: [*]const *Font, it_last: [*]const *Font) [*]*Font
     pub const eraseTPtr = raw.ImVector_ImFontPtr_eraseTPtr;
+    /// erase_unsorted(self: *Vector(*Font), it: [*]const *Font) [*]*Font
     pub const erase_unsorted = raw.ImVector_ImFontPtr_erase_unsorted;
+    /// find(self: *Vector(*Font), v: *Font) [*]*Font
     pub const find = raw.ImVector_ImFontPtr_find;
+    /// find_const(self: *const Vector(*Font), v: *Font) [*]const *Font
     pub const find_const = raw.ImVector_ImFontPtr_find_const;
+    /// find_erase(self: *Vector(*Font), v: *Font) bool
     pub const find_erase = raw.ImVector_ImFontPtr_find_erase;
+    /// find_erase_unsorted(self: *Vector(*Font), v: *Font) bool
     pub const find_erase_unsorted = raw.ImVector_ImFontPtr_find_erase_unsorted;
+    /// front(self: *Vector(*Font)) **Font
     pub const front = raw.ImVector_ImFontPtr_front;
+    /// front_const(self: *const Vector(*Font)) *const *Font
     pub const front_const = raw.ImVector_ImFontPtr_front_const;
+    /// index_from_ptr(self: *const Vector(*Font), it: [*]const *Font) i32
     pub const index_from_ptr = raw.ImVector_ImFontPtr_index_from_ptr;
+    /// insert(self: *Vector(*Font), it: [*]const *Font, v: *Font) [*]*Font
     pub const insert = raw.ImVector_ImFontPtr_insert;
+    /// pop_back(self: *Vector(*Font)) void
     pub const pop_back = raw.ImVector_ImFontPtr_pop_back;
+    /// push_back(self: *Vector(*Font), v: *Font) void
     pub const push_back = raw.ImVector_ImFontPtr_push_back;
+    /// push_front(self: *Vector(*Font), v: *Font) void
     pub const push_front = raw.ImVector_ImFontPtr_push_front;
+    /// reserve(self: *Vector(*Font), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImFontPtr_reserve;
+    /// resize(self: *Vector(*Font), new_size: i32) void
     pub const resize = raw.ImVector_ImFontPtr_resize;
+    /// resizeT(self: *Vector(*Font), new_size: i32, v: *Font) void
     pub const resizeT = raw.ImVector_ImFontPtr_resizeT;
+    /// shrink(self: *Vector(*Font), new_size: i32) void
     pub const shrink = raw.ImVector_ImFontPtr_shrink;
+    /// size(self: *const Vector(*Font)) i32
     pub const size = raw.ImVector_ImFontPtr_size;
+    /// size_in_bytes(self: *const Vector(*Font)) i32
     pub const size_in_bytes = raw.ImVector_ImFontPtr_size_in_bytes;
+    /// swap(self: *Vector(*Font), rhs: *Vector(*Font)) void
     pub const swap = raw.ImVector_ImFontPtr_swap;
 };
 
 const FTABLE_ImVector_ImFontAtlasCustomRect = struct {
+    /// init(self: *Vector(FontAtlasCustomRect)) void
     pub const init = raw.ImVector_ImFontAtlasCustomRect_ImVector_ImFontAtlasCustomRect;
+    /// initVector(self: *Vector(FontAtlasCustomRect), src: Vector(FontAtlasCustomRect)) void
     pub const initVector = raw.ImVector_ImFontAtlasCustomRect_ImVector_ImFontAtlasCustomRectVector;
+    /// _grow_capacity(self: *const Vector(FontAtlasCustomRect), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImFontAtlasCustomRect__grow_capacity;
+    /// back(self: *Vector(FontAtlasCustomRect)) *FontAtlasCustomRect
     pub const back = raw.ImVector_ImFontAtlasCustomRect_back;
+    /// back_const(self: *const Vector(FontAtlasCustomRect)) *const FontAtlasCustomRect
     pub const back_const = raw.ImVector_ImFontAtlasCustomRect_back_const;
+    /// begin(self: *Vector(FontAtlasCustomRect)) [*]FontAtlasCustomRect
     pub const begin = raw.ImVector_ImFontAtlasCustomRect_begin;
+    /// begin_const(self: *const Vector(FontAtlasCustomRect)) [*]const FontAtlasCustomRect
     pub const begin_const = raw.ImVector_ImFontAtlasCustomRect_begin_const;
+    /// capacity(self: *const Vector(FontAtlasCustomRect)) i32
     pub const capacity = raw.ImVector_ImFontAtlasCustomRect_capacity;
+    /// clear(self: *Vector(FontAtlasCustomRect)) void
     pub const clear = raw.ImVector_ImFontAtlasCustomRect_clear;
+    /// deinit(self: *Vector(FontAtlasCustomRect)) void
     pub const deinit = raw.ImVector_ImFontAtlasCustomRect_destroy;
+    /// empty(self: *const Vector(FontAtlasCustomRect)) bool
     pub const empty = raw.ImVector_ImFontAtlasCustomRect_empty;
+    /// end(self: *Vector(FontAtlasCustomRect)) [*]FontAtlasCustomRect
     pub const end = raw.ImVector_ImFontAtlasCustomRect_end;
+    /// end_const(self: *const Vector(FontAtlasCustomRect)) [*]const FontAtlasCustomRect
     pub const end_const = raw.ImVector_ImFontAtlasCustomRect_end_const;
+    /// erase(self: *Vector(FontAtlasCustomRect), it: [*]const FontAtlasCustomRect) [*]FontAtlasCustomRect
     pub const erase = raw.ImVector_ImFontAtlasCustomRect_erase;
+    /// eraseTPtr(self: *Vector(FontAtlasCustomRect), it: [*]const FontAtlasCustomRect, it_last: [*]const FontAtlasCustomRect) [*]FontAtlasCustomRect
     pub const eraseTPtr = raw.ImVector_ImFontAtlasCustomRect_eraseTPtr;
+    /// erase_unsorted(self: *Vector(FontAtlasCustomRect), it: [*]const FontAtlasCustomRect) [*]FontAtlasCustomRect
     pub const erase_unsorted = raw.ImVector_ImFontAtlasCustomRect_erase_unsorted;
+    /// front(self: *Vector(FontAtlasCustomRect)) *FontAtlasCustomRect
     pub const front = raw.ImVector_ImFontAtlasCustomRect_front;
+    /// front_const(self: *const Vector(FontAtlasCustomRect)) *const FontAtlasCustomRect
     pub const front_const = raw.ImVector_ImFontAtlasCustomRect_front_const;
+    /// index_from_ptr(self: *const Vector(FontAtlasCustomRect), it: [*]const FontAtlasCustomRect) i32
     pub const index_from_ptr = raw.ImVector_ImFontAtlasCustomRect_index_from_ptr;
+    /// insert(self: *Vector(FontAtlasCustomRect), it: [*]const FontAtlasCustomRect, v: FontAtlasCustomRect) [*]FontAtlasCustomRect
     pub const insert = raw.ImVector_ImFontAtlasCustomRect_insert;
+    /// pop_back(self: *Vector(FontAtlasCustomRect)) void
     pub const pop_back = raw.ImVector_ImFontAtlasCustomRect_pop_back;
+    /// push_back(self: *Vector(FontAtlasCustomRect), v: FontAtlasCustomRect) void
     pub const push_back = raw.ImVector_ImFontAtlasCustomRect_push_back;
+    /// push_front(self: *Vector(FontAtlasCustomRect), v: FontAtlasCustomRect) void
     pub const push_front = raw.ImVector_ImFontAtlasCustomRect_push_front;
+    /// reserve(self: *Vector(FontAtlasCustomRect), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImFontAtlasCustomRect_reserve;
+    /// resize(self: *Vector(FontAtlasCustomRect), new_size: i32) void
     pub const resize = raw.ImVector_ImFontAtlasCustomRect_resize;
+    /// resizeT(self: *Vector(FontAtlasCustomRect), new_size: i32, v: FontAtlasCustomRect) void
     pub const resizeT = raw.ImVector_ImFontAtlasCustomRect_resizeT;
+    /// shrink(self: *Vector(FontAtlasCustomRect), new_size: i32) void
     pub const shrink = raw.ImVector_ImFontAtlasCustomRect_shrink;
+    /// size(self: *const Vector(FontAtlasCustomRect)) i32
     pub const size = raw.ImVector_ImFontAtlasCustomRect_size;
+    /// size_in_bytes(self: *const Vector(FontAtlasCustomRect)) i32
     pub const size_in_bytes = raw.ImVector_ImFontAtlasCustomRect_size_in_bytes;
+    /// swap(self: *Vector(FontAtlasCustomRect), rhs: *Vector(FontAtlasCustomRect)) void
     pub const swap = raw.ImVector_ImFontAtlasCustomRect_swap;
 };
 
 const FTABLE_ImVector_ImFontConfig = struct {
+    /// init(self: *Vector(FontConfig)) void
     pub const init = raw.ImVector_ImFontConfig_ImVector_ImFontConfig;
+    /// initVector(self: *Vector(FontConfig), src: Vector(FontConfig)) void
     pub const initVector = raw.ImVector_ImFontConfig_ImVector_ImFontConfigVector;
+    /// _grow_capacity(self: *const Vector(FontConfig), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImFontConfig__grow_capacity;
+    /// back(self: *Vector(FontConfig)) *FontConfig
     pub const back = raw.ImVector_ImFontConfig_back;
+    /// back_const(self: *const Vector(FontConfig)) *const FontConfig
     pub const back_const = raw.ImVector_ImFontConfig_back_const;
+    /// begin(self: *Vector(FontConfig)) [*]FontConfig
     pub const begin = raw.ImVector_ImFontConfig_begin;
+    /// begin_const(self: *const Vector(FontConfig)) [*]const FontConfig
     pub const begin_const = raw.ImVector_ImFontConfig_begin_const;
+    /// capacity(self: *const Vector(FontConfig)) i32
     pub const capacity = raw.ImVector_ImFontConfig_capacity;
+    /// clear(self: *Vector(FontConfig)) void
     pub const clear = raw.ImVector_ImFontConfig_clear;
+    /// deinit(self: *Vector(FontConfig)) void
     pub const deinit = raw.ImVector_ImFontConfig_destroy;
+    /// empty(self: *const Vector(FontConfig)) bool
     pub const empty = raw.ImVector_ImFontConfig_empty;
+    /// end(self: *Vector(FontConfig)) [*]FontConfig
     pub const end = raw.ImVector_ImFontConfig_end;
+    /// end_const(self: *const Vector(FontConfig)) [*]const FontConfig
     pub const end_const = raw.ImVector_ImFontConfig_end_const;
+    /// erase(self: *Vector(FontConfig), it: [*]const FontConfig) [*]FontConfig
     pub const erase = raw.ImVector_ImFontConfig_erase;
+    /// eraseTPtr(self: *Vector(FontConfig), it: [*]const FontConfig, it_last: [*]const FontConfig) [*]FontConfig
     pub const eraseTPtr = raw.ImVector_ImFontConfig_eraseTPtr;
+    /// erase_unsorted(self: *Vector(FontConfig), it: [*]const FontConfig) [*]FontConfig
     pub const erase_unsorted = raw.ImVector_ImFontConfig_erase_unsorted;
+    /// front(self: *Vector(FontConfig)) *FontConfig
     pub const front = raw.ImVector_ImFontConfig_front;
+    /// front_const(self: *const Vector(FontConfig)) *const FontConfig
     pub const front_const = raw.ImVector_ImFontConfig_front_const;
+    /// index_from_ptr(self: *const Vector(FontConfig), it: [*]const FontConfig) i32
     pub const index_from_ptr = raw.ImVector_ImFontConfig_index_from_ptr;
+    /// insert(self: *Vector(FontConfig), it: [*]const FontConfig, v: FontConfig) [*]FontConfig
     pub const insert = raw.ImVector_ImFontConfig_insert;
+    /// pop_back(self: *Vector(FontConfig)) void
     pub const pop_back = raw.ImVector_ImFontConfig_pop_back;
+    /// push_back(self: *Vector(FontConfig), v: FontConfig) void
     pub const push_back = raw.ImVector_ImFontConfig_push_back;
+    /// push_front(self: *Vector(FontConfig), v: FontConfig) void
     pub const push_front = raw.ImVector_ImFontConfig_push_front;
+    /// reserve(self: *Vector(FontConfig), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImFontConfig_reserve;
+    /// resize(self: *Vector(FontConfig), new_size: i32) void
     pub const resize = raw.ImVector_ImFontConfig_resize;
+    /// resizeT(self: *Vector(FontConfig), new_size: i32, v: FontConfig) void
     pub const resizeT = raw.ImVector_ImFontConfig_resizeT;
+    /// shrink(self: *Vector(FontConfig), new_size: i32) void
     pub const shrink = raw.ImVector_ImFontConfig_shrink;
+    /// size(self: *const Vector(FontConfig)) i32
     pub const size = raw.ImVector_ImFontConfig_size;
+    /// size_in_bytes(self: *const Vector(FontConfig)) i32
     pub const size_in_bytes = raw.ImVector_ImFontConfig_size_in_bytes;
+    /// swap(self: *Vector(FontConfig), rhs: *Vector(FontConfig)) void
     pub const swap = raw.ImVector_ImFontConfig_swap;
 };
 
 const FTABLE_ImVector_ImFontGlyph = struct {
+    /// init(self: *Vector(FontGlyph)) void
     pub const init = raw.ImVector_ImFontGlyph_ImVector_ImFontGlyph;
+    /// initVector(self: *Vector(FontGlyph), src: Vector(FontGlyph)) void
     pub const initVector = raw.ImVector_ImFontGlyph_ImVector_ImFontGlyphVector;
+    /// _grow_capacity(self: *const Vector(FontGlyph), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImFontGlyph__grow_capacity;
+    /// back(self: *Vector(FontGlyph)) *FontGlyph
     pub const back = raw.ImVector_ImFontGlyph_back;
+    /// back_const(self: *const Vector(FontGlyph)) *const FontGlyph
     pub const back_const = raw.ImVector_ImFontGlyph_back_const;
+    /// begin(self: *Vector(FontGlyph)) [*]FontGlyph
     pub const begin = raw.ImVector_ImFontGlyph_begin;
+    /// begin_const(self: *const Vector(FontGlyph)) [*]const FontGlyph
     pub const begin_const = raw.ImVector_ImFontGlyph_begin_const;
+    /// capacity(self: *const Vector(FontGlyph)) i32
     pub const capacity = raw.ImVector_ImFontGlyph_capacity;
+    /// clear(self: *Vector(FontGlyph)) void
     pub const clear = raw.ImVector_ImFontGlyph_clear;
+    /// deinit(self: *Vector(FontGlyph)) void
     pub const deinit = raw.ImVector_ImFontGlyph_destroy;
+    /// empty(self: *const Vector(FontGlyph)) bool
     pub const empty = raw.ImVector_ImFontGlyph_empty;
+    /// end(self: *Vector(FontGlyph)) [*]FontGlyph
     pub const end = raw.ImVector_ImFontGlyph_end;
+    /// end_const(self: *const Vector(FontGlyph)) [*]const FontGlyph
     pub const end_const = raw.ImVector_ImFontGlyph_end_const;
+    /// erase(self: *Vector(FontGlyph), it: [*]const FontGlyph) [*]FontGlyph
     pub const erase = raw.ImVector_ImFontGlyph_erase;
+    /// eraseTPtr(self: *Vector(FontGlyph), it: [*]const FontGlyph, it_last: [*]const FontGlyph) [*]FontGlyph
     pub const eraseTPtr = raw.ImVector_ImFontGlyph_eraseTPtr;
+    /// erase_unsorted(self: *Vector(FontGlyph), it: [*]const FontGlyph) [*]FontGlyph
     pub const erase_unsorted = raw.ImVector_ImFontGlyph_erase_unsorted;
+    /// front(self: *Vector(FontGlyph)) *FontGlyph
     pub const front = raw.ImVector_ImFontGlyph_front;
+    /// front_const(self: *const Vector(FontGlyph)) *const FontGlyph
     pub const front_const = raw.ImVector_ImFontGlyph_front_const;
+    /// index_from_ptr(self: *const Vector(FontGlyph), it: [*]const FontGlyph) i32
     pub const index_from_ptr = raw.ImVector_ImFontGlyph_index_from_ptr;
+    /// insert(self: *Vector(FontGlyph), it: [*]const FontGlyph, v: FontGlyph) [*]FontGlyph
     pub const insert = raw.ImVector_ImFontGlyph_insert;
+    /// pop_back(self: *Vector(FontGlyph)) void
     pub const pop_back = raw.ImVector_ImFontGlyph_pop_back;
+    /// push_back(self: *Vector(FontGlyph), v: FontGlyph) void
     pub const push_back = raw.ImVector_ImFontGlyph_push_back;
+    /// push_front(self: *Vector(FontGlyph), v: FontGlyph) void
     pub const push_front = raw.ImVector_ImFontGlyph_push_front;
+    /// reserve(self: *Vector(FontGlyph), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImFontGlyph_reserve;
+    /// resize(self: *Vector(FontGlyph), new_size: i32) void
     pub const resize = raw.ImVector_ImFontGlyph_resize;
+    /// resizeT(self: *Vector(FontGlyph), new_size: i32, v: FontGlyph) void
     pub const resizeT = raw.ImVector_ImFontGlyph_resizeT;
+    /// shrink(self: *Vector(FontGlyph), new_size: i32) void
     pub const shrink = raw.ImVector_ImFontGlyph_shrink;
+    /// size(self: *const Vector(FontGlyph)) i32
     pub const size = raw.ImVector_ImFontGlyph_size;
+    /// size_in_bytes(self: *const Vector(FontGlyph)) i32
     pub const size_in_bytes = raw.ImVector_ImFontGlyph_size_in_bytes;
+    /// swap(self: *Vector(FontGlyph), rhs: *Vector(FontGlyph)) void
     pub const swap = raw.ImVector_ImFontGlyph_swap;
 };
 
 const FTABLE_ImVector_ImGuiStoragePair = struct {
+    /// init(self: *Vector(StoragePair)) void
     pub const init = raw.ImVector_ImGuiStoragePair_ImVector_ImGuiStoragePair;
+    /// initVector(self: *Vector(StoragePair), src: Vector(StoragePair)) void
     pub const initVector = raw.ImVector_ImGuiStoragePair_ImVector_ImGuiStoragePairVector;
+    /// _grow_capacity(self: *const Vector(StoragePair), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImGuiStoragePair__grow_capacity;
+    /// back(self: *Vector(StoragePair)) *StoragePair
     pub const back = raw.ImVector_ImGuiStoragePair_back;
+    /// back_const(self: *const Vector(StoragePair)) *const StoragePair
     pub const back_const = raw.ImVector_ImGuiStoragePair_back_const;
+    /// begin(self: *Vector(StoragePair)) [*]StoragePair
     pub const begin = raw.ImVector_ImGuiStoragePair_begin;
+    /// begin_const(self: *const Vector(StoragePair)) [*]const StoragePair
     pub const begin_const = raw.ImVector_ImGuiStoragePair_begin_const;
+    /// capacity(self: *const Vector(StoragePair)) i32
     pub const capacity = raw.ImVector_ImGuiStoragePair_capacity;
+    /// clear(self: *Vector(StoragePair)) void
     pub const clear = raw.ImVector_ImGuiStoragePair_clear;
+    /// deinit(self: *Vector(StoragePair)) void
     pub const deinit = raw.ImVector_ImGuiStoragePair_destroy;
+    /// empty(self: *const Vector(StoragePair)) bool
     pub const empty = raw.ImVector_ImGuiStoragePair_empty;
+    /// end(self: *Vector(StoragePair)) [*]StoragePair
     pub const end = raw.ImVector_ImGuiStoragePair_end;
+    /// end_const(self: *const Vector(StoragePair)) [*]const StoragePair
     pub const end_const = raw.ImVector_ImGuiStoragePair_end_const;
+    /// erase(self: *Vector(StoragePair), it: [*]const StoragePair) [*]StoragePair
     pub const erase = raw.ImVector_ImGuiStoragePair_erase;
+    /// eraseTPtr(self: *Vector(StoragePair), it: [*]const StoragePair, it_last: [*]const StoragePair) [*]StoragePair
     pub const eraseTPtr = raw.ImVector_ImGuiStoragePair_eraseTPtr;
+    /// erase_unsorted(self: *Vector(StoragePair), it: [*]const StoragePair) [*]StoragePair
     pub const erase_unsorted = raw.ImVector_ImGuiStoragePair_erase_unsorted;
+    /// front(self: *Vector(StoragePair)) *StoragePair
     pub const front = raw.ImVector_ImGuiStoragePair_front;
+    /// front_const(self: *const Vector(StoragePair)) *const StoragePair
     pub const front_const = raw.ImVector_ImGuiStoragePair_front_const;
+    /// index_from_ptr(self: *const Vector(StoragePair), it: [*]const StoragePair) i32
     pub const index_from_ptr = raw.ImVector_ImGuiStoragePair_index_from_ptr;
+    /// insert(self: *Vector(StoragePair), it: [*]const StoragePair, v: StoragePair) [*]StoragePair
     pub const insert = raw.ImVector_ImGuiStoragePair_insert;
+    /// pop_back(self: *Vector(StoragePair)) void
     pub const pop_back = raw.ImVector_ImGuiStoragePair_pop_back;
+    /// push_back(self: *Vector(StoragePair), v: StoragePair) void
     pub const push_back = raw.ImVector_ImGuiStoragePair_push_back;
+    /// push_front(self: *Vector(StoragePair), v: StoragePair) void
     pub const push_front = raw.ImVector_ImGuiStoragePair_push_front;
+    /// reserve(self: *Vector(StoragePair), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImGuiStoragePair_reserve;
+    /// resize(self: *Vector(StoragePair), new_size: i32) void
     pub const resize = raw.ImVector_ImGuiStoragePair_resize;
+    /// resizeT(self: *Vector(StoragePair), new_size: i32, v: StoragePair) void
     pub const resizeT = raw.ImVector_ImGuiStoragePair_resizeT;
+    /// shrink(self: *Vector(StoragePair), new_size: i32) void
     pub const shrink = raw.ImVector_ImGuiStoragePair_shrink;
+    /// size(self: *const Vector(StoragePair)) i32
     pub const size = raw.ImVector_ImGuiStoragePair_size;
+    /// size_in_bytes(self: *const Vector(StoragePair)) i32
     pub const size_in_bytes = raw.ImVector_ImGuiStoragePair_size_in_bytes;
+    /// swap(self: *Vector(StoragePair), rhs: *Vector(StoragePair)) void
     pub const swap = raw.ImVector_ImGuiStoragePair_swap;
 };
 
 const FTABLE_ImVector_ImGuiTextRange = struct {
+    /// init(self: *Vector(TextRange)) void
     pub const init = raw.ImVector_ImGuiTextRange_ImVector_ImGuiTextRange;
+    /// initVector(self: *Vector(TextRange), src: Vector(TextRange)) void
     pub const initVector = raw.ImVector_ImGuiTextRange_ImVector_ImGuiTextRangeVector;
+    /// _grow_capacity(self: *const Vector(TextRange), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImGuiTextRange__grow_capacity;
+    /// back(self: *Vector(TextRange)) *TextRange
     pub const back = raw.ImVector_ImGuiTextRange_back;
+    /// back_const(self: *const Vector(TextRange)) *const TextRange
     pub const back_const = raw.ImVector_ImGuiTextRange_back_const;
+    /// begin(self: *Vector(TextRange)) [*]TextRange
     pub const begin = raw.ImVector_ImGuiTextRange_begin;
+    /// begin_const(self: *const Vector(TextRange)) [*]const TextRange
     pub const begin_const = raw.ImVector_ImGuiTextRange_begin_const;
+    /// capacity(self: *const Vector(TextRange)) i32
     pub const capacity = raw.ImVector_ImGuiTextRange_capacity;
+    /// clear(self: *Vector(TextRange)) void
     pub const clear = raw.ImVector_ImGuiTextRange_clear;
+    /// deinit(self: *Vector(TextRange)) void
     pub const deinit = raw.ImVector_ImGuiTextRange_destroy;
+    /// empty(self: *const Vector(TextRange)) bool
     pub const empty = raw.ImVector_ImGuiTextRange_empty;
+    /// end(self: *Vector(TextRange)) [*]TextRange
     pub const end = raw.ImVector_ImGuiTextRange_end;
+    /// end_const(self: *const Vector(TextRange)) [*]const TextRange
     pub const end_const = raw.ImVector_ImGuiTextRange_end_const;
+    /// erase(self: *Vector(TextRange), it: [*]const TextRange) [*]TextRange
     pub const erase = raw.ImVector_ImGuiTextRange_erase;
+    /// eraseTPtr(self: *Vector(TextRange), it: [*]const TextRange, it_last: [*]const TextRange) [*]TextRange
     pub const eraseTPtr = raw.ImVector_ImGuiTextRange_eraseTPtr;
+    /// erase_unsorted(self: *Vector(TextRange), it: [*]const TextRange) [*]TextRange
     pub const erase_unsorted = raw.ImVector_ImGuiTextRange_erase_unsorted;
+    /// front(self: *Vector(TextRange)) *TextRange
     pub const front = raw.ImVector_ImGuiTextRange_front;
+    /// front_const(self: *const Vector(TextRange)) *const TextRange
     pub const front_const = raw.ImVector_ImGuiTextRange_front_const;
+    /// index_from_ptr(self: *const Vector(TextRange), it: [*]const TextRange) i32
     pub const index_from_ptr = raw.ImVector_ImGuiTextRange_index_from_ptr;
+    /// insert(self: *Vector(TextRange), it: [*]const TextRange, v: TextRange) [*]TextRange
     pub const insert = raw.ImVector_ImGuiTextRange_insert;
+    /// pop_back(self: *Vector(TextRange)) void
     pub const pop_back = raw.ImVector_ImGuiTextRange_pop_back;
+    /// push_back(self: *Vector(TextRange), v: TextRange) void
     pub const push_back = raw.ImVector_ImGuiTextRange_push_back;
+    /// push_front(self: *Vector(TextRange), v: TextRange) void
     pub const push_front = raw.ImVector_ImGuiTextRange_push_front;
+    /// reserve(self: *Vector(TextRange), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImGuiTextRange_reserve;
+    /// resize(self: *Vector(TextRange), new_size: i32) void
     pub const resize = raw.ImVector_ImGuiTextRange_resize;
+    /// resizeT(self: *Vector(TextRange), new_size: i32, v: TextRange) void
     pub const resizeT = raw.ImVector_ImGuiTextRange_resizeT;
+    /// shrink(self: *Vector(TextRange), new_size: i32) void
     pub const shrink = raw.ImVector_ImGuiTextRange_shrink;
+    /// size(self: *const Vector(TextRange)) i32
     pub const size = raw.ImVector_ImGuiTextRange_size;
+    /// size_in_bytes(self: *const Vector(TextRange)) i32
     pub const size_in_bytes = raw.ImVector_ImGuiTextRange_size_in_bytes;
+    /// swap(self: *Vector(TextRange), rhs: *Vector(TextRange)) void
     pub const swap = raw.ImVector_ImGuiTextRange_swap;
 };
 
 const FTABLE_ImVector_ImTextureID = struct {
+    /// init(self: *Vector(TextureID)) void
     pub const init = raw.ImVector_ImTextureID_ImVector_ImTextureID;
+    /// initVector(self: *Vector(TextureID), src: Vector(TextureID)) void
     pub const initVector = raw.ImVector_ImTextureID_ImVector_ImTextureIDVector;
+    /// _grow_capacity(self: *const Vector(TextureID), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImTextureID__grow_capacity;
+    /// back(self: *Vector(TextureID)) *TextureID
     pub const back = raw.ImVector_ImTextureID_back;
+    /// back_const(self: *const Vector(TextureID)) *const TextureID
     pub const back_const = raw.ImVector_ImTextureID_back_const;
+    /// begin(self: *Vector(TextureID)) [*]TextureID
     pub const begin = raw.ImVector_ImTextureID_begin;
+    /// begin_const(self: *const Vector(TextureID)) [*]const TextureID
     pub const begin_const = raw.ImVector_ImTextureID_begin_const;
+    /// capacity(self: *const Vector(TextureID)) i32
     pub const capacity = raw.ImVector_ImTextureID_capacity;
+    /// clear(self: *Vector(TextureID)) void
     pub const clear = raw.ImVector_ImTextureID_clear;
+    /// contains(self: *const Vector(TextureID), v: TextureID) bool
     pub const contains = raw.ImVector_ImTextureID_contains;
+    /// deinit(self: *Vector(TextureID)) void
     pub const deinit = raw.ImVector_ImTextureID_destroy;
+    /// empty(self: *const Vector(TextureID)) bool
     pub const empty = raw.ImVector_ImTextureID_empty;
+    /// end(self: *Vector(TextureID)) [*]TextureID
     pub const end = raw.ImVector_ImTextureID_end;
+    /// end_const(self: *const Vector(TextureID)) [*]const TextureID
     pub const end_const = raw.ImVector_ImTextureID_end_const;
+    /// erase(self: *Vector(TextureID), it: [*]const TextureID) [*]TextureID
     pub const erase = raw.ImVector_ImTextureID_erase;
+    /// eraseTPtr(self: *Vector(TextureID), it: [*]const TextureID, it_last: [*]const TextureID) [*]TextureID
     pub const eraseTPtr = raw.ImVector_ImTextureID_eraseTPtr;
+    /// erase_unsorted(self: *Vector(TextureID), it: [*]const TextureID) [*]TextureID
     pub const erase_unsorted = raw.ImVector_ImTextureID_erase_unsorted;
+    /// find(self: *Vector(TextureID), v: TextureID) [*]TextureID
     pub const find = raw.ImVector_ImTextureID_find;
+    /// find_const(self: *const Vector(TextureID), v: TextureID) [*]const TextureID
     pub const find_const = raw.ImVector_ImTextureID_find_const;
+    /// find_erase(self: *Vector(TextureID), v: TextureID) bool
     pub const find_erase = raw.ImVector_ImTextureID_find_erase;
+    /// find_erase_unsorted(self: *Vector(TextureID), v: TextureID) bool
     pub const find_erase_unsorted = raw.ImVector_ImTextureID_find_erase_unsorted;
+    /// front(self: *Vector(TextureID)) *TextureID
     pub const front = raw.ImVector_ImTextureID_front;
+    /// front_const(self: *const Vector(TextureID)) *const TextureID
     pub const front_const = raw.ImVector_ImTextureID_front_const;
+    /// index_from_ptr(self: *const Vector(TextureID), it: [*]const TextureID) i32
     pub const index_from_ptr = raw.ImVector_ImTextureID_index_from_ptr;
+    /// insert(self: *Vector(TextureID), it: [*]const TextureID, v: TextureID) [*]TextureID
     pub const insert = raw.ImVector_ImTextureID_insert;
+    /// pop_back(self: *Vector(TextureID)) void
     pub const pop_back = raw.ImVector_ImTextureID_pop_back;
+    /// push_back(self: *Vector(TextureID), v: TextureID) void
     pub const push_back = raw.ImVector_ImTextureID_push_back;
+    /// push_front(self: *Vector(TextureID), v: TextureID) void
     pub const push_front = raw.ImVector_ImTextureID_push_front;
+    /// reserve(self: *Vector(TextureID), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImTextureID_reserve;
+    /// resize(self: *Vector(TextureID), new_size: i32) void
     pub const resize = raw.ImVector_ImTextureID_resize;
+    /// resizeT(self: *Vector(TextureID), new_size: i32, v: TextureID) void
     pub const resizeT = raw.ImVector_ImTextureID_resizeT;
+    /// shrink(self: *Vector(TextureID), new_size: i32) void
     pub const shrink = raw.ImVector_ImTextureID_shrink;
+    /// size(self: *const Vector(TextureID)) i32
     pub const size = raw.ImVector_ImTextureID_size;
+    /// size_in_bytes(self: *const Vector(TextureID)) i32
     pub const size_in_bytes = raw.ImVector_ImTextureID_size_in_bytes;
+    /// swap(self: *Vector(TextureID), rhs: *Vector(TextureID)) void
     pub const swap = raw.ImVector_ImTextureID_swap;
 };
 
 const FTABLE_ImVector_ImU32 = struct {
+    /// init(self: *Vector(u32)) void
     pub const init = raw.ImVector_ImU32_ImVector_ImU32;
+    /// initVector(self: *Vector(u32), src: Vector(u32)) void
     pub const initVector = raw.ImVector_ImU32_ImVector_ImU32Vector;
+    /// _grow_capacity(self: *const Vector(u32), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImU32__grow_capacity;
+    /// back(self: *Vector(u32)) *u32
     pub const back = raw.ImVector_ImU32_back;
+    /// back_const(self: *const Vector(u32)) *const u32
     pub const back_const = raw.ImVector_ImU32_back_const;
+    /// begin(self: *Vector(u32)) [*]u32
     pub const begin = raw.ImVector_ImU32_begin;
+    /// begin_const(self: *const Vector(u32)) [*]const u32
     pub const begin_const = raw.ImVector_ImU32_begin_const;
+    /// capacity(self: *const Vector(u32)) i32
     pub const capacity = raw.ImVector_ImU32_capacity;
+    /// clear(self: *Vector(u32)) void
     pub const clear = raw.ImVector_ImU32_clear;
+    /// contains(self: *const Vector(u32), v: u32) bool
     pub const contains = raw.ImVector_ImU32_contains;
+    /// deinit(self: *Vector(u32)) void
     pub const deinit = raw.ImVector_ImU32_destroy;
+    /// empty(self: *const Vector(u32)) bool
     pub const empty = raw.ImVector_ImU32_empty;
+    /// end(self: *Vector(u32)) [*]u32
     pub const end = raw.ImVector_ImU32_end;
+    /// end_const(self: *const Vector(u32)) [*]const u32
     pub const end_const = raw.ImVector_ImU32_end_const;
+    /// erase(self: *Vector(u32), it: [*]const u32) [*]u32
     pub const erase = raw.ImVector_ImU32_erase;
+    /// eraseTPtr(self: *Vector(u32), it: [*]const u32, it_last: [*]const u32) [*]u32
     pub const eraseTPtr = raw.ImVector_ImU32_eraseTPtr;
+    /// erase_unsorted(self: *Vector(u32), it: [*]const u32) [*]u32
     pub const erase_unsorted = raw.ImVector_ImU32_erase_unsorted;
+    /// find(self: *Vector(u32), v: u32) [*]u32
     pub const find = raw.ImVector_ImU32_find;
+    /// find_const(self: *const Vector(u32), v: u32) [*]const u32
     pub const find_const = raw.ImVector_ImU32_find_const;
+    /// find_erase(self: *Vector(u32), v: u32) bool
     pub const find_erase = raw.ImVector_ImU32_find_erase;
+    /// find_erase_unsorted(self: *Vector(u32), v: u32) bool
     pub const find_erase_unsorted = raw.ImVector_ImU32_find_erase_unsorted;
+    /// front(self: *Vector(u32)) *u32
     pub const front = raw.ImVector_ImU32_front;
+    /// front_const(self: *const Vector(u32)) *const u32
     pub const front_const = raw.ImVector_ImU32_front_const;
+    /// index_from_ptr(self: *const Vector(u32), it: [*]const u32) i32
     pub const index_from_ptr = raw.ImVector_ImU32_index_from_ptr;
+    /// insert(self: *Vector(u32), it: [*]const u32, v: u32) [*]u32
     pub const insert = raw.ImVector_ImU32_insert;
+    /// pop_back(self: *Vector(u32)) void
     pub const pop_back = raw.ImVector_ImU32_pop_back;
+    /// push_back(self: *Vector(u32), v: u32) void
     pub const push_back = raw.ImVector_ImU32_push_back;
+    /// push_front(self: *Vector(u32), v: u32) void
     pub const push_front = raw.ImVector_ImU32_push_front;
+    /// reserve(self: *Vector(u32), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImU32_reserve;
+    /// resize(self: *Vector(u32), new_size: i32) void
     pub const resize = raw.ImVector_ImU32_resize;
+    /// resizeT(self: *Vector(u32), new_size: i32, v: u32) void
     pub const resizeT = raw.ImVector_ImU32_resizeT;
+    /// shrink(self: *Vector(u32), new_size: i32) void
     pub const shrink = raw.ImVector_ImU32_shrink;
+    /// size(self: *const Vector(u32)) i32
     pub const size = raw.ImVector_ImU32_size;
+    /// size_in_bytes(self: *const Vector(u32)) i32
     pub const size_in_bytes = raw.ImVector_ImU32_size_in_bytes;
+    /// swap(self: *Vector(u32), rhs: *Vector(u32)) void
     pub const swap = raw.ImVector_ImU32_swap;
 };
 
 const FTABLE_ImVector_ImVec2 = struct {
+    /// init(self: *Vector(Vec2)) void
     pub const init = raw.ImVector_ImVec2_ImVector_ImVec2;
+    /// initVector(self: *Vector(Vec2), src: Vector(Vec2)) void
     pub const initVector = raw.ImVector_ImVec2_ImVector_ImVec2Vector;
+    /// _grow_capacity(self: *const Vector(Vec2), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImVec2__grow_capacity;
+    /// back(self: *Vector(Vec2)) *Vec2
     pub const back = raw.ImVector_ImVec2_back;
+    /// back_const(self: *const Vector(Vec2)) *const Vec2
     pub const back_const = raw.ImVector_ImVec2_back_const;
+    /// begin(self: *Vector(Vec2)) [*]Vec2
     pub const begin = raw.ImVector_ImVec2_begin;
+    /// begin_const(self: *const Vector(Vec2)) [*]const Vec2
     pub const begin_const = raw.ImVector_ImVec2_begin_const;
+    /// capacity(self: *const Vector(Vec2)) i32
     pub const capacity = raw.ImVector_ImVec2_capacity;
+    /// clear(self: *Vector(Vec2)) void
     pub const clear = raw.ImVector_ImVec2_clear;
+    /// deinit(self: *Vector(Vec2)) void
     pub const deinit = raw.ImVector_ImVec2_destroy;
+    /// empty(self: *const Vector(Vec2)) bool
     pub const empty = raw.ImVector_ImVec2_empty;
+    /// end(self: *Vector(Vec2)) [*]Vec2
     pub const end = raw.ImVector_ImVec2_end;
+    /// end_const(self: *const Vector(Vec2)) [*]const Vec2
     pub const end_const = raw.ImVector_ImVec2_end_const;
+    /// erase(self: *Vector(Vec2), it: [*]const Vec2) [*]Vec2
     pub const erase = raw.ImVector_ImVec2_erase;
+    /// eraseTPtr(self: *Vector(Vec2), it: [*]const Vec2, it_last: [*]const Vec2) [*]Vec2
     pub const eraseTPtr = raw.ImVector_ImVec2_eraseTPtr;
+    /// erase_unsorted(self: *Vector(Vec2), it: [*]const Vec2) [*]Vec2
     pub const erase_unsorted = raw.ImVector_ImVec2_erase_unsorted;
+    /// front(self: *Vector(Vec2)) *Vec2
     pub const front = raw.ImVector_ImVec2_front;
+    /// front_const(self: *const Vector(Vec2)) *const Vec2
     pub const front_const = raw.ImVector_ImVec2_front_const;
+    /// index_from_ptr(self: *const Vector(Vec2), it: [*]const Vec2) i32
     pub const index_from_ptr = raw.ImVector_ImVec2_index_from_ptr;
+    /// insert(self: *Vector(Vec2), it: [*]const Vec2, v: Vec2) [*]Vec2
     pub const insert = raw.ImVector_ImVec2_insert;
+    /// pop_back(self: *Vector(Vec2)) void
     pub const pop_back = raw.ImVector_ImVec2_pop_back;
+    /// push_back(self: *Vector(Vec2), v: Vec2) void
     pub const push_back = raw.ImVector_ImVec2_push_back;
+    /// push_front(self: *Vector(Vec2), v: Vec2) void
     pub const push_front = raw.ImVector_ImVec2_push_front;
+    /// reserve(self: *Vector(Vec2), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImVec2_reserve;
+    /// resize(self: *Vector(Vec2), new_size: i32) void
     pub const resize = raw.ImVector_ImVec2_resize;
+    /// resizeT(self: *Vector(Vec2), new_size: i32, v: Vec2) void
     pub const resizeT = raw.ImVector_ImVec2_resizeT;
+    /// shrink(self: *Vector(Vec2), new_size: i32) void
     pub const shrink = raw.ImVector_ImVec2_shrink;
+    /// size(self: *const Vector(Vec2)) i32
     pub const size = raw.ImVector_ImVec2_size;
+    /// size_in_bytes(self: *const Vector(Vec2)) i32
     pub const size_in_bytes = raw.ImVector_ImVec2_size_in_bytes;
+    /// swap(self: *Vector(Vec2), rhs: *Vector(Vec2)) void
     pub const swap = raw.ImVector_ImVec2_swap;
 };
 
 const FTABLE_ImVector_ImVec4 = struct {
+    /// init(self: *Vector(Vec4)) void
     pub const init = raw.ImVector_ImVec4_ImVector_ImVec4;
+    /// initVector(self: *Vector(Vec4), src: Vector(Vec4)) void
     pub const initVector = raw.ImVector_ImVec4_ImVector_ImVec4Vector;
+    /// _grow_capacity(self: *const Vector(Vec4), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImVec4__grow_capacity;
+    /// back(self: *Vector(Vec4)) *Vec4
     pub const back = raw.ImVector_ImVec4_back;
+    /// back_const(self: *const Vector(Vec4)) *const Vec4
     pub const back_const = raw.ImVector_ImVec4_back_const;
+    /// begin(self: *Vector(Vec4)) [*]Vec4
     pub const begin = raw.ImVector_ImVec4_begin;
+    /// begin_const(self: *const Vector(Vec4)) [*]const Vec4
     pub const begin_const = raw.ImVector_ImVec4_begin_const;
+    /// capacity(self: *const Vector(Vec4)) i32
     pub const capacity = raw.ImVector_ImVec4_capacity;
+    /// clear(self: *Vector(Vec4)) void
     pub const clear = raw.ImVector_ImVec4_clear;
+    /// deinit(self: *Vector(Vec4)) void
     pub const deinit = raw.ImVector_ImVec4_destroy;
+    /// empty(self: *const Vector(Vec4)) bool
     pub const empty = raw.ImVector_ImVec4_empty;
+    /// end(self: *Vector(Vec4)) [*]Vec4
     pub const end = raw.ImVector_ImVec4_end;
+    /// end_const(self: *const Vector(Vec4)) [*]const Vec4
     pub const end_const = raw.ImVector_ImVec4_end_const;
+    /// erase(self: *Vector(Vec4), it: [*]const Vec4) [*]Vec4
     pub const erase = raw.ImVector_ImVec4_erase;
+    /// eraseTPtr(self: *Vector(Vec4), it: [*]const Vec4, it_last: [*]const Vec4) [*]Vec4
     pub const eraseTPtr = raw.ImVector_ImVec4_eraseTPtr;
+    /// erase_unsorted(self: *Vector(Vec4), it: [*]const Vec4) [*]Vec4
     pub const erase_unsorted = raw.ImVector_ImVec4_erase_unsorted;
+    /// front(self: *Vector(Vec4)) *Vec4
     pub const front = raw.ImVector_ImVec4_front;
+    /// front_const(self: *const Vector(Vec4)) *const Vec4
     pub const front_const = raw.ImVector_ImVec4_front_const;
+    /// index_from_ptr(self: *const Vector(Vec4), it: [*]const Vec4) i32
     pub const index_from_ptr = raw.ImVector_ImVec4_index_from_ptr;
+    /// insert(self: *Vector(Vec4), it: [*]const Vec4, v: Vec4) [*]Vec4
     pub const insert = raw.ImVector_ImVec4_insert;
+    /// pop_back(self: *Vector(Vec4)) void
     pub const pop_back = raw.ImVector_ImVec4_pop_back;
+    /// push_back(self: *Vector(Vec4), v: Vec4) void
     pub const push_back = raw.ImVector_ImVec4_push_back;
+    /// push_front(self: *Vector(Vec4), v: Vec4) void
     pub const push_front = raw.ImVector_ImVec4_push_front;
+    /// reserve(self: *Vector(Vec4), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImVec4_reserve;
+    /// resize(self: *Vector(Vec4), new_size: i32) void
     pub const resize = raw.ImVector_ImVec4_resize;
+    /// resizeT(self: *Vector(Vec4), new_size: i32, v: Vec4) void
     pub const resizeT = raw.ImVector_ImVec4_resizeT;
+    /// shrink(self: *Vector(Vec4), new_size: i32) void
     pub const shrink = raw.ImVector_ImVec4_shrink;
+    /// size(self: *const Vector(Vec4)) i32
     pub const size = raw.ImVector_ImVec4_size;
+    /// size_in_bytes(self: *const Vector(Vec4)) i32
     pub const size_in_bytes = raw.ImVector_ImVec4_size_in_bytes;
+    /// swap(self: *Vector(Vec4), rhs: *Vector(Vec4)) void
     pub const swap = raw.ImVector_ImVec4_swap;
 };
 
 const FTABLE_ImVector_ImWchar = struct {
+    /// init(self: *Vector(Wchar)) void
     pub const init = raw.ImVector_ImWchar_ImVector_ImWchar;
+    /// initVector(self: *Vector(Wchar), src: Vector(Wchar)) void
     pub const initVector = raw.ImVector_ImWchar_ImVector_ImWcharVector;
+    /// _grow_capacity(self: *const Vector(Wchar), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_ImWchar__grow_capacity;
+    /// back(self: *Vector(Wchar)) *Wchar
     pub const back = raw.ImVector_ImWchar_back;
+    /// back_const(self: *const Vector(Wchar)) *const Wchar
     pub const back_const = raw.ImVector_ImWchar_back_const;
+    /// begin(self: *Vector(Wchar)) [*]Wchar
     pub const begin = raw.ImVector_ImWchar_begin;
+    /// begin_const(self: *const Vector(Wchar)) [*]const Wchar
     pub const begin_const = raw.ImVector_ImWchar_begin_const;
+    /// capacity(self: *const Vector(Wchar)) i32
     pub const capacity = raw.ImVector_ImWchar_capacity;
+    /// clear(self: *Vector(Wchar)) void
     pub const clear = raw.ImVector_ImWchar_clear;
+    /// contains(self: *const Vector(Wchar), v: Wchar) bool
     pub const contains = raw.ImVector_ImWchar_contains;
+    /// deinit(self: *Vector(Wchar)) void
     pub const deinit = raw.ImVector_ImWchar_destroy;
+    /// empty(self: *const Vector(Wchar)) bool
     pub const empty = raw.ImVector_ImWchar_empty;
+    /// end(self: *Vector(Wchar)) [*]Wchar
     pub const end = raw.ImVector_ImWchar_end;
+    /// end_const(self: *const Vector(Wchar)) [*]const Wchar
     pub const end_const = raw.ImVector_ImWchar_end_const;
+    /// erase(self: *Vector(Wchar), it: [*]const Wchar) [*]Wchar
     pub const erase = raw.ImVector_ImWchar_erase;
+    /// eraseTPtr(self: *Vector(Wchar), it: [*]const Wchar, it_last: [*]const Wchar) [*]Wchar
     pub const eraseTPtr = raw.ImVector_ImWchar_eraseTPtr;
+    /// erase_unsorted(self: *Vector(Wchar), it: [*]const Wchar) [*]Wchar
     pub const erase_unsorted = raw.ImVector_ImWchar_erase_unsorted;
+    /// find(self: *Vector(Wchar), v: Wchar) [*]Wchar
     pub const find = raw.ImVector_ImWchar_find;
+    /// find_const(self: *const Vector(Wchar), v: Wchar) [*]const Wchar
     pub const find_const = raw.ImVector_ImWchar_find_const;
+    /// find_erase(self: *Vector(Wchar), v: Wchar) bool
     pub const find_erase = raw.ImVector_ImWchar_find_erase;
+    /// find_erase_unsorted(self: *Vector(Wchar), v: Wchar) bool
     pub const find_erase_unsorted = raw.ImVector_ImWchar_find_erase_unsorted;
+    /// front(self: *Vector(Wchar)) *Wchar
     pub const front = raw.ImVector_ImWchar_front;
+    /// front_const(self: *const Vector(Wchar)) *const Wchar
     pub const front_const = raw.ImVector_ImWchar_front_const;
+    /// index_from_ptr(self: *const Vector(Wchar), it: [*]const Wchar) i32
     pub const index_from_ptr = raw.ImVector_ImWchar_index_from_ptr;
+    /// insert(self: *Vector(Wchar), it: [*]const Wchar, v: Wchar) [*]Wchar
     pub const insert = raw.ImVector_ImWchar_insert;
+    /// pop_back(self: *Vector(Wchar)) void
     pub const pop_back = raw.ImVector_ImWchar_pop_back;
+    /// push_back(self: *Vector(Wchar), v: Wchar) void
     pub const push_back = raw.ImVector_ImWchar_push_back;
+    /// push_front(self: *Vector(Wchar), v: Wchar) void
     pub const push_front = raw.ImVector_ImWchar_push_front;
+    /// reserve(self: *Vector(Wchar), new_capacity: i32) void
     pub const reserve = raw.ImVector_ImWchar_reserve;
+    /// resize(self: *Vector(Wchar), new_size: i32) void
     pub const resize = raw.ImVector_ImWchar_resize;
+    /// resizeT(self: *Vector(Wchar), new_size: i32, v: Wchar) void
     pub const resizeT = raw.ImVector_ImWchar_resizeT;
+    /// shrink(self: *Vector(Wchar), new_size: i32) void
     pub const shrink = raw.ImVector_ImWchar_shrink;
+    /// size(self: *const Vector(Wchar)) i32
     pub const size = raw.ImVector_ImWchar_size;
+    /// size_in_bytes(self: *const Vector(Wchar)) i32
     pub const size_in_bytes = raw.ImVector_ImWchar_size_in_bytes;
+    /// swap(self: *Vector(Wchar), rhs: *Vector(Wchar)) void
     pub const swap = raw.ImVector_ImWchar_swap;
 };
 
 const FTABLE_ImVector_char = struct {
+    /// init(self: *Vector(u8)) void
     pub const init = raw.ImVector_char_ImVector_char;
+    /// initVector(self: *Vector(u8), src: Vector(u8)) void
     pub const initVector = raw.ImVector_char_ImVector_charVector;
+    /// _grow_capacity(self: *const Vector(u8), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_char__grow_capacity;
+    /// back(self: *Vector(u8)) *u8
     pub const back = raw.ImVector_char_back;
+    /// back_const(self: *const Vector(u8)) *const u8
     pub const back_const = raw.ImVector_char_back_const;
+    /// begin(self: *Vector(u8)) [*]u8
     pub const begin = raw.ImVector_char_begin;
+    /// begin_const(self: *const Vector(u8)) [*]const u8
     pub const begin_const = raw.ImVector_char_begin_const;
+    /// capacity(self: *const Vector(u8)) i32
     pub const capacity = raw.ImVector_char_capacity;
+    /// clear(self: *Vector(u8)) void
     pub const clear = raw.ImVector_char_clear;
+    /// contains(self: *const Vector(u8), v: u8) bool
     pub const contains = raw.ImVector_char_contains;
+    /// deinit(self: *Vector(u8)) void
     pub const deinit = raw.ImVector_char_destroy;
+    /// empty(self: *const Vector(u8)) bool
     pub const empty = raw.ImVector_char_empty;
+    /// end(self: *Vector(u8)) [*]u8
     pub const end = raw.ImVector_char_end;
+    /// end_const(self: *const Vector(u8)) [*]const u8
     pub const end_const = raw.ImVector_char_end_const;
+    /// erase(self: *Vector(u8), it: [*]const u8) [*]u8
     pub const erase = raw.ImVector_char_erase;
+    /// eraseTPtr(self: *Vector(u8), it: [*]const u8, it_last: [*]const u8) [*]u8
     pub const eraseTPtr = raw.ImVector_char_eraseTPtr;
+    /// erase_unsorted(self: *Vector(u8), it: [*]const u8) [*]u8
     pub const erase_unsorted = raw.ImVector_char_erase_unsorted;
+    /// find(self: *Vector(u8), v: u8) [*]u8
     pub const find = raw.ImVector_char_find;
+    /// find_const(self: *const Vector(u8), v: u8) [*]const u8
     pub const find_const = raw.ImVector_char_find_const;
+    /// find_erase(self: *Vector(u8), v: u8) bool
     pub const find_erase = raw.ImVector_char_find_erase;
+    /// find_erase_unsorted(self: *Vector(u8), v: u8) bool
     pub const find_erase_unsorted = raw.ImVector_char_find_erase_unsorted;
+    /// front(self: *Vector(u8)) *u8
     pub const front = raw.ImVector_char_front;
+    /// front_const(self: *const Vector(u8)) *const u8
     pub const front_const = raw.ImVector_char_front_const;
+    /// index_from_ptr(self: *const Vector(u8), it: [*]const u8) i32
     pub const index_from_ptr = raw.ImVector_char_index_from_ptr;
+    /// insert(self: *Vector(u8), it: [*]const u8, v: u8) [*]u8
     pub const insert = raw.ImVector_char_insert;
+    /// pop_back(self: *Vector(u8)) void
     pub const pop_back = raw.ImVector_char_pop_back;
+    /// push_back(self: *Vector(u8), v: u8) void
     pub const push_back = raw.ImVector_char_push_back;
+    /// push_front(self: *Vector(u8), v: u8) void
     pub const push_front = raw.ImVector_char_push_front;
+    /// reserve(self: *Vector(u8), new_capacity: i32) void
     pub const reserve = raw.ImVector_char_reserve;
+    /// resize(self: *Vector(u8), new_size: i32) void
     pub const resize = raw.ImVector_char_resize;
+    /// resizeT(self: *Vector(u8), new_size: i32, v: u8) void
     pub const resizeT = raw.ImVector_char_resizeT;
+    /// shrink(self: *Vector(u8), new_size: i32) void
     pub const shrink = raw.ImVector_char_shrink;
+    /// size(self: *const Vector(u8)) i32
     pub const size = raw.ImVector_char_size;
+    /// size_in_bytes(self: *const Vector(u8)) i32
     pub const size_in_bytes = raw.ImVector_char_size_in_bytes;
+    /// swap(self: *Vector(u8), rhs: *Vector(u8)) void
     pub const swap = raw.ImVector_char_swap;
 };
 
 const FTABLE_ImVector_float = struct {
+    /// init(self: *Vector(f32)) void
     pub const init = raw.ImVector_float_ImVector_float;
+    /// initVector(self: *Vector(f32), src: Vector(f32)) void
     pub const initVector = raw.ImVector_float_ImVector_floatVector;
+    /// _grow_capacity(self: *const Vector(f32), sz: i32) i32
     pub const _grow_capacity = raw.ImVector_float__grow_capacity;
+    /// back(self: *Vector(f32)) *f32
     pub const back = raw.ImVector_float_back;
+    /// back_const(self: *const Vector(f32)) *const f32
     pub const back_const = raw.ImVector_float_back_const;
+    /// begin(self: *Vector(f32)) [*]f32
     pub const begin = raw.ImVector_float_begin;
+    /// begin_const(self: *const Vector(f32)) [*]const f32
     pub const begin_const = raw.ImVector_float_begin_const;
+    /// capacity(self: *const Vector(f32)) i32
     pub const capacity = raw.ImVector_float_capacity;
+    /// clear(self: *Vector(f32)) void
     pub const clear = raw.ImVector_float_clear;
+    /// contains(self: *const Vector(f32), v: f32) bool
     pub const contains = raw.ImVector_float_contains;
+    /// deinit(self: *Vector(f32)) void
     pub const deinit = raw.ImVector_float_destroy;
+    /// empty(self: *const Vector(f32)) bool
     pub const empty = raw.ImVector_float_empty;
+    /// end(self: *Vector(f32)) [*]f32
     pub const end = raw.ImVector_float_end;
+    /// end_const(self: *const Vector(f32)) [*]const f32
     pub const end_const = raw.ImVector_float_end_const;
+    /// erase(self: *Vector(f32), it: [*]const f32) [*]f32
     pub const erase = raw.ImVector_float_erase;
+    /// eraseTPtr(self: *Vector(f32), it: [*]const f32, it_last: [*]const f32) [*]f32
     pub const eraseTPtr = raw.ImVector_float_eraseTPtr;
+    /// erase_unsorted(self: *Vector(f32), it: [*]const f32) [*]f32
     pub const erase_unsorted = raw.ImVector_float_erase_unsorted;
+    /// find(self: *Vector(f32), v: f32) [*]f32
     pub const find = raw.ImVector_float_find;
+    /// find_const(self: *const Vector(f32), v: f32) [*]const f32
     pub const find_const = raw.ImVector_float_find_const;
+    /// find_erase(self: *Vector(f32), v: f32) bool
     pub const find_erase = raw.ImVector_float_find_erase;
+    /// find_erase_unsorted(self: *Vector(f32), v: f32) bool
     pub const find_erase_unsorted = raw.ImVector_float_find_erase_unsorted;
+    /// front(self: *Vector(f32)) *f32
     pub const front = raw.ImVector_float_front;
+    /// front_const(self: *const Vector(f32)) *const f32
     pub const front_const = raw.ImVector_float_front_const;
+    /// index_from_ptr(self: *const Vector(f32), it: [*]const f32) i32
     pub const index_from_ptr = raw.ImVector_float_index_from_ptr;
+    /// insert(self: *Vector(f32), it: [*]const f32, v: f32) [*]f32
     pub const insert = raw.ImVector_float_insert;
+    /// pop_back(self: *Vector(f32)) void
     pub const pop_back = raw.ImVector_float_pop_back;
+    /// push_back(self: *Vector(f32), v: f32) void
     pub const push_back = raw.ImVector_float_push_back;
+    /// push_front(self: *Vector(f32), v: f32) void
     pub const push_front = raw.ImVector_float_push_front;
+    /// reserve(self: *Vector(f32), new_capacity: i32) void
     pub const reserve = raw.ImVector_float_reserve;
+    /// resize(self: *Vector(f32), new_size: i32) void
     pub const resize = raw.ImVector_float_resize;
+    /// resizeT(self: *Vector(f32), new_size: i32, v: f32) void
     pub const resizeT = raw.ImVector_float_resizeT;
+    /// shrink(self: *Vector(f32), new_size: i32) void
     pub const shrink = raw.ImVector_float_shrink;
+    /// size(self: *const Vector(f32)) i32
     pub const size = raw.ImVector_float_size;
+    /// size_in_bytes(self: *const Vector(f32)) i32
     pub const size_in_bytes = raw.ImVector_float_size_in_bytes;
+    /// swap(self: *Vector(f32), rhs: *Vector(f32)) void
     pub const swap = raw.ImVector_float_swap;
 };
 
@@ -2176,515 +3264,1547 @@ pub fn Vector(comptime T: type) type {
     };
 }
 
-pub inline fn AcceptDragDropPayload(type: ?[*:0]const u8, flags: DragDropFlags) ?*const Payload {
-    return raw.igAcceptDragDropPayload(type, flags.toInt());
+
+pub inline fn AcceptDragDropPayloadExt(kind: ?[*:0]const u8, flags: DragDropFlags) ?*const Payload {
+    return raw.igAcceptDragDropPayload(kind, flags.toInt());
 }
+pub inline fn AcceptDragDropPayload(kind: ?[*:0]const u8) ?*const Payload {
+    return AcceptDragDropPayloadExt(kind, .{});
+}
+
+/// AlignTextToFramePadding() void
 pub const AlignTextToFramePadding = raw.igAlignTextToFramePadding;
+
+/// ArrowButton(str_id: ?[*:0]const u8, dir: Dir) bool
 pub const ArrowButton = raw.igArrowButton;
-pub inline fn Begin(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlags) bool {
+
+pub inline fn BeginExt(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlags) bool {
     return raw.igBegin(name, p_open, flags.toInt());
 }
-pub inline fn BeginChildStr(str_id: ?[*:0]const u8, size: Vec2, border: bool, flags: WindowFlags) bool {
+pub inline fn Begin(name: ?[*:0]const u8) bool {
+    return BeginExt(name, null, .{});
+}
+
+pub inline fn BeginChildStrExt(str_id: ?[*:0]const u8, size: Vec2, border: bool, flags: WindowFlags) bool {
     return raw.igBeginChildStr(str_id, size, border, flags.toInt());
 }
-pub inline fn BeginChildID(id: ID, size: Vec2, border: bool, flags: WindowFlags) bool {
+pub inline fn BeginChildStr(str_id: ?[*:0]const u8) bool {
+    return BeginChildStrExt(str_id, .{.x=0,.y=0}, false, .{});
+}
+
+pub inline fn BeginChildIDExt(id: ID, size: Vec2, border: bool, flags: WindowFlags) bool {
     return raw.igBeginChildID(id, size, border, flags.toInt());
 }
-pub inline fn BeginChildFrame(id: ID, size: Vec2, flags: WindowFlags) bool {
+pub inline fn BeginChildID(id: ID) bool {
+    return BeginChildIDExt(id, .{.x=0,.y=0}, false, .{});
+}
+
+pub inline fn BeginChildFrameExt(id: ID, size: Vec2, flags: WindowFlags) bool {
     return raw.igBeginChildFrame(id, size, flags.toInt());
 }
-pub inline fn BeginCombo(label: ?[*:0]const u8, preview_value: ?[*:0]const u8, flags: ComboFlags) bool {
+pub inline fn BeginChildFrame(id: ID, size: Vec2) bool {
+    return BeginChildFrameExt(id, size, .{});
+}
+
+pub inline fn BeginComboExt(label: ?[*:0]const u8, preview_value: ?[*:0]const u8, flags: ComboFlags) bool {
     return raw.igBeginCombo(label, preview_value, flags.toInt());
 }
-pub inline fn BeginDragDropSource(flags: DragDropFlags) bool {
+pub inline fn BeginCombo(label: ?[*:0]const u8, preview_value: ?[*:0]const u8) bool {
+    return BeginComboExt(label, preview_value, .{});
+}
+
+pub inline fn BeginDragDropSourceExt(flags: DragDropFlags) bool {
     return raw.igBeginDragDropSource(flags.toInt());
 }
+pub inline fn BeginDragDropSource() bool {
+    return BeginDragDropSourceExt(.{});
+}
+
+/// BeginDragDropTarget() bool
 pub const BeginDragDropTarget = raw.igBeginDragDropTarget;
+
+/// BeginGroup() void
 pub const BeginGroup = raw.igBeginGroup;
+
+/// BeginMainMenuBar() bool
 pub const BeginMainMenuBar = raw.igBeginMainMenuBar;
-pub const BeginMenu = raw.igBeginMenu;
+
+/// BeginMenuExt(label: ?[*:0]const u8, enabled: bool) bool
+pub const BeginMenuExt = raw.igBeginMenu;
+pub inline fn BeginMenu(label: ?[*:0]const u8) bool {
+    return BeginMenuExt(label, true);
+}
+
+/// BeginMenuBar() bool
 pub const BeginMenuBar = raw.igBeginMenuBar;
-pub inline fn BeginPopup(str_id: ?[*:0]const u8, flags: WindowFlags) bool {
+
+pub inline fn BeginPopupExt(str_id: ?[*:0]const u8, flags: WindowFlags) bool {
     return raw.igBeginPopup(str_id, flags.toInt());
 }
-pub const BeginPopupContextItem = raw.igBeginPopupContextItem;
-pub const BeginPopupContextVoid = raw.igBeginPopupContextVoid;
-pub const BeginPopupContextWindow = raw.igBeginPopupContextWindow;
-pub inline fn BeginPopupModal(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlags) bool {
+pub inline fn BeginPopup(str_id: ?[*:0]const u8) bool {
+    return BeginPopupExt(str_id, .{});
+}
+
+/// BeginPopupContextItemExt(str_id: ?[*:0]const u8, mouse_button: MouseButton) bool
+pub const BeginPopupContextItemExt = raw.igBeginPopupContextItem;
+pub inline fn BeginPopupContextItem() bool {
+    return BeginPopupContextItemExt(null, .Right);
+}
+
+/// BeginPopupContextVoidExt(str_id: ?[*:0]const u8, mouse_button: MouseButton) bool
+pub const BeginPopupContextVoidExt = raw.igBeginPopupContextVoid;
+pub inline fn BeginPopupContextVoid() bool {
+    return BeginPopupContextVoidExt(null, .Right);
+}
+
+/// BeginPopupContextWindowExt(str_id: ?[*:0]const u8, mouse_button: MouseButton, also_over_items: bool) bool
+pub const BeginPopupContextWindowExt = raw.igBeginPopupContextWindow;
+pub inline fn BeginPopupContextWindow() bool {
+    return BeginPopupContextWindowExt(null, .Right, true);
+}
+
+pub inline fn BeginPopupModalExt(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlags) bool {
     return raw.igBeginPopupModal(name, p_open, flags.toInt());
 }
-pub inline fn BeginTabBar(str_id: ?[*:0]const u8, flags: TabBarFlags) bool {
+pub inline fn BeginPopupModal(name: ?[*:0]const u8) bool {
+    return BeginPopupModalExt(name, null, .{});
+}
+
+pub inline fn BeginTabBarExt(str_id: ?[*:0]const u8, flags: TabBarFlags) bool {
     return raw.igBeginTabBar(str_id, flags.toInt());
 }
-pub inline fn BeginTabItem(label: ?[*:0]const u8, p_open: ?*bool, flags: TabItemFlags) bool {
+pub inline fn BeginTabBar(str_id: ?[*:0]const u8) bool {
+    return BeginTabBarExt(str_id, .{});
+}
+
+pub inline fn BeginTabItemExt(label: ?[*:0]const u8, p_open: ?*bool, flags: TabItemFlags) bool {
     return raw.igBeginTabItem(label, p_open, flags.toInt());
 }
+pub inline fn BeginTabItem(label: ?[*:0]const u8) bool {
+    return BeginTabItemExt(label, null, .{});
+}
+
+/// BeginTooltip() void
 pub const BeginTooltip = raw.igBeginTooltip;
+
+/// Bullet() void
 pub const Bullet = raw.igBullet;
+
+/// BulletText(fmt: ?[*:0]const u8, ...: ...) void
 pub const BulletText = raw.igBulletText;
-pub const Button = raw.igButton;
+
+/// ButtonExt(label: ?[*:0]const u8, size: Vec2) bool
+pub const ButtonExt = raw.igButton;
+pub inline fn Button(label: ?[*:0]const u8) bool {
+    return ButtonExt(label, .{.x=0,.y=0});
+}
+
+/// CalcItemWidth() f32
 pub const CalcItemWidth = raw.igCalcItemWidth;
+
+/// CalcListClipping(items_count: i32, items_height: f32, out_items_display_start: *i32, out_items_display_end: *i32) void
 pub const CalcListClipping = raw.igCalcListClipping;
-pub inline fn CalcTextSize(text: ?[*]const u8, text_end: ?[*]const u8, hide_text_after_double_hash: bool, wrap_width: f32) Vec2 {
+
+pub inline fn CalcTextSizeExt(text: ?[*]const u8, text_end: ?[*]const u8, hide_text_after_double_hash: bool, wrap_width: f32) Vec2 {
     var out: Vec2 = undefined;
     raw.igCalcTextSize_nonUDT(&out, text, text_end, hide_text_after_double_hash, wrap_width);
     return out;
 }
-pub const CaptureKeyboardFromApp = raw.igCaptureKeyboardFromApp;
-pub const CaptureMouseFromApp = raw.igCaptureMouseFromApp;
+pub inline fn CalcTextSize(text: ?[*]const u8) Vec2 {
+    return CalcTextSizeExt(text, null, false, -1.0);
+}
+
+/// CaptureKeyboardFromAppExt(want_capture_keyboard_value: bool) void
+pub const CaptureKeyboardFromAppExt = raw.igCaptureKeyboardFromApp;
+pub inline fn CaptureKeyboardFromApp() void {
+    return CaptureKeyboardFromAppExt(true);
+}
+
+/// CaptureMouseFromAppExt(want_capture_mouse_value: bool) void
+pub const CaptureMouseFromAppExt = raw.igCaptureMouseFromApp;
+pub inline fn CaptureMouseFromApp() void {
+    return CaptureMouseFromAppExt(true);
+}
+
+/// Checkbox(label: ?[*:0]const u8, v: *bool) bool
 pub const Checkbox = raw.igCheckbox;
+
+/// CheckboxFlags(label: ?[*:0]const u8, flags: ?*u32, flags_value: u32) bool
 pub const CheckboxFlags = raw.igCheckboxFlags;
+
+/// CloseCurrentPopup() void
 pub const CloseCurrentPopup = raw.igCloseCurrentPopup;
-pub inline fn CollapsingHeader(label: ?[*:0]const u8, flags: TreeNodeFlags) bool {
+
+pub inline fn CollapsingHeaderExt(label: ?[*:0]const u8, flags: TreeNodeFlags) bool {
     return raw.igCollapsingHeader(label, flags.toInt());
 }
-pub inline fn CollapsingHeaderBoolPtr(label: ?[*:0]const u8, p_open: ?*bool, flags: TreeNodeFlags) bool {
+pub inline fn CollapsingHeader(label: ?[*:0]const u8) bool {
+    return CollapsingHeaderExt(label, .{});
+}
+
+pub inline fn CollapsingHeaderBoolPtrExt(label: ?[*:0]const u8, p_open: ?*bool, flags: TreeNodeFlags) bool {
     return raw.igCollapsingHeaderBoolPtr(label, p_open, flags.toInt());
 }
-pub inline fn ColorButton(desc_id: ?[*:0]const u8, col: Vec4, flags: ColorEditFlags, size: Vec2) bool {
+pub inline fn CollapsingHeaderBoolPtr(label: ?[*:0]const u8, p_open: ?*bool) bool {
+    return CollapsingHeaderBoolPtrExt(label, p_open, .{});
+}
+
+pub inline fn ColorButtonExt(desc_id: ?[*:0]const u8, col: Vec4, flags: ColorEditFlags, size: Vec2) bool {
     return raw.igColorButton(desc_id, col, flags.toInt(), size);
 }
+pub inline fn ColorButton(desc_id: ?[*:0]const u8, col: Vec4) bool {
+    return ColorButtonExt(desc_id, col, .{}, .{.x=0,.y=0});
+}
+
+/// ColorConvertFloat4ToU32(in: Vec4) u32
 pub const ColorConvertFloat4ToU32 = raw.igColorConvertFloat4ToU32;
+
+/// ColorConvertHSVtoRGB(h: f32, s: f32, v: f32, out_r: *f32, out_g: *f32, out_b: *f32) void
 pub const ColorConvertHSVtoRGB = raw.igColorConvertHSVtoRGB;
+
+/// ColorConvertRGBtoHSV(r: f32, g: f32, b: f32, out_h: *f32, out_s: *f32, out_v: *f32) void
 pub const ColorConvertRGBtoHSV = raw.igColorConvertRGBtoHSV;
+
 pub inline fn ColorConvertU32ToFloat4(in: u32) Vec4 {
     var out: Vec4 = undefined;
     raw.igColorConvertU32ToFloat4_nonUDT(&out, in);
     return out;
 }
-pub inline fn ColorEdit3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool {
+
+pub inline fn ColorEdit3Ext(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool {
     return raw.igColorEdit3(label, col, flags.toInt());
 }
-pub inline fn ColorEdit4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags) bool {
+pub inline fn ColorEdit3(label: ?[*:0]const u8, col: *[3]f32) bool {
+    return ColorEdit3Ext(label, col, .{});
+}
+
+pub inline fn ColorEdit4Ext(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags) bool {
     return raw.igColorEdit4(label, col, flags.toInt());
 }
-pub inline fn ColorPicker3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool {
+pub inline fn ColorEdit4(label: ?[*:0]const u8, col: *[4]f32) bool {
+    return ColorEdit4Ext(label, col, .{});
+}
+
+pub inline fn ColorPicker3Ext(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlags) bool {
     return raw.igColorPicker3(label, col, flags.toInt());
 }
-pub inline fn ColorPicker4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags, ref_col: ?*[4]const f32) bool {
+pub inline fn ColorPicker3(label: ?[*:0]const u8, col: *[3]f32) bool {
+    return ColorPicker3Ext(label, col, .{});
+}
+
+pub inline fn ColorPicker4Ext(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlags, ref_col: ?*const[4]f32) bool {
     return raw.igColorPicker4(label, col, flags.toInt(), ref_col);
 }
-pub const Columns = raw.igColumns;
-pub const Combo = raw.igCombo;
-pub const ComboStr = raw.igComboStr;
-pub const ComboFnPtr = raw.igComboFnPtr;
-pub const CreateContext = raw.igCreateContext;
+pub inline fn ColorPicker4(label: ?[*:0]const u8, col: *[4]f32) bool {
+    return ColorPicker4Ext(label, col, .{}, null);
+}
+
+/// ColumnsExt(count: i32, id: ?[*:0]const u8, border: bool) void
+pub const ColumnsExt = raw.igColumns;
+pub inline fn Columns() void {
+    return ColumnsExt(1, null, true);
+}
+
+/// ComboExt(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, popup_max_height_in_items: i32) bool
+pub const ComboExt = raw.igCombo;
+pub inline fn Combo(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32) bool {
+    return ComboExt(label, current_item, items, items_count, -1);
+}
+
+/// ComboStrExt(label: ?[*:0]const u8, current_item: ?*i32, items_separated_by_zeros: ?[*]const u8, popup_max_height_in_items: i32) bool
+pub const ComboStrExt = raw.igComboStr;
+pub inline fn ComboStr(label: ?[*:0]const u8, current_item: ?*i32, items_separated_by_zeros: ?[*]const u8) bool {
+    return ComboStrExt(label, current_item, items_separated_by_zeros, -1);
+}
+
+/// ComboFnPtrExt(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*c_void, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*c_void, items_count: i32, popup_max_height_in_items: i32) bool
+pub const ComboFnPtrExt = raw.igComboFnPtr;
+pub inline fn ComboFnPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*c_void, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*c_void, items_count: i32) bool {
+    return ComboFnPtrExt(label, current_item, items_getter, data, items_count, -1);
+}
+
+/// CreateContextExt(shared_font_atlas: ?*FontAtlas) ?*Context
+pub const CreateContextExt = raw.igCreateContext;
+pub inline fn CreateContext() ?*Context {
+    return CreateContextExt(null);
+}
+
+/// DebugCheckVersionAndDataLayout(version_str: ?[*:0]const u8, sz_io: usize, sz_style: usize, sz_vec2: usize, sz_vec4: usize, sz_drawvert: usize, sz_drawidx: usize) bool
 pub const DebugCheckVersionAndDataLayout = raw.igDebugCheckVersionAndDataLayout;
-pub const DestroyContext = raw.igDestroyContext;
-pub const DragFloat = raw.igDragFloat;
-pub const DragFloat2 = raw.igDragFloat2;
-pub const DragFloat3 = raw.igDragFloat3;
-pub const DragFloat4 = raw.igDragFloat4;
-pub const DragFloatRange2 = raw.igDragFloatRange2;
-pub const DragInt = raw.igDragInt;
-pub const DragInt2 = raw.igDragInt2;
-pub const DragInt3 = raw.igDragInt3;
-pub const DragInt4 = raw.igDragInt4;
-pub const DragIntRange2 = raw.igDragIntRange2;
-pub const DragScalar = raw.igDragScalar;
-pub const DragScalarN = raw.igDragScalarN;
+
+/// DestroyContextExt(ctx: ?*Context) void
+pub const DestroyContextExt = raw.igDestroyContext;
+pub inline fn DestroyContext() void {
+    return DestroyContextExt(null);
+}
+
+/// DragFloatExt(label: ?[*:0]const u8, v: *f32, v_speed: f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const DragFloatExt = raw.igDragFloat;
+pub inline fn DragFloat(label: ?[*:0]const u8, v: *f32) bool {
+    return DragFloatExt(label, v, 1.0, 0.0, 0.0, "%.3f", 1.0);
+}
+
+/// DragFloat2Ext(label: ?[*:0]const u8, v: *[2]f32, v_speed: f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const DragFloat2Ext = raw.igDragFloat2;
+pub inline fn DragFloat2(label: ?[*:0]const u8, v: *[2]f32) bool {
+    return DragFloat2Ext(label, v, 1.0, 0.0, 0.0, "%.3f", 1.0);
+}
+
+/// DragFloat3Ext(label: ?[*:0]const u8, v: *[3]f32, v_speed: f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const DragFloat3Ext = raw.igDragFloat3;
+pub inline fn DragFloat3(label: ?[*:0]const u8, v: *[3]f32) bool {
+    return DragFloat3Ext(label, v, 1.0, 0.0, 0.0, "%.3f", 1.0);
+}
+
+/// DragFloat4Ext(label: ?[*:0]const u8, v: *[4]f32, v_speed: f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const DragFloat4Ext = raw.igDragFloat4;
+pub inline fn DragFloat4(label: ?[*:0]const u8, v: *[4]f32) bool {
+    return DragFloat4Ext(label, v, 1.0, 0.0, 0.0, "%.3f", 1.0);
+}
+
+/// DragFloatRange2Ext(label: ?[*:0]const u8, v_current_min: *f32, v_current_max: *f32, v_speed: f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, format_max: ?[*:0]const u8, power: f32) bool
+pub const DragFloatRange2Ext = raw.igDragFloatRange2;
+pub inline fn DragFloatRange2(label: ?[*:0]const u8, v_current_min: *f32, v_current_max: *f32) bool {
+    return DragFloatRange2Ext(label, v_current_min, v_current_max, 1.0, 0.0, 0.0, "%.3f", null, 1.0);
+}
+
+/// DragIntExt(label: ?[*:0]const u8, v: *i32, v_speed: f32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const DragIntExt = raw.igDragInt;
+pub inline fn DragInt(label: ?[*:0]const u8, v: *i32) bool {
+    return DragIntExt(label, v, 1.0, 0, 0, "%d");
+}
+
+/// DragInt2Ext(label: ?[*:0]const u8, v: *[2]i32, v_speed: f32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const DragInt2Ext = raw.igDragInt2;
+pub inline fn DragInt2(label: ?[*:0]const u8, v: *[2]i32) bool {
+    return DragInt2Ext(label, v, 1.0, 0, 0, "%d");
+}
+
+/// DragInt3Ext(label: ?[*:0]const u8, v: *[3]i32, v_speed: f32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const DragInt3Ext = raw.igDragInt3;
+pub inline fn DragInt3(label: ?[*:0]const u8, v: *[3]i32) bool {
+    return DragInt3Ext(label, v, 1.0, 0, 0, "%d");
+}
+
+/// DragInt4Ext(label: ?[*:0]const u8, v: *[4]i32, v_speed: f32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const DragInt4Ext = raw.igDragInt4;
+pub inline fn DragInt4(label: ?[*:0]const u8, v: *[4]i32) bool {
+    return DragInt4Ext(label, v, 1.0, 0, 0, "%d");
+}
+
+/// DragIntRange2Ext(label: ?[*:0]const u8, v_current_min: *i32, v_current_max: *i32, v_speed: f32, v_min: i32, v_max: i32, format: ?[*:0]const u8, format_max: ?[*:0]const u8) bool
+pub const DragIntRange2Ext = raw.igDragIntRange2;
+pub inline fn DragIntRange2(label: ?[*:0]const u8, v_current_min: *i32, v_current_max: *i32) bool {
+    return DragIntRange2Ext(label, v_current_min, v_current_max, 1.0, 0, 0, "%d", null);
+}
+
+/// DragScalarExt(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: ?[*:0]const u8, power: f32) bool
+pub const DragScalarExt = raw.igDragScalar;
+pub inline fn DragScalar(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, v_speed: f32) bool {
+    return DragScalarExt(label, data_type, p_data, v_speed, null, null, null, 1.0);
+}
+
+/// DragScalarNExt(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: ?[*:0]const u8, power: f32) bool
+pub const DragScalarNExt = raw.igDragScalarN;
+pub inline fn DragScalarN(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, v_speed: f32) bool {
+    return DragScalarNExt(label, data_type, p_data, components, v_speed, null, null, null, 1.0);
+}
+
+/// Dummy(size: Vec2) void
 pub const Dummy = raw.igDummy;
+
+/// End() void
 pub const End = raw.igEnd;
+
+/// EndChild() void
 pub const EndChild = raw.igEndChild;
+
+/// EndChildFrame() void
 pub const EndChildFrame = raw.igEndChildFrame;
+
+/// EndCombo() void
 pub const EndCombo = raw.igEndCombo;
+
+/// EndDragDropSource() void
 pub const EndDragDropSource = raw.igEndDragDropSource;
+
+/// EndDragDropTarget() void
 pub const EndDragDropTarget = raw.igEndDragDropTarget;
+
+/// EndFrame() void
 pub const EndFrame = raw.igEndFrame;
+
+/// EndGroup() void
 pub const EndGroup = raw.igEndGroup;
+
+/// EndMainMenuBar() void
 pub const EndMainMenuBar = raw.igEndMainMenuBar;
+
+/// EndMenu() void
 pub const EndMenu = raw.igEndMenu;
+
+/// EndMenuBar() void
 pub const EndMenuBar = raw.igEndMenuBar;
+
+/// EndPopup() void
 pub const EndPopup = raw.igEndPopup;
+
+/// EndTabBar() void
 pub const EndTabBar = raw.igEndTabBar;
+
+/// EndTabItem() void
 pub const EndTabItem = raw.igEndTabItem;
+
+/// EndTooltip() void
 pub const EndTooltip = raw.igEndTooltip;
+
+/// GetBackgroundDrawList() ?*DrawList
 pub const GetBackgroundDrawList = raw.igGetBackgroundDrawList;
+
+/// GetClipboardText() ?[*:0]const u8
 pub const GetClipboardText = raw.igGetClipboardText;
-pub const GetColorU32 = raw.igGetColorU32;
+
+/// GetColorU32Ext(idx: Col, alpha_mul: f32) u32
+pub const GetColorU32Ext = raw.igGetColorU32;
+pub inline fn GetColorU32(idx: Col) u32 {
+    return GetColorU32Ext(idx, 1.0);
+}
+
+/// GetColorU32Vec4(col: Vec4) u32
 pub const GetColorU32Vec4 = raw.igGetColorU32Vec4;
+
+/// GetColorU32U32(col: u32) u32
 pub const GetColorU32U32 = raw.igGetColorU32U32;
+
+/// GetColumnIndex() i32
 pub const GetColumnIndex = raw.igGetColumnIndex;
-pub const GetColumnOffset = raw.igGetColumnOffset;
-pub const GetColumnWidth = raw.igGetColumnWidth;
+
+/// GetColumnOffsetExt(column_index: i32) f32
+pub const GetColumnOffsetExt = raw.igGetColumnOffset;
+pub inline fn GetColumnOffset() f32 {
+    return GetColumnOffsetExt(-1);
+}
+
+/// GetColumnWidthExt(column_index: i32) f32
+pub const GetColumnWidthExt = raw.igGetColumnWidth;
+pub inline fn GetColumnWidth() f32 {
+    return GetColumnWidthExt(-1);
+}
+
+/// GetColumnsCount() i32
 pub const GetColumnsCount = raw.igGetColumnsCount;
+
 pub inline fn GetContentRegionAvail() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetContentRegionAvail_nonUDT(&out);
     return out;
 }
+
 pub inline fn GetContentRegionMax() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetContentRegionMax_nonUDT(&out);
     return out;
 }
+
+/// GetCurrentContext() ?*Context
 pub const GetCurrentContext = raw.igGetCurrentContext;
+
 pub inline fn GetCursorPos() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetCursorPos_nonUDT(&out);
     return out;
 }
+
+/// GetCursorPosX() f32
 pub const GetCursorPosX = raw.igGetCursorPosX;
+
+/// GetCursorPosY() f32
 pub const GetCursorPosY = raw.igGetCursorPosY;
+
 pub inline fn GetCursorScreenPos() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetCursorScreenPos_nonUDT(&out);
     return out;
 }
+
 pub inline fn GetCursorStartPos() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetCursorStartPos_nonUDT(&out);
     return out;
 }
+
+/// GetDragDropPayload() ?*const Payload
 pub const GetDragDropPayload = raw.igGetDragDropPayload;
+
+/// GetDrawData() *DrawData
 pub const GetDrawData = raw.igGetDrawData;
+
+/// GetDrawListSharedData() ?*DrawListSharedData
 pub const GetDrawListSharedData = raw.igGetDrawListSharedData;
+
+/// GetFont() ?*Font
 pub const GetFont = raw.igGetFont;
+
+/// GetFontSize() f32
 pub const GetFontSize = raw.igGetFontSize;
+
 pub inline fn GetFontTexUvWhitePixel() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetFontTexUvWhitePixel_nonUDT(&out);
     return out;
 }
+
+/// GetForegroundDrawList() ?*DrawList
 pub const GetForegroundDrawList = raw.igGetForegroundDrawList;
+
+/// GetFrameCount() i32
 pub const GetFrameCount = raw.igGetFrameCount;
+
+/// GetFrameHeight() f32
 pub const GetFrameHeight = raw.igGetFrameHeight;
+
+/// GetFrameHeightWithSpacing() f32
 pub const GetFrameHeightWithSpacing = raw.igGetFrameHeightWithSpacing;
+
+/// GetIDStr(str_id: ?[*:0]const u8) ID
 pub const GetIDStr = raw.igGetIDStr;
+
+/// GetIDRange(str_id_begin: ?[*]const u8, str_id_end: ?[*]const u8) ID
 pub const GetIDRange = raw.igGetIDRange;
+
+/// GetIDPtr(ptr_id: ?*const c_void) ID
 pub const GetIDPtr = raw.igGetIDPtr;
+
+/// GetIO() *IO
 pub const GetIO = raw.igGetIO;
+
 pub inline fn GetItemRectMax() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetItemRectMax_nonUDT(&out);
     return out;
 }
+
 pub inline fn GetItemRectMin() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetItemRectMin_nonUDT(&out);
     return out;
 }
+
 pub inline fn GetItemRectSize() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetItemRectSize_nonUDT(&out);
     return out;
 }
+
+/// GetKeyIndex(imgui_key: Key) i32
 pub const GetKeyIndex = raw.igGetKeyIndex;
+
+/// GetKeyPressedAmount(key_index: i32, repeat_delay: f32, rate: f32) i32
 pub const GetKeyPressedAmount = raw.igGetKeyPressedAmount;
+
+/// GetMouseCursor() MouseCursor
 pub const GetMouseCursor = raw.igGetMouseCursor;
-pub inline fn GetMouseDragDelta(button: MouseButton, lock_threshold: f32) Vec2 {
+
+pub inline fn GetMouseDragDeltaExt(button: MouseButton, lock_threshold: f32) Vec2 {
     var out: Vec2 = undefined;
     raw.igGetMouseDragDelta_nonUDT(&out, button, lock_threshold);
     return out;
 }
+pub inline fn GetMouseDragDelta() Vec2 {
+    return GetMouseDragDeltaExt(.Left, -1.0);
+}
+
 pub inline fn GetMousePos() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetMousePos_nonUDT(&out);
     return out;
 }
+
 pub inline fn GetMousePosOnOpeningCurrentPopup() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetMousePosOnOpeningCurrentPopup_nonUDT(&out);
     return out;
 }
+
+/// GetScrollMaxX() f32
 pub const GetScrollMaxX = raw.igGetScrollMaxX;
+
+/// GetScrollMaxY() f32
 pub const GetScrollMaxY = raw.igGetScrollMaxY;
+
+/// GetScrollX() f32
 pub const GetScrollX = raw.igGetScrollX;
+
+/// GetScrollY() f32
 pub const GetScrollY = raw.igGetScrollY;
+
+/// GetStateStorage() ?*Storage
 pub const GetStateStorage = raw.igGetStateStorage;
+
+/// GetStyle() ?*Style
 pub const GetStyle = raw.igGetStyle;
+
+/// GetStyleColorName(idx: Col) ?[*:0]const u8
 pub const GetStyleColorName = raw.igGetStyleColorName;
+
+/// GetStyleColorVec4(idx: Col) ?*const Vec4
 pub const GetStyleColorVec4 = raw.igGetStyleColorVec4;
+
+/// GetTextLineHeight() f32
 pub const GetTextLineHeight = raw.igGetTextLineHeight;
+
+/// GetTextLineHeightWithSpacing() f32
 pub const GetTextLineHeightWithSpacing = raw.igGetTextLineHeightWithSpacing;
+
+/// GetTime() f64
 pub const GetTime = raw.igGetTime;
+
+/// GetTreeNodeToLabelSpacing() f32
 pub const GetTreeNodeToLabelSpacing = raw.igGetTreeNodeToLabelSpacing;
+
+/// GetVersion() ?[*:0]const u8
 pub const GetVersion = raw.igGetVersion;
+
 pub inline fn GetWindowContentRegionMax() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetWindowContentRegionMax_nonUDT(&out);
     return out;
 }
+
 pub inline fn GetWindowContentRegionMin() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetWindowContentRegionMin_nonUDT(&out);
     return out;
 }
+
+/// GetWindowContentRegionWidth() f32
 pub const GetWindowContentRegionWidth = raw.igGetWindowContentRegionWidth;
+
+/// GetWindowDrawList() ?*DrawList
 pub const GetWindowDrawList = raw.igGetWindowDrawList;
+
+/// GetWindowHeight() f32
 pub const GetWindowHeight = raw.igGetWindowHeight;
+
 pub inline fn GetWindowPos() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetWindowPos_nonUDT(&out);
     return out;
 }
+
 pub inline fn GetWindowSize() Vec2 {
     var out: Vec2 = undefined;
     raw.igGetWindowSize_nonUDT(&out);
     return out;
 }
+
+/// GetWindowWidth() f32
 pub const GetWindowWidth = raw.igGetWindowWidth;
-pub const Image = raw.igImage;
-pub const ImageButton = raw.igImageButton;
-pub const Indent = raw.igIndent;
-pub inline fn InputDouble(label: ?[*:0]const u8, v: *f64, step: f64, step_fast: f64, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+
+/// ImageExt(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, tint_col: Vec4, border_col: Vec4) void
+pub const ImageExt = raw.igImage;
+pub inline fn Image(user_texture_id: TextureID, size: Vec2) void {
+    return ImageExt(user_texture_id, size, .{.x=0,.y=0}, .{.x=1,.y=1}, .{.x=1,.y=1,.z=1,.w=1}, .{.x=0,.y=0,.z=0,.w=0});
+}
+
+/// ImageButtonExt(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, frame_padding: i32, bg_col: Vec4, tint_col: Vec4) bool
+pub const ImageButtonExt = raw.igImageButton;
+pub inline fn ImageButton(user_texture_id: TextureID, size: Vec2) bool {
+    return ImageButtonExt(user_texture_id, size, .{.x=0,.y=0}, .{.x=1,.y=1}, -1, .{.x=0,.y=0,.z=0,.w=0}, .{.x=1,.y=1,.z=1,.w=1});
+}
+
+/// IndentExt(indent_w: f32) void
+pub const IndentExt = raw.igIndent;
+pub inline fn Indent() void {
+    return IndentExt(0.0);
+}
+
+pub inline fn InputDoubleExt(label: ?[*:0]const u8, v: *f64, step: f64, step_fast: f64, format: ?[*:0]const u8, flags: InputTextFlags) bool {
     return raw.igInputDouble(label, v, step, step_fast, format, flags.toInt());
 }
-pub inline fn InputFloat(label: ?[*:0]const u8, v: *f32, step: f32, step_fast: f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+pub inline fn InputDouble(label: ?[*:0]const u8, v: *f64) bool {
+    return InputDoubleExt(label, v, 0.0, 0.0, "%.6f", .{});
+}
+
+pub inline fn InputFloatExt(label: ?[*:0]const u8, v: *f32, step: f32, step_fast: f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
     return raw.igInputFloat(label, v, step, step_fast, format, flags.toInt());
 }
-pub inline fn InputFloat2(label: ?[*:0]const u8, v: *[2]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+pub inline fn InputFloat(label: ?[*:0]const u8, v: *f32) bool {
+    return InputFloatExt(label, v, 0.0, 0.0, "%.3f", .{});
+}
+
+pub inline fn InputFloat2Ext(label: ?[*:0]const u8, v: *[2]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
     return raw.igInputFloat2(label, v, format, flags.toInt());
 }
-pub inline fn InputFloat3(label: ?[*:0]const u8, v: *[3]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+pub inline fn InputFloat2(label: ?[*:0]const u8, v: *[2]f32) bool {
+    return InputFloat2Ext(label, v, "%.3f", .{});
+}
+
+pub inline fn InputFloat3Ext(label: ?[*:0]const u8, v: *[3]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
     return raw.igInputFloat3(label, v, format, flags.toInt());
 }
-pub inline fn InputFloat4(label: ?[*:0]const u8, v: *[4]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+pub inline fn InputFloat3(label: ?[*:0]const u8, v: *[3]f32) bool {
+    return InputFloat3Ext(label, v, "%.3f", .{});
+}
+
+pub inline fn InputFloat4Ext(label: ?[*:0]const u8, v: *[4]f32, format: ?[*:0]const u8, flags: InputTextFlags) bool {
     return raw.igInputFloat4(label, v, format, flags.toInt());
 }
-pub inline fn InputInt(label: ?[*:0]const u8, v: *i32, step: i32, step_fast: i32, flags: InputTextFlags) bool {
+pub inline fn InputFloat4(label: ?[*:0]const u8, v: *[4]f32) bool {
+    return InputFloat4Ext(label, v, "%.3f", .{});
+}
+
+pub inline fn InputIntExt(label: ?[*:0]const u8, v: *i32, step: i32, step_fast: i32, flags: InputTextFlags) bool {
     return raw.igInputInt(label, v, step, step_fast, flags.toInt());
 }
-pub inline fn InputInt2(label: ?[*:0]const u8, v: *[2]i32, flags: InputTextFlags) bool {
+pub inline fn InputInt(label: ?[*:0]const u8, v: *i32) bool {
+    return InputIntExt(label, v, 1, 100, .{});
+}
+
+pub inline fn InputInt2Ext(label: ?[*:0]const u8, v: *[2]i32, flags: InputTextFlags) bool {
     return raw.igInputInt2(label, v, flags.toInt());
 }
-pub inline fn InputInt3(label: ?[*:0]const u8, v: *[3]i32, flags: InputTextFlags) bool {
+pub inline fn InputInt2(label: ?[*:0]const u8, v: *[2]i32) bool {
+    return InputInt2Ext(label, v, .{});
+}
+
+pub inline fn InputInt3Ext(label: ?[*:0]const u8, v: *[3]i32, flags: InputTextFlags) bool {
     return raw.igInputInt3(label, v, flags.toInt());
 }
-pub inline fn InputInt4(label: ?[*:0]const u8, v: *[4]i32, flags: InputTextFlags) bool {
+pub inline fn InputInt3(label: ?[*:0]const u8, v: *[3]i32) bool {
+    return InputInt3Ext(label, v, .{});
+}
+
+pub inline fn InputInt4Ext(label: ?[*:0]const u8, v: *[4]i32, flags: InputTextFlags) bool {
     return raw.igInputInt4(label, v, flags.toInt());
 }
-pub inline fn InputScalar(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+pub inline fn InputInt4(label: ?[*:0]const u8, v: *[4]i32) bool {
+    return InputInt4Ext(label, v, .{});
+}
+
+pub inline fn InputScalarExt(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlags) bool {
     return raw.igInputScalar(label, data_type, p_data, p_step, p_step_fast, format, flags.toInt());
 }
-pub inline fn InputScalarN(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlags) bool {
+pub inline fn InputScalar(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void) bool {
+    return InputScalarExt(label, data_type, p_data, null, null, null, .{});
+}
+
+pub inline fn InputScalarNExt(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, p_step: ?*const c_void, p_step_fast: ?*const c_void, format: ?[*:0]const u8, flags: InputTextFlags) bool {
     return raw.igInputScalarN(label, data_type, p_data, components, p_step, p_step_fast, format, flags.toInt());
 }
-pub inline fn InputText(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
+pub inline fn InputScalarN(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32) bool {
+    return InputScalarNExt(label, data_type, p_data, components, null, null, null, .{});
+}
+
+pub inline fn InputTextExt(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
     return raw.igInputText(label, buf, buf_size, flags.toInt(), callback, user_data);
 }
-pub inline fn InputTextMultiline(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, size: Vec2, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
+pub inline fn InputText(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize) bool {
+    return InputTextExt(label, buf, buf_size, .{}, null, null);
+}
+
+pub inline fn InputTextMultilineExt(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, size: Vec2, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
     return raw.igInputTextMultiline(label, buf, buf_size, size, flags.toInt(), callback, user_data);
 }
-pub inline fn InputTextWithHint(label: ?[*:0]const u8, hint: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
+pub inline fn InputTextMultiline(label: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize) bool {
+    return InputTextMultilineExt(label, buf, buf_size, .{.x=0,.y=0}, .{}, null, null);
+}
+
+pub inline fn InputTextWithHintExt(label: ?[*:0]const u8, hint: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize, flags: InputTextFlags, callback: InputTextCallback, user_data: ?*c_void) bool {
     return raw.igInputTextWithHint(label, hint, buf, buf_size, flags.toInt(), callback, user_data);
 }
+pub inline fn InputTextWithHint(label: ?[*:0]const u8, hint: ?[*:0]const u8, buf: ?[*]u8, buf_size: usize) bool {
+    return InputTextWithHintExt(label, hint, buf, buf_size, .{}, null, null);
+}
+
+/// InvisibleButton(str_id: ?[*:0]const u8, size: Vec2) bool
 pub const InvisibleButton = raw.igInvisibleButton;
+
+/// IsAnyItemActive() bool
 pub const IsAnyItemActive = raw.igIsAnyItemActive;
+
+/// IsAnyItemFocused() bool
 pub const IsAnyItemFocused = raw.igIsAnyItemFocused;
+
+/// IsAnyItemHovered() bool
 pub const IsAnyItemHovered = raw.igIsAnyItemHovered;
+
+/// IsAnyMouseDown() bool
 pub const IsAnyMouseDown = raw.igIsAnyMouseDown;
+
+/// IsItemActivated() bool
 pub const IsItemActivated = raw.igIsItemActivated;
+
+/// IsItemActive() bool
 pub const IsItemActive = raw.igIsItemActive;
-pub const IsItemClicked = raw.igIsItemClicked;
+
+/// IsItemClickedExt(mouse_button: MouseButton) bool
+pub const IsItemClickedExt = raw.igIsItemClicked;
+pub inline fn IsItemClicked() bool {
+    return IsItemClickedExt(.Left);
+}
+
+/// IsItemDeactivated() bool
 pub const IsItemDeactivated = raw.igIsItemDeactivated;
+
+/// IsItemDeactivatedAfterEdit() bool
 pub const IsItemDeactivatedAfterEdit = raw.igIsItemDeactivatedAfterEdit;
+
+/// IsItemEdited() bool
 pub const IsItemEdited = raw.igIsItemEdited;
+
+/// IsItemFocused() bool
 pub const IsItemFocused = raw.igIsItemFocused;
-pub inline fn IsItemHovered(flags: HoveredFlags) bool {
+
+pub inline fn IsItemHoveredExt(flags: HoveredFlags) bool {
     return raw.igIsItemHovered(flags.toInt());
 }
+pub inline fn IsItemHovered() bool {
+    return IsItemHoveredExt(.{});
+}
+
+/// IsItemToggledOpen() bool
 pub const IsItemToggledOpen = raw.igIsItemToggledOpen;
+
+/// IsItemVisible() bool
 pub const IsItemVisible = raw.igIsItemVisible;
+
+/// IsKeyDown(user_key_index: i32) bool
 pub const IsKeyDown = raw.igIsKeyDown;
-pub const IsKeyPressed = raw.igIsKeyPressed;
+
+/// IsKeyPressedExt(user_key_index: i32, repeat: bool) bool
+pub const IsKeyPressedExt = raw.igIsKeyPressed;
+pub inline fn IsKeyPressed(user_key_index: i32) bool {
+    return IsKeyPressedExt(user_key_index, true);
+}
+
+/// IsKeyReleased(user_key_index: i32) bool
 pub const IsKeyReleased = raw.igIsKeyReleased;
-pub const IsMouseClicked = raw.igIsMouseClicked;
+
+/// IsMouseClickedExt(button: MouseButton, repeat: bool) bool
+pub const IsMouseClickedExt = raw.igIsMouseClicked;
+pub inline fn IsMouseClicked(button: MouseButton) bool {
+    return IsMouseClickedExt(button, false);
+}
+
+/// IsMouseDoubleClicked(button: MouseButton) bool
 pub const IsMouseDoubleClicked = raw.igIsMouseDoubleClicked;
+
+/// IsMouseDown(button: MouseButton) bool
 pub const IsMouseDown = raw.igIsMouseDown;
-pub const IsMouseDragging = raw.igIsMouseDragging;
-pub const IsMouseHoveringRect = raw.igIsMouseHoveringRect;
-pub const IsMousePosValid = raw.igIsMousePosValid;
+
+/// IsMouseDraggingExt(button: MouseButton, lock_threshold: f32) bool
+pub const IsMouseDraggingExt = raw.igIsMouseDragging;
+pub inline fn IsMouseDragging(button: MouseButton) bool {
+    return IsMouseDraggingExt(button, -1.0);
+}
+
+/// IsMouseHoveringRectExt(r_min: Vec2, r_max: Vec2, clip: bool) bool
+pub const IsMouseHoveringRectExt = raw.igIsMouseHoveringRect;
+pub inline fn IsMouseHoveringRect(r_min: Vec2, r_max: Vec2) bool {
+    return IsMouseHoveringRectExt(r_min, r_max, true);
+}
+
+/// IsMousePosValidExt(mouse_pos: ?*const Vec2) bool
+pub const IsMousePosValidExt = raw.igIsMousePosValid;
+pub inline fn IsMousePosValid() bool {
+    return IsMousePosValidExt(null);
+}
+
+/// IsMouseReleased(button: MouseButton) bool
 pub const IsMouseReleased = raw.igIsMouseReleased;
+
+/// IsPopupOpen(str_id: ?[*:0]const u8) bool
 pub const IsPopupOpen = raw.igIsPopupOpen;
+
+/// IsRectVisible(size: Vec2) bool
 pub const IsRectVisible = raw.igIsRectVisible;
+
+/// IsRectVisibleVec2(rect_min: Vec2, rect_max: Vec2) bool
 pub const IsRectVisibleVec2 = raw.igIsRectVisibleVec2;
+
+/// IsWindowAppearing() bool
 pub const IsWindowAppearing = raw.igIsWindowAppearing;
+
+/// IsWindowCollapsed() bool
 pub const IsWindowCollapsed = raw.igIsWindowCollapsed;
-pub inline fn IsWindowFocused(flags: FocusedFlags) bool {
+
+pub inline fn IsWindowFocusedExt(flags: FocusedFlags) bool {
     return raw.igIsWindowFocused(flags.toInt());
 }
-pub inline fn IsWindowHovered(flags: HoveredFlags) bool {
+pub inline fn IsWindowFocused() bool {
+    return IsWindowFocusedExt(.{});
+}
+
+pub inline fn IsWindowHoveredExt(flags: HoveredFlags) bool {
     return raw.igIsWindowHovered(flags.toInt());
 }
+pub inline fn IsWindowHovered() bool {
+    return IsWindowHoveredExt(.{});
+}
+
+/// LabelText(label: ?[*:0]const u8, fmt: ?[*:0]const u8, ...: ...) void
 pub const LabelText = raw.igLabelText;
-pub const ListBoxStr_arr = raw.igListBoxStr_arr;
-pub const ListBoxFnPtr = raw.igListBoxFnPtr;
+
+/// ListBoxStr_arrExt(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, height_in_items: i32) bool
+pub const ListBoxStr_arrExt = raw.igListBoxStr_arr;
+pub inline fn ListBoxStr_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32) bool {
+    return ListBoxStr_arrExt(label, current_item, items, items_count, -1);
+}
+
+/// ListBoxFnPtrExt(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*c_void, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*c_void, items_count: i32, height_in_items: i32) bool
+pub const ListBoxFnPtrExt = raw.igListBoxFnPtr;
+pub inline fn ListBoxFnPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*c_void, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*c_void, items_count: i32) bool {
+    return ListBoxFnPtrExt(label, current_item, items_getter, data, items_count, -1);
+}
+
+/// ListBoxFooter() void
 pub const ListBoxFooter = raw.igListBoxFooter;
-pub const ListBoxHeaderVec2 = raw.igListBoxHeaderVec2;
-pub const ListBoxHeaderInt = raw.igListBoxHeaderInt;
+
+/// ListBoxHeaderVec2Ext(label: ?[*:0]const u8, size: Vec2) bool
+pub const ListBoxHeaderVec2Ext = raw.igListBoxHeaderVec2;
+pub inline fn ListBoxHeaderVec2(label: ?[*:0]const u8) bool {
+    return ListBoxHeaderVec2Ext(label, .{.x=0,.y=0});
+}
+
+/// ListBoxHeaderIntExt(label: ?[*:0]const u8, items_count: i32, height_in_items: i32) bool
+pub const ListBoxHeaderIntExt = raw.igListBoxHeaderInt;
+pub inline fn ListBoxHeaderInt(label: ?[*:0]const u8, items_count: i32) bool {
+    return ListBoxHeaderIntExt(label, items_count, -1);
+}
+
+/// LoadIniSettingsFromDisk(ini_filename: ?[*:0]const u8) void
 pub const LoadIniSettingsFromDisk = raw.igLoadIniSettingsFromDisk;
-pub const LoadIniSettingsFromMemory = raw.igLoadIniSettingsFromMemory;
+
+/// LoadIniSettingsFromMemoryExt(ini_data: ?[*]const u8, ini_size: usize) void
+pub const LoadIniSettingsFromMemoryExt = raw.igLoadIniSettingsFromMemory;
+pub inline fn LoadIniSettingsFromMemory(ini_data: ?[*]const u8) void {
+    return LoadIniSettingsFromMemoryExt(ini_data, 0);
+}
+
+/// LogButtons() void
 pub const LogButtons = raw.igLogButtons;
+
+/// LogFinish() void
 pub const LogFinish = raw.igLogFinish;
+
+/// LogText(fmt: ?[*:0]const u8, ...: ...) void
 pub const LogText = raw.igLogText;
-pub const LogToClipboard = raw.igLogToClipboard;
-pub const LogToFile = raw.igLogToFile;
-pub const LogToTTY = raw.igLogToTTY;
+
+/// LogToClipboardExt(auto_open_depth: i32) void
+pub const LogToClipboardExt = raw.igLogToClipboard;
+pub inline fn LogToClipboard() void {
+    return LogToClipboardExt(-1);
+}
+
+/// LogToFileExt(auto_open_depth: i32, filename: ?[*:0]const u8) void
+pub const LogToFileExt = raw.igLogToFile;
+pub inline fn LogToFile() void {
+    return LogToFileExt(-1, null);
+}
+
+/// LogToTTYExt(auto_open_depth: i32) void
+pub const LogToTTYExt = raw.igLogToTTY;
+pub inline fn LogToTTY() void {
+    return LogToTTYExt(-1);
+}
+
+/// MemAlloc(size: usize) ?*c_void
 pub const MemAlloc = raw.igMemAlloc;
+
+/// MemFree(ptr: ?*c_void) void
 pub const MemFree = raw.igMemFree;
-pub const MenuItemBool = raw.igMenuItemBool;
-pub const MenuItemBoolPtr = raw.igMenuItemBoolPtr;
+
+/// MenuItemBoolExt(label: ?[*:0]const u8, shortcut: ?[*:0]const u8, selected: bool, enabled: bool) bool
+pub const MenuItemBoolExt = raw.igMenuItemBool;
+pub inline fn MenuItemBool(label: ?[*:0]const u8) bool {
+    return MenuItemBoolExt(label, null, false, true);
+}
+
+/// MenuItemBoolPtrExt(label: ?[*:0]const u8, shortcut: ?[*:0]const u8, p_selected: ?*bool, enabled: bool) bool
+pub const MenuItemBoolPtrExt = raw.igMenuItemBoolPtr;
+pub inline fn MenuItemBoolPtr(label: ?[*:0]const u8, shortcut: ?[*:0]const u8, p_selected: ?*bool) bool {
+    return MenuItemBoolPtrExt(label, shortcut, p_selected, true);
+}
+
+/// NewFrame() void
 pub const NewFrame = raw.igNewFrame;
+
+/// NewLine() void
 pub const NewLine = raw.igNewLine;
+
+/// NextColumn() void
 pub const NextColumn = raw.igNextColumn;
+
+/// OpenPopup(str_id: ?[*:0]const u8) void
 pub const OpenPopup = raw.igOpenPopup;
-pub const OpenPopupOnItemClick = raw.igOpenPopupOnItemClick;
-pub const PlotHistogramFloatPtr = raw.igPlotHistogramFloatPtr;
-pub const PlotHistogramFnPtr = raw.igPlotHistogramFnPtr;
-pub const PlotLines = raw.igPlotLines;
-pub const PlotLinesFnPtr = raw.igPlotLinesFnPtr;
+
+/// OpenPopupOnItemClickExt(str_id: ?[*:0]const u8, mouse_button: MouseButton) bool
+pub const OpenPopupOnItemClickExt = raw.igOpenPopupOnItemClick;
+pub inline fn OpenPopupOnItemClick() bool {
+    return OpenPopupOnItemClickExt(null, .Right);
+}
+
+/// PlotHistogramFloatPtrExt(label: ?[*:0]const u8, values: *const f32, values_count: i32, values_offset: i32, overlay_text: ?[*:0]const u8, scale_min: f32, scale_max: f32, graph_size: Vec2, stride: i32) void
+pub const PlotHistogramFloatPtrExt = raw.igPlotHistogramFloatPtr;
+pub inline fn PlotHistogramFloatPtr(label: ?[*:0]const u8, values: *const f32, values_count: i32) void {
+    return PlotHistogramFloatPtrExt(label, values, values_count, 0, null, FLT_MAX, FLT_MAX, .{.x=0,.y=0}, @sizeOf(f32));
+}
+
+/// PlotHistogramFnPtrExt(label: ?[*:0]const u8, values_getter: ?fn (data: ?*c_void, idx: i32) callconv(.C) f32, data: ?*c_void, values_count: i32, values_offset: i32, overlay_text: ?[*:0]const u8, scale_min: f32, scale_max: f32, graph_size: Vec2) void
+pub const PlotHistogramFnPtrExt = raw.igPlotHistogramFnPtr;
+pub inline fn PlotHistogramFnPtr(label: ?[*:0]const u8, values_getter: ?fn (data: ?*c_void, idx: i32) callconv(.C) f32, data: ?*c_void, values_count: i32) void {
+    return PlotHistogramFnPtrExt(label, values_getter, data, values_count, 0, null, FLT_MAX, FLT_MAX, .{.x=0,.y=0});
+}
+
+/// PlotLinesExt(label: ?[*:0]const u8, values: *const f32, values_count: i32, values_offset: i32, overlay_text: ?[*:0]const u8, scale_min: f32, scale_max: f32, graph_size: Vec2, stride: i32) void
+pub const PlotLinesExt = raw.igPlotLines;
+pub inline fn PlotLines(label: ?[*:0]const u8, values: *const f32, values_count: i32) void {
+    return PlotLinesExt(label, values, values_count, 0, null, FLT_MAX, FLT_MAX, .{.x=0,.y=0}, @sizeOf(f32));
+}
+
+/// PlotLinesFnPtrExt(label: ?[*:0]const u8, values_getter: ?fn (data: ?*c_void, idx: i32) callconv(.C) f32, data: ?*c_void, values_count: i32, values_offset: i32, overlay_text: ?[*:0]const u8, scale_min: f32, scale_max: f32, graph_size: Vec2) void
+pub const PlotLinesFnPtrExt = raw.igPlotLinesFnPtr;
+pub inline fn PlotLinesFnPtr(label: ?[*:0]const u8, values_getter: ?fn (data: ?*c_void, idx: i32) callconv(.C) f32, data: ?*c_void, values_count: i32) void {
+    return PlotLinesFnPtrExt(label, values_getter, data, values_count, 0, null, FLT_MAX, FLT_MAX, .{.x=0,.y=0});
+}
+
+/// PopAllowKeyboardFocus() void
 pub const PopAllowKeyboardFocus = raw.igPopAllowKeyboardFocus;
+
+/// PopButtonRepeat() void
 pub const PopButtonRepeat = raw.igPopButtonRepeat;
+
+/// PopClipRect() void
 pub const PopClipRect = raw.igPopClipRect;
+
+/// PopFont() void
 pub const PopFont = raw.igPopFont;
+
+/// PopID() void
 pub const PopID = raw.igPopID;
+
+/// PopItemWidth() void
 pub const PopItemWidth = raw.igPopItemWidth;
-pub const PopStyleColor = raw.igPopStyleColor;
-pub const PopStyleVar = raw.igPopStyleVar;
+
+/// PopStyleColorExt(count: i32) void
+pub const PopStyleColorExt = raw.igPopStyleColor;
+pub inline fn PopStyleColor() void {
+    return PopStyleColorExt(1);
+}
+
+/// PopStyleVarExt(count: i32) void
+pub const PopStyleVarExt = raw.igPopStyleVar;
+pub inline fn PopStyleVar() void {
+    return PopStyleVarExt(1);
+}
+
+/// PopTextWrapPos() void
 pub const PopTextWrapPos = raw.igPopTextWrapPos;
-pub const ProgressBar = raw.igProgressBar;
+
+/// ProgressBarExt(fraction: f32, size_arg: Vec2, overlay: ?[*:0]const u8) void
+pub const ProgressBarExt = raw.igProgressBar;
+pub inline fn ProgressBar(fraction: f32) void {
+    return ProgressBarExt(fraction, .{.x=-1,.y=0}, null);
+}
+
+/// PushAllowKeyboardFocus(allow_keyboard_focus: bool) void
 pub const PushAllowKeyboardFocus = raw.igPushAllowKeyboardFocus;
+
+/// PushButtonRepeat(repeat: bool) void
 pub const PushButtonRepeat = raw.igPushButtonRepeat;
+
+/// PushClipRect(clip_rect_min: Vec2, clip_rect_max: Vec2, intersect_with_current_clip_rect: bool) void
 pub const PushClipRect = raw.igPushClipRect;
+
+/// PushFont(font: ?*Font) void
 pub const PushFont = raw.igPushFont;
+
+/// PushIDStr(str_id: ?[*:0]const u8) void
 pub const PushIDStr = raw.igPushIDStr;
+
+/// PushIDRange(str_id_begin: ?[*]const u8, str_id_end: ?[*]const u8) void
 pub const PushIDRange = raw.igPushIDRange;
+
+/// PushIDPtr(ptr_id: ?*const c_void) void
 pub const PushIDPtr = raw.igPushIDPtr;
+
+/// PushIDInt(int_id: i32) void
 pub const PushIDInt = raw.igPushIDInt;
+
+/// PushItemWidth(item_width: f32) void
 pub const PushItemWidth = raw.igPushItemWidth;
+
+/// PushStyleColorU32(idx: Col, col: u32) void
 pub const PushStyleColorU32 = raw.igPushStyleColorU32;
+
+/// PushStyleColorVec4(idx: Col, col: Vec4) void
 pub const PushStyleColorVec4 = raw.igPushStyleColorVec4;
+
+/// PushStyleVarFloat(idx: StyleVar, val: f32) void
 pub const PushStyleVarFloat = raw.igPushStyleVarFloat;
+
+/// PushStyleVarVec2(idx: StyleVar, val: Vec2) void
 pub const PushStyleVarVec2 = raw.igPushStyleVarVec2;
-pub const PushTextWrapPos = raw.igPushTextWrapPos;
+
+/// PushTextWrapPosExt(wrap_local_pos_x: f32) void
+pub const PushTextWrapPosExt = raw.igPushTextWrapPos;
+pub inline fn PushTextWrapPos() void {
+    return PushTextWrapPosExt(0.0);
+}
+
+/// RadioButtonBool(label: ?[*:0]const u8, active: bool) bool
 pub const RadioButtonBool = raw.igRadioButtonBool;
+
+/// RadioButtonIntPtr(label: ?[*:0]const u8, v: *i32, v_button: i32) bool
 pub const RadioButtonIntPtr = raw.igRadioButtonIntPtr;
+
+/// Render() void
 pub const Render = raw.igRender;
-pub const ResetMouseDragDelta = raw.igResetMouseDragDelta;
-pub const SameLine = raw.igSameLine;
+
+/// ResetMouseDragDeltaExt(button: MouseButton) void
+pub const ResetMouseDragDeltaExt = raw.igResetMouseDragDelta;
+pub inline fn ResetMouseDragDelta() void {
+    return ResetMouseDragDeltaExt(.Left);
+}
+
+/// SameLineExt(offset_from_start_x: f32, spacing: f32) void
+pub const SameLineExt = raw.igSameLine;
+pub inline fn SameLine() void {
+    return SameLineExt(0.0, -1.0);
+}
+
+/// SaveIniSettingsToDisk(ini_filename: ?[*:0]const u8) void
 pub const SaveIniSettingsToDisk = raw.igSaveIniSettingsToDisk;
-pub const SaveIniSettingsToMemory = raw.igSaveIniSettingsToMemory;
-pub inline fn SelectableBool(label: ?[*:0]const u8, selected: bool, flags: SelectableFlags, size: Vec2) bool {
+
+/// SaveIniSettingsToMemoryExt(out_ini_size: ?*usize) ?[*:0]const u8
+pub const SaveIniSettingsToMemoryExt = raw.igSaveIniSettingsToMemory;
+pub inline fn SaveIniSettingsToMemory() ?[*:0]const u8 {
+    return SaveIniSettingsToMemoryExt(null);
+}
+
+pub inline fn SelectableBoolExt(label: ?[*:0]const u8, selected: bool, flags: SelectableFlags, size: Vec2) bool {
     return raw.igSelectableBool(label, selected, flags.toInt(), size);
 }
-pub inline fn SelectableBoolPtr(label: ?[*:0]const u8, p_selected: ?*bool, flags: SelectableFlags, size: Vec2) bool {
+pub inline fn SelectableBool(label: ?[*:0]const u8) bool {
+    return SelectableBoolExt(label, false, .{}, .{.x=0,.y=0});
+}
+
+pub inline fn SelectableBoolPtrExt(label: ?[*:0]const u8, p_selected: ?*bool, flags: SelectableFlags, size: Vec2) bool {
     return raw.igSelectableBoolPtr(label, p_selected, flags.toInt(), size);
 }
+pub inline fn SelectableBoolPtr(label: ?[*:0]const u8, p_selected: ?*bool) bool {
+    return SelectableBoolPtrExt(label, p_selected, .{}, .{.x=0,.y=0});
+}
+
+/// Separator() void
 pub const Separator = raw.igSeparator;
-pub const SetAllocatorFunctions = raw.igSetAllocatorFunctions;
+
+/// SetAllocatorFunctionsExt(alloc_func: ?fn (sz: usize, user_data: ?*c_void) callconv(.C) ?*c_void, free_func: ?fn (ptr: ?*c_void, user_data: ?*c_void) callconv(.C) void, user_data: ?*c_void) void
+pub const SetAllocatorFunctionsExt = raw.igSetAllocatorFunctions;
+pub inline fn SetAllocatorFunctions(alloc_func: ?fn (sz: usize, user_data: ?*c_void) callconv(.C) ?*c_void, free_func: ?fn (ptr: ?*c_void, user_data: ?*c_void) callconv(.C) void) void {
+    return SetAllocatorFunctionsExt(alloc_func, free_func, null);
+}
+
+/// SetClipboardText(text: ?[*:0]const u8) void
 pub const SetClipboardText = raw.igSetClipboardText;
+
 pub inline fn SetColorEditOptions(flags: ColorEditFlags) void {
     return raw.igSetColorEditOptions(flags.toInt());
 }
+
+/// SetColumnOffset(column_index: i32, offset_x: f32) void
 pub const SetColumnOffset = raw.igSetColumnOffset;
+
+/// SetColumnWidth(column_index: i32, width: f32) void
 pub const SetColumnWidth = raw.igSetColumnWidth;
+
+/// SetCurrentContext(ctx: ?*Context) void
 pub const SetCurrentContext = raw.igSetCurrentContext;
+
+/// SetCursorPos(local_pos: Vec2) void
 pub const SetCursorPos = raw.igSetCursorPos;
+
+/// SetCursorPosX(local_x: f32) void
 pub const SetCursorPosX = raw.igSetCursorPosX;
+
+/// SetCursorPosY(local_y: f32) void
 pub const SetCursorPosY = raw.igSetCursorPosY;
+
+/// SetCursorScreenPos(pos: Vec2) void
 pub const SetCursorScreenPos = raw.igSetCursorScreenPos;
-pub inline fn SetDragDropPayload(type: ?[*:0]const u8, data: ?*const c_void, sz: usize, cond: CondFlags) bool {
-    return raw.igSetDragDropPayload(type, data, sz, cond.toInt());
+
+pub inline fn SetDragDropPayloadExt(kind: ?[*:0]const u8, data: ?*const c_void, sz: usize, cond: CondFlags) bool {
+    return raw.igSetDragDropPayload(kind, data, sz, cond.toInt());
 }
+pub inline fn SetDragDropPayload(kind: ?[*:0]const u8, data: ?*const c_void, sz: usize) bool {
+    return SetDragDropPayloadExt(kind, data, sz, .{});
+}
+
+/// SetItemAllowOverlap() void
 pub const SetItemAllowOverlap = raw.igSetItemAllowOverlap;
+
+/// SetItemDefaultFocus() void
 pub const SetItemDefaultFocus = raw.igSetItemDefaultFocus;
-pub const SetKeyboardFocusHere = raw.igSetKeyboardFocusHere;
+
+/// SetKeyboardFocusHereExt(offset: i32) void
+pub const SetKeyboardFocusHereExt = raw.igSetKeyboardFocusHere;
+pub inline fn SetKeyboardFocusHere() void {
+    return SetKeyboardFocusHereExt(0);
+}
+
+/// SetMouseCursor(cursor_type: MouseCursor) void
 pub const SetMouseCursor = raw.igSetMouseCursor;
-pub inline fn SetNextItemOpen(is_open: bool, cond: CondFlags) void {
+
+pub inline fn SetNextItemOpenExt(is_open: bool, cond: CondFlags) void {
     return raw.igSetNextItemOpen(is_open, cond.toInt());
 }
+pub inline fn SetNextItemOpen(is_open: bool) void {
+    return SetNextItemOpenExt(is_open, .{});
+}
+
+/// SetNextItemWidth(item_width: f32) void
 pub const SetNextItemWidth = raw.igSetNextItemWidth;
+
+/// SetNextWindowBgAlpha(alpha: f32) void
 pub const SetNextWindowBgAlpha = raw.igSetNextWindowBgAlpha;
-pub inline fn SetNextWindowCollapsed(collapsed: bool, cond: CondFlags) void {
+
+pub inline fn SetNextWindowCollapsedExt(collapsed: bool, cond: CondFlags) void {
     return raw.igSetNextWindowCollapsed(collapsed, cond.toInt());
 }
+pub inline fn SetNextWindowCollapsed(collapsed: bool) void {
+    return SetNextWindowCollapsedExt(collapsed, .{});
+}
+
+/// SetNextWindowContentSize(size: Vec2) void
 pub const SetNextWindowContentSize = raw.igSetNextWindowContentSize;
+
+/// SetNextWindowFocus() void
 pub const SetNextWindowFocus = raw.igSetNextWindowFocus;
-pub inline fn SetNextWindowPos(pos: Vec2, cond: CondFlags, pivot: Vec2) void {
+
+pub inline fn SetNextWindowPosExt(pos: Vec2, cond: CondFlags, pivot: Vec2) void {
     return raw.igSetNextWindowPos(pos, cond.toInt(), pivot);
 }
-pub inline fn SetNextWindowSize(size: Vec2, cond: CondFlags) void {
+pub inline fn SetNextWindowPos(pos: Vec2) void {
+    return SetNextWindowPosExt(pos, .{}, .{.x=0,.y=0});
+}
+
+pub inline fn SetNextWindowSizeExt(size: Vec2, cond: CondFlags) void {
     return raw.igSetNextWindowSize(size, cond.toInt());
 }
-pub const SetNextWindowSizeConstraints = raw.igSetNextWindowSizeConstraints;
-pub const SetScrollFromPosX = raw.igSetScrollFromPosX;
-pub const SetScrollFromPosY = raw.igSetScrollFromPosY;
-pub const SetScrollHereX = raw.igSetScrollHereX;
-pub const SetScrollHereY = raw.igSetScrollHereY;
+pub inline fn SetNextWindowSize(size: Vec2) void {
+    return SetNextWindowSizeExt(size, .{});
+}
+
+/// SetNextWindowSizeConstraintsExt(size_min: Vec2, size_max: Vec2, custom_callback: SizeCallback, custom_callback_data: ?*c_void) void
+pub const SetNextWindowSizeConstraintsExt = raw.igSetNextWindowSizeConstraints;
+pub inline fn SetNextWindowSizeConstraints(size_min: Vec2, size_max: Vec2) void {
+    return SetNextWindowSizeConstraintsExt(size_min, size_max, null, null);
+}
+
+/// SetScrollFromPosXExt(local_x: f32, center_x_ratio: f32) void
+pub const SetScrollFromPosXExt = raw.igSetScrollFromPosX;
+pub inline fn SetScrollFromPosX(local_x: f32) void {
+    return SetScrollFromPosXExt(local_x, 0.5);
+}
+
+/// SetScrollFromPosYExt(local_y: f32, center_y_ratio: f32) void
+pub const SetScrollFromPosYExt = raw.igSetScrollFromPosY;
+pub inline fn SetScrollFromPosY(local_y: f32) void {
+    return SetScrollFromPosYExt(local_y, 0.5);
+}
+
+/// SetScrollHereXExt(center_x_ratio: f32) void
+pub const SetScrollHereXExt = raw.igSetScrollHereX;
+pub inline fn SetScrollHereX() void {
+    return SetScrollHereXExt(0.5);
+}
+
+/// SetScrollHereYExt(center_y_ratio: f32) void
+pub const SetScrollHereYExt = raw.igSetScrollHereY;
+pub inline fn SetScrollHereY() void {
+    return SetScrollHereYExt(0.5);
+}
+
+/// SetScrollX(scroll_x: f32) void
 pub const SetScrollX = raw.igSetScrollX;
+
+/// SetScrollY(scroll_y: f32) void
 pub const SetScrollY = raw.igSetScrollY;
+
+/// SetStateStorage(storage: ?*Storage) void
 pub const SetStateStorage = raw.igSetStateStorage;
+
+/// SetTabItemClosed(tab_or_docked_window_label: ?[*:0]const u8) void
 pub const SetTabItemClosed = raw.igSetTabItemClosed;
+
+/// SetTooltip(fmt: ?[*:0]const u8, ...: ...) void
 pub const SetTooltip = raw.igSetTooltip;
-pub inline fn SetWindowCollapsedBool(collapsed: bool, cond: CondFlags) void {
+
+pub inline fn SetWindowCollapsedBoolExt(collapsed: bool, cond: CondFlags) void {
     return raw.igSetWindowCollapsedBool(collapsed, cond.toInt());
 }
-pub inline fn SetWindowCollapsedStr(name: ?[*:0]const u8, collapsed: bool, cond: CondFlags) void {
+pub inline fn SetWindowCollapsedBool(collapsed: bool) void {
+    return SetWindowCollapsedBoolExt(collapsed, .{});
+}
+
+pub inline fn SetWindowCollapsedStrExt(name: ?[*:0]const u8, collapsed: bool, cond: CondFlags) void {
     return raw.igSetWindowCollapsedStr(name, collapsed, cond.toInt());
 }
+pub inline fn SetWindowCollapsedStr(name: ?[*:0]const u8, collapsed: bool) void {
+    return SetWindowCollapsedStrExt(name, collapsed, .{});
+}
+
+/// SetWindowFocus() void
 pub const SetWindowFocus = raw.igSetWindowFocus;
+
+/// SetWindowFocusStr(name: ?[*:0]const u8) void
 pub const SetWindowFocusStr = raw.igSetWindowFocusStr;
+
+/// SetWindowFontScale(scale: f32) void
 pub const SetWindowFontScale = raw.igSetWindowFontScale;
-pub inline fn SetWindowPosVec2(pos: Vec2, cond: CondFlags) void {
+
+pub inline fn SetWindowPosVec2Ext(pos: Vec2, cond: CondFlags) void {
     return raw.igSetWindowPosVec2(pos, cond.toInt());
 }
-pub inline fn SetWindowPosStr(name: ?[*:0]const u8, pos: Vec2, cond: CondFlags) void {
+pub inline fn SetWindowPosVec2(pos: Vec2) void {
+    return SetWindowPosVec2Ext(pos, .{});
+}
+
+pub inline fn SetWindowPosStrExt(name: ?[*:0]const u8, pos: Vec2, cond: CondFlags) void {
     return raw.igSetWindowPosStr(name, pos, cond.toInt());
 }
-pub inline fn SetWindowSizeVec2(size: Vec2, cond: CondFlags) void {
+pub inline fn SetWindowPosStr(name: ?[*:0]const u8, pos: Vec2) void {
+    return SetWindowPosStrExt(name, pos, .{});
+}
+
+pub inline fn SetWindowSizeVec2Ext(size: Vec2, cond: CondFlags) void {
     return raw.igSetWindowSizeVec2(size, cond.toInt());
 }
-pub inline fn SetWindowSizeStr(name: ?[*:0]const u8, size: Vec2, cond: CondFlags) void {
+pub inline fn SetWindowSizeVec2(size: Vec2) void {
+    return SetWindowSizeVec2Ext(size, .{});
+}
+
+pub inline fn SetWindowSizeStrExt(name: ?[*:0]const u8, size: Vec2, cond: CondFlags) void {
     return raw.igSetWindowSizeStr(name, size, cond.toInt());
 }
-pub const ShowAboutWindow = raw.igShowAboutWindow;
-pub const ShowDemoWindow = raw.igShowDemoWindow;
+pub inline fn SetWindowSizeStr(name: ?[*:0]const u8, size: Vec2) void {
+    return SetWindowSizeStrExt(name, size, .{});
+}
+
+/// ShowAboutWindowExt(p_open: ?*bool) void
+pub const ShowAboutWindowExt = raw.igShowAboutWindow;
+pub inline fn ShowAboutWindow() void {
+    return ShowAboutWindowExt(null);
+}
+
+/// ShowDemoWindowExt(p_open: ?*bool) void
+pub const ShowDemoWindowExt = raw.igShowDemoWindow;
+pub inline fn ShowDemoWindow() void {
+    return ShowDemoWindowExt(null);
+}
+
+/// ShowFontSelector(label: ?[*:0]const u8) void
 pub const ShowFontSelector = raw.igShowFontSelector;
-pub const ShowMetricsWindow = raw.igShowMetricsWindow;
-pub const ShowStyleEditor = raw.igShowStyleEditor;
+
+/// ShowMetricsWindowExt(p_open: ?*bool) void
+pub const ShowMetricsWindowExt = raw.igShowMetricsWindow;
+pub inline fn ShowMetricsWindow() void {
+    return ShowMetricsWindowExt(null);
+}
+
+/// ShowStyleEditorExt(ref: ?*Style) void
+pub const ShowStyleEditorExt = raw.igShowStyleEditor;
+pub inline fn ShowStyleEditor() void {
+    return ShowStyleEditorExt(null);
+}
+
+/// ShowStyleSelector(label: ?[*:0]const u8) bool
 pub const ShowStyleSelector = raw.igShowStyleSelector;
+
+/// ShowUserGuide() void
 pub const ShowUserGuide = raw.igShowUserGuide;
-pub const SliderAngle = raw.igSliderAngle;
-pub const SliderFloat = raw.igSliderFloat;
-pub const SliderFloat2 = raw.igSliderFloat2;
-pub const SliderFloat3 = raw.igSliderFloat3;
-pub const SliderFloat4 = raw.igSliderFloat4;
-pub const SliderInt = raw.igSliderInt;
-pub const SliderInt2 = raw.igSliderInt2;
-pub const SliderInt3 = raw.igSliderInt3;
-pub const SliderInt4 = raw.igSliderInt4;
-pub const SliderScalar = raw.igSliderScalar;
-pub const SliderScalarN = raw.igSliderScalarN;
+
+/// SliderAngleExt(label: ?[*:0]const u8, v_rad: *f32, v_degrees_min: f32, v_degrees_max: f32, format: ?[*:0]const u8) bool
+pub const SliderAngleExt = raw.igSliderAngle;
+pub inline fn SliderAngle(label: ?[*:0]const u8, v_rad: *f32) bool {
+    return SliderAngleExt(label, v_rad, -360.0, 360.0, "%.0f deg");
+}
+
+/// SliderFloatExt(label: ?[*:0]const u8, v: *f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const SliderFloatExt = raw.igSliderFloat;
+pub inline fn SliderFloat(label: ?[*:0]const u8, v: *f32, v_min: f32, v_max: f32) bool {
+    return SliderFloatExt(label, v, v_min, v_max, "%.3f", 1.0);
+}
+
+/// SliderFloat2Ext(label: ?[*:0]const u8, v: *[2]f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const SliderFloat2Ext = raw.igSliderFloat2;
+pub inline fn SliderFloat2(label: ?[*:0]const u8, v: *[2]f32, v_min: f32, v_max: f32) bool {
+    return SliderFloat2Ext(label, v, v_min, v_max, "%.3f", 1.0);
+}
+
+/// SliderFloat3Ext(label: ?[*:0]const u8, v: *[3]f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const SliderFloat3Ext = raw.igSliderFloat3;
+pub inline fn SliderFloat3(label: ?[*:0]const u8, v: *[3]f32, v_min: f32, v_max: f32) bool {
+    return SliderFloat3Ext(label, v, v_min, v_max, "%.3f", 1.0);
+}
+
+/// SliderFloat4Ext(label: ?[*:0]const u8, v: *[4]f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const SliderFloat4Ext = raw.igSliderFloat4;
+pub inline fn SliderFloat4(label: ?[*:0]const u8, v: *[4]f32, v_min: f32, v_max: f32) bool {
+    return SliderFloat4Ext(label, v, v_min, v_max, "%.3f", 1.0);
+}
+
+/// SliderIntExt(label: ?[*:0]const u8, v: *i32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const SliderIntExt = raw.igSliderInt;
+pub inline fn SliderInt(label: ?[*:0]const u8, v: *i32, v_min: i32, v_max: i32) bool {
+    return SliderIntExt(label, v, v_min, v_max, "%d");
+}
+
+/// SliderInt2Ext(label: ?[*:0]const u8, v: *[2]i32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const SliderInt2Ext = raw.igSliderInt2;
+pub inline fn SliderInt2(label: ?[*:0]const u8, v: *[2]i32, v_min: i32, v_max: i32) bool {
+    return SliderInt2Ext(label, v, v_min, v_max, "%d");
+}
+
+/// SliderInt3Ext(label: ?[*:0]const u8, v: *[3]i32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const SliderInt3Ext = raw.igSliderInt3;
+pub inline fn SliderInt3(label: ?[*:0]const u8, v: *[3]i32, v_min: i32, v_max: i32) bool {
+    return SliderInt3Ext(label, v, v_min, v_max, "%d");
+}
+
+/// SliderInt4Ext(label: ?[*:0]const u8, v: *[4]i32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const SliderInt4Ext = raw.igSliderInt4;
+pub inline fn SliderInt4(label: ?[*:0]const u8, v: *[4]i32, v_min: i32, v_max: i32) bool {
+    return SliderInt4Ext(label, v, v_min, v_max, "%d");
+}
+
+/// SliderScalarExt(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: ?[*:0]const u8, power: f32) bool
+pub const SliderScalarExt = raw.igSliderScalar;
+pub inline fn SliderScalar(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void) bool {
+    return SliderScalarExt(label, data_type, p_data, p_min, p_max, null, 1.0);
+}
+
+/// SliderScalarNExt(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, p_min: ?*const c_void, p_max: ?*const c_void, format: ?[*:0]const u8, power: f32) bool
+pub const SliderScalarNExt = raw.igSliderScalarN;
+pub inline fn SliderScalarN(label: ?[*:0]const u8, data_type: DataType, p_data: ?*c_void, components: i32, p_min: ?*const c_void, p_max: ?*const c_void) bool {
+    return SliderScalarNExt(label, data_type, p_data, components, p_min, p_max, null, 1.0);
+}
+
+/// SmallButton(label: ?[*:0]const u8) bool
 pub const SmallButton = raw.igSmallButton;
+
+/// Spacing() void
 pub const Spacing = raw.igSpacing;
-pub const StyleColorsClassic = raw.igStyleColorsClassic;
-pub const StyleColorsDark = raw.igStyleColorsDark;
-pub const StyleColorsLight = raw.igStyleColorsLight;
+
+/// StyleColorsClassicExt(dst: ?*Style) void
+pub const StyleColorsClassicExt = raw.igStyleColorsClassic;
+pub inline fn StyleColorsClassic() void {
+    return StyleColorsClassicExt(null);
+}
+
+/// StyleColorsDarkExt(dst: ?*Style) void
+pub const StyleColorsDarkExt = raw.igStyleColorsDark;
+pub inline fn StyleColorsDark() void {
+    return StyleColorsDarkExt(null);
+}
+
+/// StyleColorsLightExt(dst: ?*Style) void
+pub const StyleColorsLightExt = raw.igStyleColorsLight;
+pub inline fn StyleColorsLight() void {
+    return StyleColorsLightExt(null);
+}
+
+/// Text(fmt: ?[*:0]const u8, ...: ...) void
 pub const Text = raw.igText;
+
+/// TextColored(col: Vec4, fmt: ?[*:0]const u8, ...: ...) void
 pub const TextColored = raw.igTextColored;
+
+/// TextDisabled(fmt: ?[*:0]const u8, ...: ...) void
 pub const TextDisabled = raw.igTextDisabled;
-pub const TextUnformatted = raw.igTextUnformatted;
+
+/// TextUnformattedExt(text: ?[*]const u8, text_end: ?[*]const u8) void
+pub const TextUnformattedExt = raw.igTextUnformatted;
+pub inline fn TextUnformatted(text: ?[*]const u8) void {
+    return TextUnformattedExt(text, null);
+}
+
+/// TextWrapped(fmt: ?[*:0]const u8, ...: ...) void
 pub const TextWrapped = raw.igTextWrapped;
+
+/// TreeNodeStr(label: ?[*:0]const u8) bool
 pub const TreeNodeStr = raw.igTreeNodeStr;
+
+/// TreeNodeStrStr(str_id: ?[*:0]const u8, fmt: ?[*:0]const u8, ...: ...) bool
 pub const TreeNodeStrStr = raw.igTreeNodeStrStr;
+
+/// TreeNodePtr(ptr_id: ?*const c_void, fmt: ?[*:0]const u8, ...: ...) bool
 pub const TreeNodePtr = raw.igTreeNodePtr;
-pub inline fn TreeNodeExStr(label: ?[*:0]const u8, flags: TreeNodeFlags) bool {
+
+pub inline fn TreeNodeExStrExt(label: ?[*:0]const u8, flags: TreeNodeFlags) bool {
     return raw.igTreeNodeExStr(label, flags.toInt());
 }
+pub inline fn TreeNodeExStr(label: ?[*:0]const u8) bool {
+    return TreeNodeExStrExt(label, .{});
+}
+
+/// TreeNodeExStrStr(str_id: ?[*:0]const u8, flags: TreeNodeFlags, fmt: ?[*:0]const u8, ...: ...) bool
 pub const TreeNodeExStrStr = raw.igTreeNodeExStrStr;
+
+/// TreeNodeExPtr(ptr_id: ?*const c_void, flags: TreeNodeFlags, fmt: ?[*:0]const u8, ...: ...) bool
 pub const TreeNodeExPtr = raw.igTreeNodeExPtr;
+
+/// TreePop() void
 pub const TreePop = raw.igTreePop;
+
+/// TreePushStr(str_id: ?[*:0]const u8) void
 pub const TreePushStr = raw.igTreePushStr;
-pub const TreePushPtr = raw.igTreePushPtr;
-pub const Unindent = raw.igUnindent;
-pub const VSliderFloat = raw.igVSliderFloat;
-pub const VSliderInt = raw.igVSliderInt;
-pub const VSliderScalar = raw.igVSliderScalar;
+
+/// TreePushPtrExt(ptr_id: ?*const c_void) void
+pub const TreePushPtrExt = raw.igTreePushPtr;
+pub inline fn TreePushPtr() void {
+    return TreePushPtrExt(null);
+}
+
+/// UnindentExt(indent_w: f32) void
+pub const UnindentExt = raw.igUnindent;
+pub inline fn Unindent() void {
+    return UnindentExt(0.0);
+}
+
+/// VSliderFloatExt(label: ?[*:0]const u8, size: Vec2, v: *f32, v_min: f32, v_max: f32, format: ?[*:0]const u8, power: f32) bool
+pub const VSliderFloatExt = raw.igVSliderFloat;
+pub inline fn VSliderFloat(label: ?[*:0]const u8, size: Vec2, v: *f32, v_min: f32, v_max: f32) bool {
+    return VSliderFloatExt(label, size, v, v_min, v_max, "%.3f", 1.0);
+}
+
+/// VSliderIntExt(label: ?[*:0]const u8, size: Vec2, v: *i32, v_min: i32, v_max: i32, format: ?[*:0]const u8) bool
+pub const VSliderIntExt = raw.igVSliderInt;
+pub inline fn VSliderInt(label: ?[*:0]const u8, size: Vec2, v: *i32, v_min: i32, v_max: i32) bool {
+    return VSliderIntExt(label, size, v, v_min, v_max, "%d");
+}
+
+/// VSliderScalarExt(label: ?[*:0]const u8, size: Vec2, data_type: DataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: ?[*:0]const u8, power: f32) bool
+pub const VSliderScalarExt = raw.igVSliderScalar;
+pub inline fn VSliderScalar(label: ?[*:0]const u8, size: Vec2, data_type: DataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void) bool {
+    return VSliderScalarExt(label, size, data_type, p_data, p_min, p_max, null, 1.0);
+}
+
+/// ValueBool(prefix: ?[*:0]const u8, b: bool) void
 pub const ValueBool = raw.igValueBool;
+
+/// ValueInt(prefix: ?[*:0]const u8, v: i32) void
 pub const ValueInt = raw.igValueInt;
+
+/// ValueUint(prefix: ?[*:0]const u8, v: u32) void
 pub const ValueUint = raw.igValueUint;
-pub const ValueFloat = raw.igValueFloat;
+
+/// ValueFloatExt(prefix: ?[*:0]const u8, v: f32, float_format: ?[*:0]const u8) void
+pub const ValueFloatExt = raw.igValueFloat;
+pub inline fn ValueFloat(prefix: ?[*:0]const u8, v: f32) void {
+    return ValueFloatExt(prefix, v, null);
+}
 
 pub const raw = struct {
     pub extern fn ImColor_HSV_nonUDT(pOut: *Color, self: *Color, h: f32, s: f32, v: f32, a: f32) callconv(.C) void;
@@ -2792,8 +4912,8 @@ pub const raw = struct {
     pub extern fn ImFontAtlas_GetGlyphRangesThai(self: *FontAtlas) callconv(.C) ?*const Wchar;
     pub extern fn ImFontAtlas_GetGlyphRangesVietnamese(self: *FontAtlas) callconv(.C) ?*const Wchar;
     pub extern fn ImFontAtlas_GetMouseCursorTexData(self: *FontAtlas, cursor: MouseCursor, out_offset: ?*Vec2, out_size: ?*Vec2, out_uv_border: *[2]Vec2, out_uv_fill: *[2]Vec2) callconv(.C) bool;
-    pub extern fn ImFontAtlas_GetTexDataAsAlpha8(self: *FontAtlas, out_pixels: *?[*]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: *i32) callconv(.C) void;
-    pub extern fn ImFontAtlas_GetTexDataAsRGBA32(self: *FontAtlas, out_pixels: *?[*]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: *i32) callconv(.C) void;
+    pub extern fn ImFontAtlas_GetTexDataAsAlpha8(self: *FontAtlas, out_pixels: *?[*]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: ?*i32) callconv(.C) void;
+    pub extern fn ImFontAtlas_GetTexDataAsRGBA32(self: *FontAtlas, out_pixels: *?[*]u8, out_width: *i32, out_height: *i32, out_bytes_per_pixel: ?*i32) callconv(.C) void;
     pub extern fn ImFontAtlas_ImFontAtlas(self: *FontAtlas) callconv(.C) void;
     pub extern fn ImFontAtlas_IsBuilt(self: *const FontAtlas) callconv(.C) bool;
     pub extern fn ImFontAtlas_SetTexID(self: *FontAtlas, id: TextureID) callconv(.C) void;
@@ -2845,7 +4965,7 @@ pub const raw = struct {
     pub extern fn ImGuiOnceUponAFrame_destroy(self: *OnceUponAFrame) callconv(.C) void;
     pub extern fn ImGuiPayload_Clear(self: *Payload) callconv(.C) void;
     pub extern fn ImGuiPayload_ImGuiPayload(self: *Payload) callconv(.C) void;
-    pub extern fn ImGuiPayload_IsDataType(self: *const Payload, type: ?[*:0]const u8) callconv(.C) bool;
+    pub extern fn ImGuiPayload_IsDataType(self: *const Payload, kind: ?[*:0]const u8) callconv(.C) bool;
     pub extern fn ImGuiPayload_IsDelivery(self: *const Payload) callconv(.C) bool;
     pub extern fn ImGuiPayload_IsPreview(self: *const Payload) callconv(.C) bool;
     pub extern fn ImGuiPayload_destroy(self: *Payload) callconv(.C) void;
@@ -3445,7 +5565,7 @@ pub const raw = struct {
     pub extern fn ImVector_ImWchar_swap(self: *Vector(Wchar), rhs: *Vector(Wchar)) callconv(.C) void;
     pub extern fn ImVector_char_swap(self: *Vector(u8), rhs: *Vector(u8)) callconv(.C) void;
     pub extern fn ImVector_float_swap(self: *Vector(f32), rhs: *Vector(f32)) callconv(.C) void;
-    pub extern fn igAcceptDragDropPayload(type: ?[*:0]const u8, flags: DragDropFlagsInt) callconv(.C) ?*const Payload;
+    pub extern fn igAcceptDragDropPayload(kind: ?[*:0]const u8, flags: DragDropFlagsInt) callconv(.C) ?*const Payload;
     pub extern fn igAlignTextToFramePadding() callconv(.C) void;
     pub extern fn igArrowButton(str_id: ?[*:0]const u8, dir: Dir) callconv(.C) bool;
     pub extern fn igBegin(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlagsInt) callconv(.C) bool;
@@ -3488,9 +5608,9 @@ pub const raw = struct {
     pub extern fn igColorEdit3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlagsInt) callconv(.C) bool;
     pub extern fn igColorEdit4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlagsInt) callconv(.C) bool;
     pub extern fn igColorPicker3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlagsInt) callconv(.C) bool;
-    pub extern fn igColorPicker4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlagsInt, ref_col: ?*[4]const f32) callconv(.C) bool;
+    pub extern fn igColorPicker4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlagsInt, ref_col: ?*const[4]f32) callconv(.C) bool;
     pub extern fn igColumns(count: i32, id: ?[*:0]const u8, border: bool) callconv(.C) void;
-    pub extern fn igCombo(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const [*:0]const u8, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
+    pub extern fn igCombo(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igComboStr(label: ?[*:0]const u8, current_item: ?*i32, items_separated_by_zeros: ?[*]const u8, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igComboFnPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*c_void, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*c_void, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igCreateContext(shared_font_atlas: ?*FontAtlas) callconv(.C) ?*Context;
@@ -3625,7 +5745,7 @@ pub const raw = struct {
     pub extern fn igIsMouseDown(button: MouseButton) callconv(.C) bool;
     pub extern fn igIsMouseDragging(button: MouseButton, lock_threshold: f32) callconv(.C) bool;
     pub extern fn igIsMouseHoveringRect(r_min: Vec2, r_max: Vec2, clip: bool) callconv(.C) bool;
-    pub extern fn igIsMousePosValid(mouse_pos: *const Vec2) callconv(.C) bool;
+    pub extern fn igIsMousePosValid(mouse_pos: ?*const Vec2) callconv(.C) bool;
     pub extern fn igIsMouseReleased(button: MouseButton) callconv(.C) bool;
     pub extern fn igIsPopupOpen(str_id: ?[*:0]const u8) callconv(.C) bool;
     pub extern fn igIsRectVisible(size: Vec2) callconv(.C) bool;
@@ -3635,7 +5755,7 @@ pub const raw = struct {
     pub extern fn igIsWindowFocused(flags: FocusedFlagsInt) callconv(.C) bool;
     pub extern fn igIsWindowHovered(flags: HoveredFlagsInt) callconv(.C) bool;
     pub extern fn igLabelText(label: ?[*:0]const u8, fmt: ?[*:0]const u8, ...) callconv(.C) void;
-    pub extern fn igListBoxStr_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const [*:0]const u8, items_count: i32, height_in_items: i32) callconv(.C) bool;
+    pub extern fn igListBoxStr_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, height_in_items: i32) callconv(.C) bool;
     pub extern fn igListBoxFnPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*c_void, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*c_void, items_count: i32, height_in_items: i32) callconv(.C) bool;
     pub extern fn igListBoxFooter() callconv(.C) void;
     pub extern fn igListBoxHeaderVec2(label: ?[*:0]const u8, size: Vec2) callconv(.C) bool;
@@ -3691,7 +5811,7 @@ pub const raw = struct {
     pub extern fn igResetMouseDragDelta(button: MouseButton) callconv(.C) void;
     pub extern fn igSameLine(offset_from_start_x: f32, spacing: f32) callconv(.C) void;
     pub extern fn igSaveIniSettingsToDisk(ini_filename: ?[*:0]const u8) callconv(.C) void;
-    pub extern fn igSaveIniSettingsToMemory(out_ini_size: *usize) callconv(.C) ?[*:0]const u8;
+    pub extern fn igSaveIniSettingsToMemory(out_ini_size: ?*usize) callconv(.C) ?[*:0]const u8;
     pub extern fn igSelectableBool(label: ?[*:0]const u8, selected: bool, flags: SelectableFlagsInt, size: Vec2) callconv(.C) bool;
     pub extern fn igSelectableBoolPtr(label: ?[*:0]const u8, p_selected: ?*bool, flags: SelectableFlagsInt, size: Vec2) callconv(.C) bool;
     pub extern fn igSeparator() callconv(.C) void;
@@ -3705,7 +5825,7 @@ pub const raw = struct {
     pub extern fn igSetCursorPosX(local_x: f32) callconv(.C) void;
     pub extern fn igSetCursorPosY(local_y: f32) callconv(.C) void;
     pub extern fn igSetCursorScreenPos(pos: Vec2) callconv(.C) void;
-    pub extern fn igSetDragDropPayload(type: ?[*:0]const u8, data: ?*const c_void, sz: usize, cond: CondFlagsInt) callconv(.C) bool;
+    pub extern fn igSetDragDropPayload(kind: ?[*:0]const u8, data: ?*const c_void, sz: usize, cond: CondFlagsInt) callconv(.C) bool;
     pub extern fn igSetItemAllowOverlap() callconv(.C) void;
     pub extern fn igSetItemDefaultFocus() callconv(.C) void;
     pub extern fn igSetKeyboardFocusHere(offset: i32) callconv(.C) void;

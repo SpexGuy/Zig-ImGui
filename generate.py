@@ -270,6 +270,8 @@ class ZigData:
             else:
                 argName = arg['name']
                 argType = self.convertComplexType(arg['type'], ParamContext(argName, functionContext), template)
+                if argName == 'type':
+                    argName = 'kind'
                 params.append((argName, argType))
 
         paramStrs = [ '...' if typeStr == '...' else (name + ': ' + typeStr) for name, typeStr in params ]
@@ -278,71 +280,95 @@ class ZigData:
         rawDecl = '    pub extern fn '+rawName+'('+', '.join(paramStrs)+') callconv(.C) '+retType+';'
         self.rawCommands.append(rawDecl)
 
-        wrapper = self.makeWrapper(jFunc, baseName, rawName, stname, params, retType, isVarargs, template)
+        declName = self.makeZigFunctionName(jFunc, baseName, stname)
+
+        wrappedName = declName
+        needsWrap = False
+        beforeCall = []
+        wrappedRetType = retType
+        returnName = None
+
+        defaultParamStrs = []
+        defaultPassStrs = []
+        hasDefaults = False
+
+        paramStrs = []
+        passStrs = []
+
+        jDefaults = jFunc['defaults']
+
+        if 'Flags' in wrappedRetType:
+            print("Warning: flags return type not supported for "+baseName);
+
+        if 'nonUDT' in jFunc and jFunc['nonUDT'] == 1:
+            assert(retType == 'void')
+            needsWrap = True
+
+            returnParam = params[0];
+            params = params[1:]
+
+            assert(returnParam[0] == 'pOut')
+            wrappedRetType = returnParam[1]
+            # strip one pointer
+            assert(wrappedRetType[0] == '*')
+            wrappedRetType = wrappedRetType[1:]
+
+            beforeCall.append('var out: '+wrappedRetType+' = undefined;')
+            passStrs.append('&out')
+            returnName = 'out'
+
+        for name, typeStr in params:
+            if name == 'type':
+                name = 'kind'
+            wrappedType = typeStr
+            wrappedPass = name
+            if typeStr.endswith('FlagsInt') and not ('*' in typeStr):
+                needsWrap = True
+                wrappedType = typeStr.replace('FlagsInt', 'Flags')
+                wrappedPass = name + '.toInt()'
+
+            paramStrs.append(name + ': ' + wrappedType)
+            passStrs.append(wrappedPass)
+
+            if name in jDefaults:
+                hasDefaults = True
+                defaultPassStrs.append(self.convertParamDefault(jDefaults[name], wrappedType, ParamContext(name, functionContext)))
+            else:
+                defaultParamStrs.append(paramStrs[-1])
+                defaultPassStrs.append(name) # pass name not wrappedPass because we are calling the wrapper
+
+        wrapper = []
+
+        if not isVarargs and hasDefaults:
+            defaultsName = wrappedName
+            wrappedName += 'Ext'
+
+        if not isVarargs and needsWrap:
+            wrapper.append('pub inline fn '+wrappedName+'(' + ', '.join(paramStrs) + ') '+wrappedRetType+' {')
+            for line in beforeCall:
+                wrapper.append('    ' + line)
+            callStr = 'raw.'+rawName+'('+', '.join(passStrs)+');'
+            if returnName is None:
+                wrapper.append('    return '+callStr)
+            else:
+                wrapper.append('    '+callStr)
+                wrapper.append('    return '+returnName+';')
+            wrapper.append('}')
+        else:
+            wrapper.append('/// '+wrappedName+'('+', '.join(paramStrs)+') '+wrappedRetType)
+            wrapper.append('pub const '+wrappedName+' = raw.'+rawName+';')
+
+        if not isVarargs and hasDefaults:
+            wrapper.append('pub inline fn '+defaultsName+'('+', '.join(defaultParamStrs)+') '+wrappedRetType+' {')
+            wrapper.append('    return '+wrappedName+'('+', '.join(defaultPassStrs)+');')
+            wrapper.append('}')
+
+
         if stname:
             wrapperStr = '    ' + '\n    '.join(wrapper);
             parentTable[stname].functions.append(wrapperStr)
         else:
             self.rootFunctions.append('\n'.join(wrapper))
-
-    def makeWrapper(self, jFunc, baseName, rawName, stname, params, retType, isVarargs, template):
-        declName = self.makeZigFunctionName(jFunc, baseName, stname)
-
-        if not isVarargs:
-            wrappedName = declName
-            needsWrap = False
-            beforeCall = []
-            wrappedRetType = retType
-            returnName = None
-
-            paramStrs = []
-            passStrs = []
-
-            if 'Flags' in wrappedRetType:
-                print("Warning: flags return type not supported for "+baseName);
-
-            if 'nonUDT' in jFunc and jFunc['nonUDT'] == 1:
-                assert(retType == 'void')
-                needsWrap = True
-
-                returnParam = params[0];
-                params = params[1:]
-
-                assert(returnParam[0] == 'pOut')
-                wrappedRetType = returnParam[1]
-                # strip one pointer
-                assert(wrappedRetType[0] == '*')
-                wrappedRetType = wrappedRetType[1:]
-
-                beforeCall.append('var out: '+wrappedRetType+' = undefined;')
-                passStrs.append('&out')
-                returnName = 'out'
-
-            for name, typeStr in params:
-                if typeStr.endswith('FlagsInt') and not ('*' in typeStr):
-                    needsWrap = True
-                    paramStrs.append(name + ': ' + typeStr.replace('FlagsInt', 'Flags'))
-                    passStrs.append(name + '.toInt()')
-                else:
-                    paramStrs.append(name + ': ' + typeStr)
-                    passStrs.append(name)
-
-            if needsWrap:
-                wrapper = []
-                wrapper.append('pub inline fn '+wrappedName+'(' + ', '.join(paramStrs) + ') '+wrappedRetType+' {')
-                for line in beforeCall:
-                    wrapper.append('    ' + line)
-                callStr = 'raw.'+rawName+'('+', '.join(passStrs)+');'
-                if returnName is None:
-                    wrapper.append('    return '+callStr)
-                else:
-                    wrapper.append('    '+callStr)
-                    wrapper.append('    return '+returnName+';')
-                wrapper.append('}')
-                return wrapper
-
-
-        return ['pub const '+declName+' = raw.'+rawName+';']
 
     def makeZigFunctionName(self, jFunc, baseName, struct):
         if struct:
@@ -356,6 +382,76 @@ class ZigData:
             declName = baseName[2:]
 
         return declName
+
+    def convertParamDefault(self, defaultStr, typeStr, context):
+        if typeStr == 'f32':
+            if defaultStr.endswith('f'):
+                floatStr = defaultStr[:-1]
+                if floatStr.startswith('+'):
+                    floatStr = floatStr[1:]
+                try:
+                    floatValue = float(floatStr)
+                    return floatStr
+                except:
+                    pass
+            if defaultStr == 'FLT_MAX':
+                return 'FLT_MAX'
+
+        if typeStr == 'f64':
+            try:
+                floatValue = float(defaultStr)
+                return defaultStr
+            except:
+                pass
+
+        if typeStr == 'i32' or typeStr == 'u32' or typeStr == 'usize':
+            if defaultStr == "sizeof(float)":
+                return '@sizeOf(f32)'
+            try:
+                intValue = int(defaultStr)
+                return defaultStr
+            except:
+                pass
+
+        if typeStr == 'bool':
+            if defaultStr in ('true', 'false'):
+                return defaultStr
+
+        if typeStr == 'Vec2' and defaultStr.startswith('ImVec2('):
+            params = defaultStr[defaultStr.index('(')+1 : defaultStr.index(')')]
+            items = params.split(',')
+            assert(len(items) == 2)
+            return '.{.x='+items[0]+',.y='+items[1]+'}'
+
+        if typeStr == 'Vec4' and defaultStr.startswith('ImVec4('):
+            params = defaultStr[defaultStr.index('(')+1 : defaultStr.index(')')]
+            items = params.split(',')
+            assert(len(items) == 4)
+            return '.{.x='+items[0]+',.y='+items[1]+',.z='+items[2]+',.w='+items[3]+'}'
+
+        if defaultStr.startswith('"') and defaultStr.endswith('"'):
+            return defaultStr
+        if typeStr.startswith("?*") and defaultStr == "0":
+            return 'null'
+        if typeStr.startswith("?[*") and defaultStr == "0":
+            return 'null'
+        if typeStr.endswith('Callback') and defaultStr == "0":
+            return 'null'
+        if typeStr == 'MouseButton':
+            if defaultStr == '0':
+                return '.Left'
+            if defaultStr == '1':
+                return '.Right'
+        if typeStr.endswith("Flags") and not ('*' in typeStr):
+            if defaultStr == "0":
+                return '.{}'
+            if defaultStr == 'ImDrawCornerFlags_All':
+                return 'DrawCornerFlags.All'
+
+        if defaultStr == '(((ImU32)(255)<<24)|((ImU32)(255)<<16)|((ImU32)(255)<<8)|((ImU32)(255)<<0))' and typeStr == 'u32':
+            return '0xFFFFFFFF'
+        print("Warning: Couldn't convert default value "+defaultStr+" of type "+typeStr+", "+repr(context))
+        return defaultStr
         
     def convertComplexType(self, type, context, template=None):
         """ template is (templateMacro, templateInstance) """
@@ -363,22 +459,24 @@ class ZigData:
         if type.endswith('const'):
             type = type[:-5].strip()
 
-        buffers = ''
+        pointers = ''
+        arrays = ''
+        arrayModifier = ''
         bufferNeedsPointer = False
         while type.endswith(']'):
             start = type.rindex('[')
             buffer = type[start:]
             type = type[:start].strip()
-            bufferNeedsPointer = buffer != '[]'
-            if not bufferNeedsPointer:
-                buffer = '[*]'
-            buffers = buffer + buffers
+            if buffer == '[]':
+                pointers += '[*]'
+            else:
+                bufferNeedsPointer = True
+                arrays = buffer + arrays
         if bufferNeedsPointer and context.type == CT_PARAM:
-            buffers = '*' + buffers
+            pointers = '*' + pointers
         if type.endswith('const'):
             type = type[:-5].strip()
-            buffers += 'const '
-
+            arrayModifier = 'const'
 
         if type.startswith('union'):
             anonTypeContext = StructContext('', context)
@@ -434,13 +532,27 @@ class ZigData:
                 numPointers -= 1
                 valueConst = False
         
-        zigValue = buffers
+        zigValue = pointers
+        zigValue += arrayModifier
+
         if numPointers > 0:
             zigValue += getPointers(numPointers, valueType, context)
-            if isFlags(valueType):
-                zigValue += 'align(4) '
-        if valueConst and not zigValue.endswith('const '):
-            zigValue += 'const '
+
+        if valueConst and not zigValue.endswith('const'):
+            # Special case: ColorPicker4.ref_col is ?*const[4] f32
+            # getPointers returns ?*const[4], don't put another const after that.
+            if not (context.name == 'ref_col' and context.parent.name == 'igColorPicker4'):
+                zigValue += 'const'
+
+        if numPointers > 0 and isFlags(valueType):
+            if zigValue[-1].isalpha():
+                zigValue += ' '
+            zigValue += 'align(4) '
+
+        zigValue += arrays
+
+        if len(zigValue) > 0 and zigValue[-1].isalpha():
+            zigValue += ' '
 
         innerType = self.convertTypeName(valueType, template)
         zigValue += innerType
@@ -486,14 +598,15 @@ class ZigData:
         f.write('        @import("std").debug.assert(raw.igDebugCheckVersionAndDataLayout(VERSION, @sizeOf(IO), @sizeOf(Style), @sizeOf(Vec2), @sizeOf(Vec4), @sizeOf(DrawVert), @sizeOf(DrawIdx)));\n')
         f.write('    }\n')
         f.write('}\n')
-        
+        f.write('\n')
+        f.write('pub const FLT_MAX = @import("std").math.f32_max;')
         f.write('\n')
         f.write("""pub const FlagsInt = u32;
 pub fn FlagsMixin(comptime FlagType: type) type {
     comptime assert(@sizeOf(FlagType) == 4);
     return struct {
         pub fn toInt(self: FlagType) FlagsInt {
-            return @bitCast(Flags, self);
+            return @bitCast(FlagsInt, self);
         }
         pub fn fromInt(value: FlagsInt) FlagType {
             return @bitCast(FlagType, value);
@@ -532,8 +645,8 @@ pub fn FlagsMixin(comptime FlagType: type) type {
             f.write('pub const '+s.zigName+' = extern struct {\n')
             f.write(s.fieldsDecl+'\n')
             if s.functions:
-                f.write('\n')
                 for func in s.functions:
+                    f.write('\n')
                     f.write(func+'\n')
             f.write('};\n\n')
         
@@ -562,6 +675,7 @@ pub fn FlagsMixin(comptime FlagType: type) type {
             f.write('}\n\n')
 
         for func in self.rootFunctions:
+            f.write('\n')
             f.write(func+'\n')
         f.write('\n')
 

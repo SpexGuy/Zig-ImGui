@@ -173,14 +173,18 @@ Rules = {
             ([Regex('ImGuiStorage_Get.*Ref'), 'return'], '?*')
         ]),
         ('float', [
-            (['igColorPicker4', 'ref_col'], '?*[4]'),
+            (['igColorPicker4', 'ref_col'], '?*const[4]'),
             ([Regex('out_[rgbhsv]')], '*'),
         ]),
         ('int', [
+            (['out_bytes_per_pixel'], '?*'),
             (['current_item'], '?*'),
         ]),
         ('unsigned int', [
             (['igCheckboxFlags', 'flags'], '?*'),
+        ]),
+        ('size_t', [
+            (['igSaveIniSettingsToMemory', 'out_ini_size'], '?*'),
         ]),
         ('ImWchar', [
             (['ranges'], '?[*:0]'),
@@ -193,7 +197,7 @@ Rules = {
             (['ImGuiIO', 'Fonts'], '?*'),
         ]),
         ('ImVec2', [
-            (['igIsMousePosValid', 'mouse_pos'], '*'),
+            (['igIsMousePosValid', 'mouse_pos'], '?*'),
             (['points'], '?[*]'),
         ]),
         ('ImVector', [
