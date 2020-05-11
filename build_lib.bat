@@ -42,7 +42,7 @@
 	goto DONE
 
 :BUILD_NO_CL
-	echo "Couldn't find cl to build libraries."
+	echo Couldn't find cl to build libraries.
 	exit /b 1
 
 :DONE
