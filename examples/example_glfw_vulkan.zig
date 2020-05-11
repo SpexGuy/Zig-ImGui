@@ -31,7 +31,7 @@ var g_SwapChainResizeHeight = @as(u32, 0);
 var g_ClearColor = imgui.Vec4{ .x = 0.5, .y = 0, .z = 1, .w = 1 };
 
 fn debug_report(flags: vk.DebugReportFlagsEXT.IntType, objectType: vk.DebugReportObjectTypeEXT, object: u64, location: usize, messageCode: i32, pLayerPrefix: ?[*]const u8, pMessage: ?[*]const u8, pUserData: ?*c_void) callconv(vk.CallConv) vk.Bool32 {
-    std.debug.warn("[vulkan] ObjectType: {}\nMessage: {}\n\n", .{objectType, pMessage});
+    std.debug.warn("[vulkan] ObjectType: {}\nMessage: {}\n\n", .{ objectType, pMessage });
     @panic("VK Error");
     //return vk.FALSE;
 }
@@ -67,7 +67,7 @@ fn SetupVulkan(extensions: []const [*:0]const u8, allocator: *std.mem.Allocator)
 
             // Setup the debug report callback
             var debug_report_ci = vk.DebugReportCallbackCreateInfoEXT{
-                .flags = .{ .errorBit=true, .warning=true, .performanceWarning=true },
+                .flags = .{ .errorBit = true, .warning = true, .performanceWarning = true },
                 .pfnCallback = debug_report,
                 .pUserData = null,
             };
@@ -148,7 +148,7 @@ fn SetupVulkan(extensions: []const [*:0]const u8, allocator: *std.mem.Allocator)
             vk.DescriptorPoolSize{ .inType = .INPUT_ATTACHMENT, .descriptorCount = 1000 },
         };
         var pool_info = vk.DescriptorPoolCreateInfo{
-            .flags = .{ .freeDescriptorSet=true },
+            .flags = .{ .freeDescriptorSet = true },
             .maxSets = 1000 * @intCast(u32, pool_sizes.len),
             .poolSizeCount = @intCast(u32, pool_sizes.len),
             .pPoolSizes = &pool_sizes,
@@ -218,7 +218,7 @@ fn FrameRender(wd: *impl_vulkan.Window) !void {
     {
         try vk.ResetCommandPool(g_Device, fd.CommandPool, .{});
         var info = vk.CommandBufferBeginInfo{
-            .flags = .{ .oneTimeSubmit=true },
+            .flags = .{ .oneTimeSubmit = true },
         };
         try vk.BeginCommandBuffer(fd.CommandBuffer, info);
     }
@@ -242,7 +242,7 @@ fn FrameRender(wd: *impl_vulkan.Window) !void {
     // Submit command buffer
     vk.CmdEndRenderPass(fd.CommandBuffer);
     {
-        const wait_stage: vk.PipelineStageFlags align(4) = .{ .colorAttachmentOutput=true };
+        const wait_stage: vk.PipelineStageFlags align(4) = .{ .colorAttachmentOutput = true };
         var info = vk.SubmitInfo{
             .waitSemaphoreCount = 1,
             .pWaitSemaphores = arrayPtr(&image_acquired_semaphore),
@@ -272,7 +272,7 @@ fn FramePresent(wd: *impl_vulkan.Window) !void {
 }
 
 fn glfw_error_callback(err: c_int, description: ?[*:0]const u8) callconv(.C) void {
-    std.debug.warn("Glfw Error {}: {}\n", .{err, std.mem.spanZ(description.?)});
+    std.debug.warn("Glfw Error {}: {}\n", .{ err, std.mem.spanZ(description.?) });
 }
 
 fn glfw_resize_callback(window: ?*glfw.GLFWwindow, w: c_int, h: c_int) callconv(.C) void {
@@ -317,13 +317,13 @@ pub fn main() !void {
 
     // Setup Dear ImGui context
     imgui.CHECKVERSION();
-    _ = imgui.CreateContext(null);
+    _ = imgui.CreateContext();
     var io = imgui.GetIO();
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Dear ImGui style
-    imgui.StyleColorsDark(null);
+    imgui.StyleColorsDark();
     //imgui.StyleColorsClassic(null);
 
     // Setup Platform/Renderer bindings
@@ -369,7 +369,7 @@ pub fn main() !void {
 
         try vk.ResetCommandPool(g_Device, command_pool, .{});
         const begin_info = vk.CommandBufferBeginInfo{
-            .flags = .{ .oneTimeSubmit=true },
+            .flags = .{ .oneTimeSubmit = true },
         };
         try vk.BeginCommandBuffer(command_buffer, begin_info);
 
@@ -422,22 +422,22 @@ pub fn main() !void {
 
         // 1. Show the big demo window (Most of the sample code is in imgui.ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
-            imgui.ShowDemoWindow(&show_demo_window);
+            imgui.ShowDemoWindowExt(&show_demo_window);
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
-            _ = imgui.Begin("Hello, world!", null, .{}); // Create a window called "Hello, world!" and append into it.
+            _ = imgui.Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
             imgui.Text("This is some useful text."); // Display some text (you can use a format strings too)
             _ = imgui.Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
             _ = imgui.Checkbox("Another Window", &show_another_window);
 
-            _ = imgui.SliderFloat("float", &slider_value, 0.0, 1.0, null, 1); // Edit 1 float using a slider from 0.0 to 1.0
-            _ = imgui.ColorEdit3("clear color", @ptrCast(*[3]f32, &g_ClearColor), .{}); // Edit 3 floats representing a color
+            _ = imgui.SliderFloat("float", &slider_value, 0.0, 1.0); // Edit 1 float using a slider from 0.0 to 1.0
+            _ = imgui.ColorEdit3("clear color", @ptrCast(*[3]f32, &g_ClearColor)); // Edit 3 floats representing a color
 
-            if (imgui.Button("Button", imgui.Vec2{ .x = 0, .y = 0 })) // Buttons return true when clicked (most widgets return true when edited/activated)
+            if (imgui.Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter += 1;
-            imgui.SameLine(0, -1);
+            imgui.SameLine();
             imgui.Text("counter = %d", counter);
 
             imgui.Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0 / imgui.GetIO().Framerate, imgui.GetIO().Framerate);
@@ -446,9 +446,9 @@ pub fn main() !void {
 
         // 3. Show another simple window.
         if (show_another_window) {
-            _ = imgui.Begin("Another Window", &show_another_window, .{}); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            _ = imgui.BeginExt("Another Window", &show_another_window, .{}); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
             imgui.Text("Hello from another window!");
-            if (imgui.Button("Close Me", imgui.Vec2{ .x = 0, .y = 0 }))
+            if (imgui.Button("Close Me"))
                 show_another_window = false;
             imgui.End();
         }
@@ -464,7 +464,7 @@ pub fn main() !void {
     try vk.DeviceWaitIdle(g_Device);
     impl_vulkan.Shutdown();
     impl_glfw.Shutdown();
-    imgui.DestroyContext(null);
+    imgui.DestroyContext();
 
     try CleanupVulkanWindow();
     CleanupVulkan();

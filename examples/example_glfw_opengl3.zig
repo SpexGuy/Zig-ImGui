@@ -53,14 +53,14 @@ pub fn main() !void {
 
     // Setup Dear ImGui context
     imgui.CHECKVERSION();
-    _ = imgui.CreateContext(null);
+    _ = imgui.CreateContext();
     const io = imgui.GetIO();
     //io.ConfigFlags |= imgui.ConfigFlags.NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= imgui.ConfigFlags.NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Dear ImGui style
-    imgui.StyleColorsDark(null);
-    //imgui.StyleColorsClassic(null);
+    imgui.StyleColorsDark();
+    //imgui.StyleColorsClassic();
 
     // Setup Platform/Renderer bindings
     _ = impl_glfw.InitForOpenGL(window.?, true);
@@ -104,22 +104,22 @@ pub fn main() !void {
 
         // 1. Show the big demo window (Most of the sample code is in imgui.ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
-            imgui.ShowDemoWindow(&show_demo_window);
+            imgui.ShowDemoWindowExt(&show_demo_window);
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
-            _ = imgui.Begin("Hello, world!", null, .{}); // Create a window called "Hello, world!" and append into it.
+            _ = imgui.Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
             imgui.Text("This is some useful text."); // Display some text (you can use a format strings too)
             _ = imgui.Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
             _ = imgui.Checkbox("Another Window", &show_another_window);
 
-            _ = imgui.SliderFloat("float", &slider_value, 0.0, 1.0, null, 1); // Edit 1 float using a slider from 0.0 to 1.0
-            _ = imgui.ColorEdit3("clear color", @ptrCast(*[3]f32, &clear_color), .{}); // Edit 3 floats representing a color
+            _ = imgui.SliderFloat("float", &slider_value, 0.0, 1.0); // Edit 1 float using a slider from 0.0 to 1.0
+            _ = imgui.ColorEdit3("clear color", @ptrCast(*[3]f32, &clear_color)); // Edit 3 floats representing a color
 
-            if (imgui.Button("Button", imgui.Vec2{ .x = 0, .y = 0 })) // Buttons return true when clicked (most widgets return true when edited/activated)
+            if (imgui.Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter += 1;
-            imgui.SameLine(0, -1);
+            imgui.SameLine();
             imgui.Text("counter = %d", counter);
 
             imgui.Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0 / imgui.GetIO().Framerate, imgui.GetIO().Framerate);
@@ -128,9 +128,9 @@ pub fn main() !void {
 
         // 3. Show another simple window.
         if (show_another_window) {
-            _ = imgui.Begin("Another Window", &show_another_window, .{}); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            _ = imgui.BeginExt("Another Window", &show_another_window, .{}); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
             imgui.Text("Hello from another window!");
-            if (imgui.Button("Close Me", imgui.Vec2{ .x = 0, .y = 0 }))
+            if (imgui.Button("Close Me"))
                 show_another_window = false;
             imgui.End();
         }
@@ -151,7 +151,7 @@ pub fn main() !void {
     // Cleanup
     impl_gl3.Shutdown();
     impl_glfw.Shutdown();
-    imgui.DestroyContext(null);
+    imgui.DestroyContext();
 
     glfw.glfwDestroyWindow(window);
     glfw.glfwTerminate();
