@@ -83,11 +83,11 @@ pub const Window = struct {
     Allocator: *std.mem.Allocator = undefined,
     Width: u32 = 0,
     Height: u32 = 0,
-    Swapchain: ?vk.SwapchainKHR = null,
+    Swapchain: vk.SwapchainKHR = .Null,
     Surface: vk.SurfaceKHR = undefined,
     SurfaceFormat: vk.SurfaceFormatKHR = undefined,
     PresentMode: vk.PresentModeKHR = undefined,
-    RenderPass: ?vk.RenderPass = null,
+    RenderPass: vk.RenderPass = .Null,
     FrameIndex: u32 = 0, // Current frame being rendered to (0 <= FrameIndex < FrameInFlightCount)
     ImageCount: u32 = 0, // Number of simultaneous in-flight frames (returned by vk.GetSwapchainImagesKHR, usually derived from min_image_count)
     SemaphoreIndex: u32 = 0, // Current set of swapchain wait semaphores we're using (needs to be distinct from per frame data)
@@ -98,12 +98,12 @@ pub const Window = struct {
 // Reusable buffers used for rendering 1 current in-flight frame, for RenderDrawData()
 // [Please zero-clear before use!]
 const FrameRenderBuffers = struct {
-    VertexBufferMemory: ?vk.DeviceMemory = null,
-    IndexBufferMemory: ?vk.DeviceMemory = null,
+    VertexBufferMemory: vk.DeviceMemory = .Null,
+    IndexBufferMemory: vk.DeviceMemory = .Null,
     VertexBufferSize: vk.DeviceSize = 0,
     IndexBufferSize: vk.DeviceSize = 0,
-    VertexBuffer: ?vk.Buffer = null,
-    IndexBuffer: ?vk.Buffer = null,
+    VertexBuffer: vk.Buffer = .Null,
+    IndexBuffer: vk.Buffer = .Null,
 };
 
 // Each viewport will hold 1 WindowRenderBuffers
@@ -114,21 +114,21 @@ const WindowRenderBuffers = struct {
 
 // Vulkan data
 var g_VulkanInitInfo: InitInfo = undefined;
-var g_RenderPass: ?vk.RenderPass = null;
+var g_RenderPass: vk.RenderPass = .Null;
 var g_BufferMemoryAlignment: vk.DeviceSize = 256;
 var g_PipelineCreateFlags = vk.PipelineCreateFlags{};
-var g_DescriptorSetLayout: ?vk.DescriptorSetLayout = null;
-var g_PipelineLayout: ?vk.PipelineLayout = null;
-var g_DescriptorSet: ?vk.DescriptorSet = null;
-var g_Pipeline: ?vk.Pipeline = null;
+var g_DescriptorSetLayout: vk.DescriptorSetLayout = .Null;
+var g_PipelineLayout: vk.PipelineLayout = .Null;
+var g_DescriptorSet: vk.DescriptorSet = .Null;
+var g_Pipeline: vk.Pipeline = .Null;
 
 //font data
-var g_FontSampler: ?vk.Sampler = null;
-var g_FontMemory: ?vk.DeviceMemory = null;
-var g_FontImage: ?vk.Image = null;
-var g_FontView: ?vk.ImageView = null;
-var g_UploadBufferMemory: ?vk.DeviceMemory = null;
-var g_UploadBuffer: ?vk.Buffer = null;
+var g_FontSampler: vk.Sampler = .Null;
+var g_FontMemory: vk.DeviceMemory = .Null;
+var g_FontImage: vk.Image = .Null;
+var g_FontView: vk.ImageView = .Null;
+var g_UploadBufferMemory: vk.DeviceMemory = .Null;
+var g_UploadBuffer: vk.Buffer = .Null;
 
 // Render buffers
 var g_MainWindowRenderBuffers = WindowRenderBuffers{};
@@ -253,11 +253,11 @@ fn MemoryType(properties: vk.MemoryPropertyFlags, type_bits: u32) ?u32 {
     return null; // Unable to find memoryType
 }
 
-fn CreateOrResizeBuffer(buffer: *?vk.Buffer, buffer_memory: *?vk.DeviceMemory, p_buffer_size: *vk.DeviceSize, new_size: usize, usage: vk.BufferUsageFlags) !void {
+fn CreateOrResizeBuffer(buffer: *vk.Buffer, buffer_memory: *vk.DeviceMemory, p_buffer_size: *vk.DeviceSize, new_size: usize, usage: vk.BufferUsageFlags) !void {
     var v = &g_VulkanInitInfo;
-    if (buffer.* != null)
+    if (buffer.* != .Null)
         vk.DestroyBuffer(v.Device, buffer.*, v.VkAllocator);
-    if (buffer_memory.* != null)
+    if (buffer_memory.* != .Null)
         vk.FreeMemory(v.Device, buffer_memory.*, v.VkAllocator);
 
     var vertex_buffer_size_aligned = ((new_size - 1) / g_BufferMemoryAlignment + 1) * g_BufferMemoryAlignment;
@@ -268,7 +268,7 @@ fn CreateOrResizeBuffer(buffer: *?vk.Buffer, buffer_memory: *?vk.DeviceMemory, p
     };
     buffer.* = try vk.CreateBuffer(v.Device, buffer_info, v.VkAllocator);
 
-    var req = vk.GetBufferMemoryRequirements(v.Device, buffer.*.?);
+    var req = vk.GetBufferMemoryRequirements(v.Device, buffer.*);
     g_BufferMemoryAlignment = if (g_BufferMemoryAlignment > req.alignment) g_BufferMemoryAlignment else req.alignment;
     var alloc_info = vk.MemoryAllocateInfo{
         .allocationSize = req.size,
@@ -276,25 +276,25 @@ fn CreateOrResizeBuffer(buffer: *?vk.Buffer, buffer_memory: *?vk.DeviceMemory, p
     };
     buffer_memory.* = try vk.AllocateMemory(v.Device, alloc_info, v.VkAllocator);
 
-    try vk.BindBufferMemory(v.Device, buffer.*.?, buffer_memory.*.?, 0);
+    try vk.BindBufferMemory(v.Device, buffer.*, buffer_memory.*, 0);
     p_buffer_size.* = new_size;
 }
 
 fn SetupRenderState(draw_data: *imgui.DrawData, command_buffer: vk.CommandBuffer, rb: *FrameRenderBuffers, fb_width: u32, fb_height: u32) void {
     // Bind pipeline and descriptor sets:
     {
-        vk.CmdBindPipeline(command_buffer, .GRAPHICS, g_Pipeline.?);
-        var desc_set = [_]vk.DescriptorSet{g_DescriptorSet.?};
+        vk.CmdBindPipeline(command_buffer, .GRAPHICS, g_Pipeline);
+        var desc_set = [_]vk.DescriptorSet{g_DescriptorSet};
 
-        vk.CmdBindDescriptorSets(command_buffer, .GRAPHICS, g_PipelineLayout.?, 0, &desc_set, &[_]u32{});
+        vk.CmdBindDescriptorSets(command_buffer, .GRAPHICS, g_PipelineLayout, 0, &desc_set, &[_]u32{});
     }
 
     // Bind Vertex And Index Buffer:
     {
-        var vertex_buffers = [_]vk.Buffer{rb.VertexBuffer.?};
+        var vertex_buffers = [_]vk.Buffer{rb.VertexBuffer};
         var vertex_offset = [_]vk.DeviceSize{0};
         vk.CmdBindVertexBuffers(command_buffer, 0, &vertex_buffers, &vertex_offset);
-        vk.CmdBindIndexBuffer(command_buffer, rb.IndexBuffer.?, 0, if (@sizeOf(imgui.DrawIdx) == 2) .UINT16 else .UINT32);
+        vk.CmdBindIndexBuffer(command_buffer, rb.IndexBuffer, 0, if (@sizeOf(imgui.DrawIdx) == 2) .UINT16 else .UINT32);
     }
 
     // Setup viewport:
@@ -321,8 +321,8 @@ fn SetupRenderState(draw_data: *imgui.DrawData, command_buffer: vk.CommandBuffer
             -1.0 - draw_data.DisplayPos.x * scale[0],
             -1.0 - draw_data.DisplayPos.y * scale[1],
         };
-        vk.CmdPushConstants(command_buffer, g_PipelineLayout.?, .{ .vertex = true }, @sizeOf(f32) * 0, std.mem.asBytes(&scale));
-        vk.CmdPushConstants(command_buffer, g_PipelineLayout.?, .{ .vertex = true }, @sizeOf(f32) * 2, std.mem.asBytes(&translate));
+        vk.CmdPushConstants(command_buffer, g_PipelineLayout, .{ .vertex = true }, @sizeOf(f32) * 0, std.mem.asBytes(&scale));
+        vk.CmdPushConstants(command_buffer, g_PipelineLayout, .{ .vertex = true }, @sizeOf(f32) * 2, std.mem.asBytes(&translate));
     }
 }
 
@@ -353,17 +353,17 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData, command_buffer: vk.CommandBuff
     // Create or resize the vertex/index buffers
     var vertex_size = @intCast(usize, draw_data.TotalVtxCount) * @sizeOf(imgui.DrawVert);
     var index_size = @intCast(usize, draw_data.TotalIdxCount) * @sizeOf(imgui.DrawIdx);
-    if (rb.VertexBuffer == null or rb.VertexBufferSize < vertex_size)
+    if (rb.VertexBuffer == .Null or rb.VertexBufferSize < vertex_size)
         try CreateOrResizeBuffer(&rb.VertexBuffer, &rb.VertexBufferMemory, &rb.VertexBufferSize, vertex_size, .{ .vertexBuffer = true });
-    if (rb.IndexBuffer == null or rb.IndexBufferSize < index_size)
+    if (rb.IndexBuffer == .Null or rb.IndexBufferSize < index_size)
         try CreateOrResizeBuffer(&rb.IndexBuffer, &rb.IndexBufferMemory, &rb.IndexBufferSize, index_size, .{ .indexBuffer = true });
 
     // Upload vertex/index data into a single contiguous GPU buffer
     {
         var vtx_dst: [*]imgui.DrawVert = undefined;
         var idx_dst: [*]imgui.DrawIdx = undefined;
-        try vk.MapMemory(v.Device, rb.VertexBufferMemory.?, 0, vertex_size, .{}, @ptrCast(**c_void, &vtx_dst));
-        try vk.MapMemory(v.Device, rb.IndexBufferMemory.?, 0, index_size, .{}, @ptrCast(**c_void, &idx_dst));
+        try vk.MapMemory(v.Device, rb.VertexBufferMemory, 0, vertex_size, .{}, @ptrCast(**c_void, &vtx_dst));
+        try vk.MapMemory(v.Device, rb.IndexBufferMemory, 0, index_size, .{}, @ptrCast(**c_void, &idx_dst));
         var n: i32 = 0;
         while (n < draw_data.CmdListsCount) : (n += 1) {
             const cmd_list = draw_data.CmdLists.?[@intCast(u32, n)];
@@ -375,20 +375,20 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData, command_buffer: vk.CommandBuff
 
         var ranges = [2]vk.MappedMemoryRange{
             vk.MappedMemoryRange{
-                .memory = rb.VertexBufferMemory.?,
+                .memory = rb.VertexBufferMemory,
                 .size = vk.WHOLE_SIZE,
                 .offset = 0,
             },
             vk.MappedMemoryRange{
-                .memory = rb.IndexBufferMemory.?,
+                .memory = rb.IndexBufferMemory,
                 .size = vk.WHOLE_SIZE,
                 .offset = 0,
             },
         };
         try vk.FlushMappedMemoryRanges(v.Device, &ranges);
 
-        vk.UnmapMemory(v.Device, rb.VertexBufferMemory.?);
-        vk.UnmapMemory(v.Device, rb.IndexBufferMemory.?);
+        vk.UnmapMemory(v.Device, rb.VertexBufferMemory);
+        vk.UnmapMemory(v.Device, rb.IndexBufferMemory);
     }
 
     // Setup desired Vulkan state
@@ -486,19 +486,19 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             .initialLayout = .UNDEFINED,
         };
         g_FontImage = try vk.CreateImage(v.Device, info, v.VkAllocator);
-        var req = vk.GetImageMemoryRequirements(v.Device, g_FontImage.?);
+        var req = vk.GetImageMemoryRequirements(v.Device, g_FontImage);
         var alloc_info = vk.MemoryAllocateInfo{
             .allocationSize = req.size,
             .memoryTypeIndex = MemoryType(.{ .deviceLocal = true }, req.memoryTypeBits).?,
         };
         g_FontMemory = try vk.AllocateMemory(v.Device, alloc_info, v.VkAllocator);
-        try vk.BindImageMemory(v.Device, g_FontImage.?, g_FontMemory.?, 0);
+        try vk.BindImageMemory(v.Device, g_FontImage, g_FontMemory, 0);
     }
 
     // Create the Image View:
     {
         var info = vk.ImageViewCreateInfo{
-            .image = g_FontImage.?,
+            .image = g_FontImage,
             .viewType = .T_2D,
             .format = .R8G8B8A8_UNORM,
             .subresourceRange = vk.ImageSubresourceRange{
@@ -521,12 +521,12 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
     // Update the Descriptor Set:
     {
         var desc_image = [_]vk.DescriptorImageInfo{vk.DescriptorImageInfo{
-            .sampler = g_FontSampler.?,
-            .imageView = g_FontView.?,
+            .sampler = g_FontSampler,
+            .imageView = g_FontView,
             .imageLayout = .SHADER_READ_ONLY_OPTIMAL,
         }};
         var write_desc = [_]vk.WriteDescriptorSet{vk.WriteDescriptorSet{
-            .dstSet = g_DescriptorSet.?,
+            .dstSet = g_DescriptorSet,
             .descriptorCount = 1,
             .descriptorType = .COMBINED_IMAGE_SAMPLER,
             .pImageInfo = &desc_image,
@@ -547,7 +547,7 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             .sharingMode = .EXCLUSIVE,
         };
         g_UploadBuffer = try vk.CreateBuffer(v.Device, buffer_info, v.VkAllocator);
-        var req = vk.GetBufferMemoryRequirements(v.Device, g_UploadBuffer.?);
+        var req = vk.GetBufferMemoryRequirements(v.Device, g_UploadBuffer);
         if (req.alignment > g_BufferMemoryAlignment) {
             g_BufferMemoryAlignment = req.alignment;
         }
@@ -556,21 +556,21 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             .memoryTypeIndex = MemoryType(.{ .hostVisible = true }, req.memoryTypeBits).?,
         };
         g_UploadBufferMemory = try vk.AllocateMemory(v.Device, alloc_info, v.VkAllocator);
-        try vk.BindBufferMemory(v.Device, g_UploadBuffer.?, g_UploadBufferMemory.?, 0);
+        try vk.BindBufferMemory(v.Device, g_UploadBuffer, g_UploadBufferMemory, 0);
     }
 
     // Upload to Buffer:
     {
         var map: [*]u8 = undefined;
-        try vk.MapMemory(v.Device, g_UploadBufferMemory.?, 0, upload_size, .{}, @ptrCast(**c_void, &map));
+        try vk.MapMemory(v.Device, g_UploadBufferMemory, 0, upload_size, .{}, @ptrCast(**c_void, &map));
         std.mem.copy(u8, map[0..upload_size], pixels.?[0..upload_size]);
         var range = [_]vk.MappedMemoryRange{vk.MappedMemoryRange{
-            .memory = g_UploadBufferMemory.?,
+            .memory = g_UploadBufferMemory,
             .size = upload_size,
             .offset = 0,
         }};
         try vk.FlushMappedMemoryRanges(v.Device, &range);
-        vk.UnmapMemory(v.Device, g_UploadBufferMemory.?);
+        vk.UnmapMemory(v.Device, g_UploadBufferMemory);
     }
 
     // Copy to Image:
@@ -582,7 +582,7 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             .newLayout = .TRANSFER_DST_OPTIMAL,
             .srcQueueFamilyIndex = vk.QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = vk.QUEUE_FAMILY_IGNORED,
-            .image = g_FontImage.?,
+            .image = g_FontImage,
             .subresourceRange = vk.ImageSubresourceRange{
                 .aspectMask = .{ .color = true },
                 .levelCount = 1,
@@ -606,7 +606,7 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             .imageOffset = vk.Offset3D{ .x = 0, .y = 0, .z = 0 },
             .imageExtent = vk.Extent3D{ .width = @intCast(u32, width), .height = @intCast(u32, height), .depth = 1 },
         }};
-        vk.CmdCopyBufferToImage(command_buffer, g_UploadBuffer.?, g_FontImage.?, .TRANSFER_DST_OPTIMAL, &region);
+        vk.CmdCopyBufferToImage(command_buffer, g_UploadBuffer, g_FontImage, .TRANSFER_DST_OPTIMAL, &region);
 
         var use_barrier = [_]vk.ImageMemoryBarrier{vk.ImageMemoryBarrier{
             .srcAccessMask = .{ .transferWrite = true },
@@ -615,7 +615,7 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
             .newLayout = .SHADER_READ_ONLY_OPTIMAL,
             .srcQueueFamilyIndex = vk.QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = vk.QUEUE_FAMILY_IGNORED,
-            .image = g_FontImage.?,
+            .image = g_FontImage,
             .subresourceRange = vk.ImageSubresourceRange{
                 .aspectMask = .{ .color = true },
                 .levelCount = 1,
@@ -628,7 +628,7 @@ pub fn CreateFontsTexture(command_buffer: vk.CommandBuffer) !void {
     }
 
     // Store our identifier
-    io.Fonts.?.TexID = @ptrCast(imgui.TextureID, g_FontImage.?);
+    io.Fonts.?.TexID = @intToPtr(imgui.TextureID, @enumToInt(g_FontImage));
 }
 fn CreateDeviceObjects() !void {
     const v = &g_VulkanInitInfo;
@@ -650,7 +650,7 @@ fn CreateDeviceObjects() !void {
         frag_module = try vk.CreateShaderModule(v.Device, frag_info, v.VkAllocator);
     }
 
-    if (g_FontSampler == null) {
+    if (g_FontSampler == .Null) {
         const info = vk.SamplerCreateInfo{
             .magFilter = .LINEAR,
             .minFilter = .LINEAR,
@@ -672,8 +672,8 @@ fn CreateDeviceObjects() !void {
         g_FontSampler = try vk.CreateSampler(v.Device, info, v.VkAllocator);
     }
 
-    if (g_DescriptorSetLayout == null) {
-        const sampler = [_]vk.Sampler{g_FontSampler.?};
+    if (g_DescriptorSetLayout == .Null) {
+        const sampler = [_]vk.Sampler{g_FontSampler};
         const binding = [_]vk.DescriptorSetLayoutBinding{vk.DescriptorSetLayoutBinding{
             .binding = 0,
             .descriptorType = .COMBINED_IMAGE_SAMPLER,
@@ -693,21 +693,21 @@ fn CreateDeviceObjects() !void {
         const alloc_info = vk.DescriptorSetAllocateInfo{
             .descriptorPool = v.DescriptorPool,
             .descriptorSetCount = 1,
-            .pSetLayouts = arrayPtr(&g_DescriptorSetLayout.?),
+            .pSetLayouts = arrayPtr(&g_DescriptorSetLayout),
         };
         var out_descriptorSet: vk.DescriptorSet = undefined;
         try vk.AllocateDescriptorSets(v.Device, alloc_info, arrayPtr(&out_descriptorSet));
         g_DescriptorSet = out_descriptorSet;
     }
 
-    if (g_PipelineLayout == null) {
+    if (g_PipelineLayout == .Null) {
         // Constants: we are using 'vec2 offset' and 'vec2 scale' instead of a full 3d projection matrix
         const push_constants = [_]vk.PushConstantRange{vk.PushConstantRange{
             .stageFlags = .{ .vertex = true },
             .offset = 0 * @sizeOf(f32),
             .size = 4 * @sizeOf(f32),
         }};
-        const set_layout = [_]vk.DescriptorSetLayout{g_DescriptorSetLayout.?};
+        const set_layout = [_]vk.DescriptorSetLayout{g_DescriptorSetLayout};
         const layout_info = vk.PipelineLayoutCreateInfo{
             .setLayoutCount = 1,
             .pSetLayouts = &set_layout,
@@ -846,8 +846,8 @@ fn CreateDeviceObjects() !void {
         .pDepthStencilState = &depth_info,
         .pColorBlendState = &blend_info,
         .pDynamicState = &dynamic_state,
-        .layout = g_PipelineLayout.?,
-        .renderPass = g_RenderPass.?,
+        .layout = g_PipelineLayout,
+        .renderPass = g_RenderPass,
         .subpass = 0,
         .basePipelineIndex = 0,
     };
@@ -861,13 +861,13 @@ fn CreateDeviceObjects() !void {
 }
 pub fn DestroyFontUploadObjects() void {
     const v = &g_VulkanInitInfo;
-    if (g_UploadBuffer != null) {
+    if (g_UploadBuffer != .Null) {
         vk.DestroyBuffer(v.Device, g_UploadBuffer, v.VkAllocator);
-        g_UploadBuffer = null;
+        g_UploadBuffer = .Null;
     }
-    if (g_UploadBufferMemory != null) {
+    if (g_UploadBufferMemory != .Null) {
         vk.FreeMemory(v.Device, g_UploadBufferMemory, v.VkAllocator);
-        g_UploadBufferMemory = null;
+        g_UploadBufferMemory = .Null;
     }
 }
 
@@ -876,37 +876,37 @@ fn DestroyDeviceObjects() void {
     DestroyWindowRenderBuffers(v.Device, &g_MainWindowRenderBuffers, v.VkAllocator, v.Allocator);
     DestroyFontUploadObjects();
 
-    if (g_FontView != null) {
+    if (g_FontView != .Null) {
         vk.DestroyImageView(v.Device, g_FontView, v.VkAllocator);
-        g_FontView = null;
+        g_FontView = .Null;
     }
-    if (g_FontImage != null) {
+    if (g_FontImage != .Null) {
         vk.DestroyImage(v.Device, g_FontImage, v.VkAllocator);
-        g_FontImage = null;
+        g_FontImage = .Null;
     }
-    if (g_FontMemory != null) {
+    if (g_FontMemory != .Null) {
         vk.FreeMemory(v.Device, g_FontMemory, v.VkAllocator);
-        g_FontMemory = null;
+        g_FontMemory = .Null;
     }
-    if (g_FontSampler != null) {
+    if (g_FontSampler != .Null) {
         vk.DestroySampler(v.Device, g_FontSampler, v.VkAllocator);
-        g_FontSampler = null;
+        g_FontSampler = .Null;
     }
-    if (g_DescriptorSetLayout != null) {
+    if (g_DescriptorSetLayout != .Null) {
         vk.DestroyDescriptorSetLayout(v.Device, g_DescriptorSetLayout, v.VkAllocator);
-        g_DescriptorSetLayout = null;
+        g_DescriptorSetLayout = .Null;
     }
-    if (g_PipelineLayout != null) {
+    if (g_PipelineLayout != .Null) {
         vk.DestroyPipelineLayout(v.Device, g_PipelineLayout, v.VkAllocator);
-        g_PipelineLayout = null;
+        g_PipelineLayout = .Null;
     }
-    if (g_Pipeline != null) {
+    if (g_Pipeline != .Null) {
         vk.DestroyPipeline(v.Device, g_Pipeline, v.VkAllocator);
-        g_Pipeline = null;
+        g_Pipeline = .Null;
     }
 }
 
-pub fn Init(info: *InitInfo, render_pass: ?vk.RenderPass) !void {
+pub fn Init(info: *InitInfo, render_pass: vk.RenderPass) !void {
     // Setup back-end capabilities flags
     const io = imgui.GetIO();
     io.BackendRendererName = "imgui_impl_vulkan";
@@ -1070,7 +1070,7 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
         wd.ImageCount = 0;
     }
 
-    if (wd.RenderPass != null) {
+    if (wd.RenderPass == .Null) {
         vk.DestroyRenderPass(device, wd.RenderPass, allocator);
     }
 
@@ -1114,10 +1114,10 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
             info.imageExtent = cap.currentExtent;
         }
         wd.Swapchain = try vk.CreateSwapchainKHR(device, info, allocator);
-        wd.ImageCount = try vk.GetSwapchainImagesCountKHR(device, wd.Swapchain.?);
+        wd.ImageCount = try vk.GetSwapchainImagesCountKHR(device, wd.Swapchain);
 
         var backbuffers: [16]vk.Image = undefined;
-        const imagesResult = try vk.GetSwapchainImagesKHR(device, wd.Swapchain.?, &backbuffers);
+        const imagesResult = try vk.GetSwapchainImagesKHR(device, wd.Swapchain, &backbuffers);
         std.debug.assert(imagesResult.result == .SUCCESS);
 
         wd.ImageCount = @intCast(u32, imagesResult.swapchainImages.len);
@@ -1128,7 +1128,7 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
         for (wd.Frames) |*frame, i| frame.* = Frame{ .Backbuffer = imagesResult.swapchainImages[i] };
         for (wd.FrameSemaphores) |*fs| fs.* = FrameSemaphores{};
     }
-    if (old_swapchain != null)
+    if (old_swapchain != .Null)
         vk.DestroySwapchainKHR(device, old_swapchain, allocator);
 
     // Create the Render Pass
@@ -1203,7 +1203,7 @@ fn CreateWindowSwapChain(physical_device: vk.PhysicalDevice, device: vk.Device, 
     {
         var attachment = [_]vk.ImageView{undefined}; // we will set this later
         const info = vk.FramebufferCreateInfo{
-            .renderPass = wd.RenderPass.?,
+            .renderPass = wd.RenderPass,
             .attachmentCount = attachment.len,
             .pAttachments = &attachment,
             .width = wd.Width,
@@ -1261,19 +1261,19 @@ fn DestroyFrameSemaphores(device: vk.Device, fsd: *FrameSemaphores, allocator: ?
 }
 
 fn DestroyFrameRenderBuffers(device: vk.Device, buffers: *FrameRenderBuffers, allocator: ?*const vk.AllocationCallbacks) void {
-    if (buffers.VertexBuffer != null) {
+    if (buffers.VertexBuffer != .Null) {
         vk.DestroyBuffer(device, buffers.VertexBuffer, allocator);
         buffers.VertexBuffer = undefined;
     }
-    if (buffers.VertexBufferMemory != null) {
+    if (buffers.VertexBufferMemory != .Null) {
         vk.FreeMemory(device, buffers.VertexBufferMemory, allocator);
         buffers.VertexBufferMemory = undefined;
     }
-    if (buffers.IndexBuffer != null) {
+    if (buffers.IndexBuffer != .Null) {
         vk.DestroyBuffer(device, buffers.IndexBuffer, allocator);
         buffers.IndexBuffer = undefined;
     }
-    if (buffers.IndexBufferMemory != null) {
+    if (buffers.IndexBufferMemory != .Null) {
         vk.FreeMemory(device, buffers.IndexBufferMemory, allocator);
         buffers.IndexBufferMemory = undefined;
     }

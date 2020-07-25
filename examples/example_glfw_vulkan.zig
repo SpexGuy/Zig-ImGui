@@ -208,7 +208,7 @@ fn CleanupVulkanWindow() !void {
 fn FrameRender(wd: *impl_vulkan.Window) !void {
     const image_acquired_semaphore = wd.FrameSemaphores[wd.SemaphoreIndex].ImageAcquiredSemaphore;
     const render_complete_semaphore = wd.FrameSemaphores[wd.SemaphoreIndex].RenderCompleteSemaphore;
-    wd.FrameIndex = (try vk.AcquireNextImageKHR(g_Device, wd.Swapchain.?, ~@as(u64, 0), image_acquired_semaphore, null)).imageIndex;
+    wd.FrameIndex = (try vk.AcquireNextImageKHR(g_Device, wd.Swapchain, ~@as(u64, 0), image_acquired_semaphore, .Null)).imageIndex;
 
     const fd = &wd.Frames[wd.FrameIndex];
     {
@@ -224,7 +224,7 @@ fn FrameRender(wd: *impl_vulkan.Window) !void {
     }
     {
         var info = vk.RenderPassBeginInfo{
-            .renderPass = wd.RenderPass.?,
+            .renderPass = wd.RenderPass,
             .framebuffer = fd.Framebuffer,
             .renderArea = vk.Rect2D{
                 .offset = vk.Offset2D{ .x = 0, .y = 0 },
@@ -264,7 +264,7 @@ fn FramePresent(wd: *impl_vulkan.Window) !void {
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = arrayPtr(&render_complete_semaphore),
         .swapchainCount = 1,
-        .pSwapchains = arrayPtr(&wd.Swapchain.?),
+        .pSwapchains = arrayPtr(&wd.Swapchain),
         .pImageIndices = arrayPtr(&wd.FrameIndex),
     };
     _ = try vk.QueuePresentKHR(g_Queue, info);
@@ -380,7 +380,7 @@ pub fn main() !void {
             .pCommandBuffers = arrayPtr(&command_buffer),
         };
         try vk.EndCommandBuffer(command_buffer);
-        try vk.QueueSubmit(g_Queue, arrayPtr(&end_info), null);
+        try vk.QueueSubmit(g_Queue, arrayPtr(&end_info), .Null);
 
         try vk.DeviceWaitIdle(g_Device);
         impl_vulkan.DestroyFontUploadObjects();
