@@ -26,17 +26,21 @@ var g_DescriptorPool: vk.DescriptorPool = undefined;
 var g_MainWindowData = impl_vulkan.Window{};
 var g_MinImageCount = @as(u32, 2);
 var g_SwapChainRebuild = false;
-var g_SwapChainResizeWidth = @as(u32, 0);
-var g_SwapChainResizeHeight = @as(u32, 0);
 var g_ClearColor = imgui.Vec4{ .x = 0.5, .y = 0, .z = 1, .w = 1 };
 
-fn debug_report(flags: vk.DebugReportFlagsEXT.IntType, objectType: vk.DebugReportObjectTypeEXT, object: u64, location: usize, messageCode: i32, pLayerPrefix: ?[*]const u8, pMessage: ?[*]const u8, pUserData: ?*c_void) callconv(vk.CallConv) vk.Bool32 {
-    std.debug.warn("[vulkan] ObjectType: {}\nMessage: {}\n\n", .{ objectType, pMessage });
+fn debug_report(flags: vk.DebugReportFlagsEXT.IntType, objectType: vk.DebugReportObjectTypeEXT, object: u64, location: usize, messageCode: i32, pLayerPrefix: ?[*:0]const u8, pMessage: ?[*:0]const u8, pUserData: ?*anyopaque) callconv(vk.CallConv) vk.Bool32 {
+    _ = pUserData;
+    _ = pLayerPrefix;
+    _ = messageCode;
+    _ = location;
+    _ = object;
+    _ = flags;
+    std.debug.print("[vulkan] ObjectType: {}\nMessage: {s}\n\n", .{ objectType, pMessage });
     @panic("VK Error");
     //return vk.FALSE;
 }
 
-fn SetupVulkan(extensions: []const [*:0]const u8, allocator: *std.mem.Allocator) !void {
+fn SetupVulkan(extensions: []const [*:0]const u8, allocator: std.mem.Allocator) !void {
     // Create Vulkan Instance
     {
         var create_info = vk.InstanceCreateInfo{
@@ -45,8 +49,8 @@ fn SetupVulkan(extensions: []const [*:0]const u8, allocator: *std.mem.Allocator)
         };
 
         if (IMGUI_VULKAN_DEBUG_REPORT) {
-            // Enabling multiple validation layers grouped as LunarG standard validation
-            const layers = [_][*:0]const u8{"VK_LAYER_LUNARG_standard_validation"};
+            // Enabling multiple validation layers grouped as VK_LAYER_KHRONOS_validation
+            const layers = [_][*:0]const u8{"VK_LAYER_KHRONOS_validation"};
             create_info.enabledLayerCount = 1;
             create_info.ppEnabledLayerNames = &layers;
 
@@ -90,10 +94,14 @@ fn SetupVulkan(extensions: []const [*:0]const u8, allocator: *std.mem.Allocator)
         defer allocator.free(gpus);
         _ = try vk.EnumeratePhysicalDevices(g_Instance, gpus);
 
-        // If a number >1 of GPUs got reported, you should find the best fit GPU for your purpose
-        // e.g. VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU if available, or with the greatest memory available, etc.
-        // for sake of simplicity we'll just take the first one, assuming it has a graphics queue family.
-        g_PhysicalDevice = gpus[0];
+        // If a number >1 of GPUs got reported, find discrete GPU if present, or use first one available. This covers
+        // most common cases (multi-gpu/integrated+dedicated graphics). Handling more complicated setups (multiple
+        // dedicated GPUs) is out of scope of this sample.
+        const use_gpu = for (gpus) |gpu, i| {
+            const properties = vk.GetPhysicalDeviceProperties(gpu);
+            if (properties.deviceType == .DISCRETE_GPU) break i;
+        } else 0;
+        g_PhysicalDevice = gpus[use_gpu];
     }
 
     // Select graphics queue family
@@ -159,7 +167,7 @@ fn SetupVulkan(extensions: []const [*:0]const u8, allocator: *std.mem.Allocator)
 
 // All the ImGui_ImplVulkanH_XXX structures/functions are optional helpers used by the demo.
 // Your real engine/app may not use them.
-fn SetupVulkanWindow(wd: *impl_vulkan.Window, surface: vk.SurfaceKHR, width: u32, height: u32, allocator: *std.mem.Allocator) !void {
+fn SetupVulkanWindow(wd: *impl_vulkan.Window, surface: vk.SurfaceKHR, width: u32, height: u32, allocator: std.mem.Allocator) !void {
     wd.Surface = surface;
     wd.Allocator = allocator;
 
@@ -184,7 +192,7 @@ fn SetupVulkanWindow(wd: *impl_vulkan.Window, surface: vk.SurfaceKHR, width: u32
 
     // Create SwapChain, RenderPass, Framebuffer, etc.
     assert(g_MinImageCount >= 2);
-    try impl_vulkan.CreateWindow(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
+    try impl_vulkan.CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device, wd, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
 }
 
 fn CleanupVulkan() void {
@@ -205,10 +213,21 @@ fn CleanupVulkanWindow() !void {
     try impl_vulkan.DestroyWindow(g_Instance, g_Device, &g_MainWindowData, g_Allocator);
 }
 
-fn FrameRender(wd: *impl_vulkan.Window) !void {
+fn FrameRender(wd: *impl_vulkan.Window, draw_data: *imgui.DrawData) !void {
     const image_acquired_semaphore = wd.FrameSemaphores[wd.SemaphoreIndex].ImageAcquiredSemaphore;
     const render_complete_semaphore = wd.FrameSemaphores[wd.SemaphoreIndex].RenderCompleteSemaphore;
-    wd.FrameIndex = (try vk.AcquireNextImageKHR(g_Device, wd.Swapchain, ~@as(u64, 0), image_acquired_semaphore, .Null)).imageIndex;
+    const acquire_result = vk.AcquireNextImageKHR(g_Device, wd.Swapchain, ~@as(u64, 0), image_acquired_semaphore, .Null) catch |err| switch (err) {
+        error.VK_OUT_OF_DATE_KHR => {
+            g_SwapChainRebuild = true;
+            return;
+        },
+        else => |e| return e,
+    };
+    if (acquire_result.result == .SUBOPTIMAL_KHR) {
+        g_SwapChainRebuild = true;
+        return;
+    }
+    wd.FrameIndex = acquire_result.imageIndex;
 
     const fd = &wd.Frames[wd.FrameIndex];
     {
@@ -237,7 +256,7 @@ fn FrameRender(wd: *impl_vulkan.Window) !void {
     }
 
     // Record Imgui Draw Data and draw funcs into command buffer
-    try impl_vulkan.RenderDrawData(imgui.GetDrawData(), fd.CommandBuffer);
+    try impl_vulkan.RenderDrawData(draw_data, fd.CommandBuffer, .Null);
 
     // Submit command buffer
     vk.CmdEndRenderPass(fd.CommandBuffer);
@@ -259,6 +278,8 @@ fn FrameRender(wd: *impl_vulkan.Window) !void {
 }
 
 fn FramePresent(wd: *impl_vulkan.Window) !void {
+    if (g_SwapChainRebuild)
+        return;
     const render_complete_semaphore = wd.FrameSemaphores[wd.SemaphoreIndex].RenderCompleteSemaphore;
     var info = vk.PresentInfoKHR{
         .waitSemaphoreCount = 1,
@@ -267,18 +288,23 @@ fn FramePresent(wd: *impl_vulkan.Window) !void {
         .pSwapchains = arrayPtr(&wd.Swapchain),
         .pImageIndices = arrayPtr(&wd.FrameIndex),
     };
-    _ = try vk.QueuePresentKHR(g_Queue, info);
+    const result = vk.QueuePresentKHR(g_Queue, info) catch |err| switch (err) {
+        error.VK_OUT_OF_DATE_KHR => {
+            g_SwapChainRebuild = true;
+            return;
+        },
+        else => |e| return e,
+    };
+    if (result == .SUBOPTIMAL_KHR) {
+        g_SwapChainRebuild = true;
+        return;
+    }
     wd.SemaphoreIndex = (wd.SemaphoreIndex + 1) % wd.ImageCount; // Now we can use the next set of semaphores
 }
 
 fn glfw_error_callback(err: c_int, description: ?[*:0]const u8) callconv(.C) void {
-    std.debug.warn("Glfw Error {}: {}\n", .{ err, std.mem.spanZ(description.?) });
-}
-
-fn glfw_resize_callback(window: ?*glfw.GLFWwindow, w: c_int, h: c_int) callconv(.C) void {
-    g_SwapChainRebuild = true;
-    g_SwapChainResizeWidth = @intCast(u32, w);
-    g_SwapChainResizeHeight = @intCast(u32, h);
+    var nonnull_desc: [*:0]const u8 = description orelse "";
+    std.debug.print("Glfw Error {}: {s}\n", .{ err, nonnull_desc });
 }
 
 pub fn main() !void {
@@ -311,7 +337,6 @@ pub fn main() !void {
     var w: c_int = 0;
     var h: c_int = 0;
     glfw.glfwGetFramebufferSize(window, &w, &h);
-    _ = glfw.glfwSetFramebufferSizeCallback(window, glfw_resize_callback);
     const wd = &g_MainWindowData;
     try SetupVulkanWindow(wd, surface, @intCast(u32, w), @intCast(u32, h), allocator);
 
@@ -326,12 +351,11 @@ pub fn main() !void {
     imgui.StyleColorsDark();
     //imgui.StyleColorsClassic(null);
 
-    // Setup Platform/Renderer bindings
+    // Setup Platform/Renderer backends
     var initResult = impl_glfw.InitForVulkan(window, true);
     assert(initResult);
 
     var init_info = impl_vulkan.InitInfo{
-        .Allocator = allocator,
         .Instance = g_Instance,
         .PhysicalDevice = g_PhysicalDevice,
         .Device = g_Device,
@@ -339,9 +363,10 @@ pub fn main() !void {
         .Queue = g_Queue,
         .PipelineCache = g_PipelineCache,
         .DescriptorPool = g_DescriptorPool,
-        .VkAllocator = g_Allocator,
+        .Subpass = 0,
         .MinImageCount = g_MinImageCount,
-        .MSAASamples = .{},
+        .MSAASamples = .{ .t1 = true },
+        .VkAllocator = g_Allocator,
         .ImageCount = wd.ImageCount,
     };
     try impl_vulkan.Init(&init_info, wd.RenderPass);
@@ -403,16 +428,22 @@ pub fn main() !void {
     while (glfw.glfwWindowShouldClose(window) == 0) {
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
+        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the mouse data.
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfw.glfwPollEvents();
 
+        // Resize swap chain?
         if (g_SwapChainRebuild) {
-            g_SwapChainRebuild = false;
-            try impl_vulkan.SetMinImageCount(g_MinImageCount);
-            try impl_vulkan.CreateWindow(g_Instance, g_PhysicalDevice, g_Device, &g_MainWindowData, g_QueueFamily, g_Allocator, g_SwapChainResizeWidth, g_SwapChainResizeHeight, g_MinImageCount);
-            g_MainWindowData.FrameIndex = 0;
+            var width: c_int = 0;
+            var height: c_int = 0;
+            glfw.glfwGetFramebufferSize(window, &width, &height);
+            if (width > 0 and height > 0) {
+                try impl_vulkan.SetMinImageCount(g_MinImageCount);
+                try impl_vulkan.CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device, &g_MainWindowData, g_QueueFamily, g_Allocator, @intCast(u32, width), @intCast(u32, height), g_MinImageCount);
+                g_MainWindowData.FrameIndex = 0;
+                g_SwapChainRebuild = false;
+            }
         }
 
         // Start the Dear ImGui frame
@@ -455,9 +486,13 @@ pub fn main() !void {
 
         // Rendering
         imgui.Render();
-        try FrameRender(wd);
 
-        try FramePresent(wd);
+        const draw_data = imgui.GetDrawData();
+        const is_minimized = draw_data.DisplaySize.x <= 0 or draw_data.DisplaySize.y <= 0;
+        if (!is_minimized) {
+            try FrameRender(wd, draw_data);
+            try FramePresent(wd);
+        }
     }
 
     // Cleanup
@@ -502,6 +537,6 @@ fn ArrayPtrType(comptime ptrType: type) type {
     }
 }
 
-fn arrayPtr(ptr: var) ArrayPtrType(@TypeOf(ptr)) {
+fn arrayPtr(ptr: anytype) ArrayPtrType(@TypeOf(ptr)) {
     return @as(ArrayPtrType(@TypeOf(ptr)), ptr);
 }

@@ -1,7 +1,7 @@
-// dear imgui: Renderer for modern OpenGL with shaders / programmatic pipeline
+// dear imgui: Renderer Backend for modern OpenGL with shaders / programmatic pipeline
 // - Desktop GL: 2.x 3.x 4.x
 // - Embedded GL: ES 2.0 (WebGL 1.0), ES 3.0 (WebGL 2.0)
-// This needs to be used along with a Platform Binding (e.g. GLFW, SDL, Win32, custom..)
+// This needs to be used along with a Platform Backend (e.g. GLFW, SDL, Win32, custom..)
 
 // Implemented features:
 //  [X] Renderer: User texture binding. Use 'GLuint' OpenGL texture identifier as void*/ImTextureID. Read the FAQ about ImTextureID!
@@ -32,6 +32,9 @@
 const std = @import("std");
 const imgui = @import("imgui");
 const gl = @import("include/gl.zig");
+const builtin = @import("builtin");
+
+const is_darwin = builtin.os.tag.isDarwin();
 
 // Desktop GL 3.2+ has glDrawElementsBaseVertex() which GL ES and WebGL don't have.
 const IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET = true;
@@ -132,7 +135,7 @@ fn SetupRenderState(draw_data: *imgui.DrawData, fb_width: c_int, fb_height: c_in
     gl.glUniform1i(g_AttribLocationTex, 0);
     gl.glUniformMatrix4fv(g_AttribLocationProjMtx, 1, gl.GL_FALSE, &ortho_projection[0][0]);
     if (@hasDecl(gl, "glBindSampler")) {
-        glBindSampler(0, 0); // We use combined texture/sampler state. Applications using GL 3.3 may set that otherwise.
+        gl.glBindSampler(0, 0); // We use combined texture/sampler state. Applications using GL 3.3 may set that otherwise.
     }
 
     gl.glBindVertexArray(vertex_array_object);
@@ -148,7 +151,7 @@ fn SetupRenderState(draw_data: *imgui.DrawData, fb_width: c_int, fb_height: c_in
         gl.GL_FLOAT,
         gl.GL_FALSE,
         @sizeOf(imgui.DrawVert),
-        @intToPtr(?*c_void, @byteOffsetOf(imgui.DrawVert, "pos")),
+        @intToPtr(?*anyopaque, @offsetOf(imgui.DrawVert, "pos")),
     );
     gl.glVertexAttribPointer(
         @intCast(c_uint, g_AttribLocationVtxUV),
@@ -156,7 +159,7 @@ fn SetupRenderState(draw_data: *imgui.DrawData, fb_width: c_int, fb_height: c_in
         gl.GL_FLOAT,
         gl.GL_FALSE,
         @sizeOf(imgui.DrawVert),
-        @intToPtr(?*c_void, @byteOffsetOf(imgui.DrawVert, "uv")),
+        @intToPtr(?*anyopaque, @offsetOf(imgui.DrawVert, "uv")),
     );
     gl.glVertexAttribPointer(
         @intCast(c_uint, g_AttribLocationVtxColor),
@@ -164,7 +167,7 @@ fn SetupRenderState(draw_data: *imgui.DrawData, fb_width: c_int, fb_height: c_in
         gl.GL_UNSIGNED_BYTE,
         gl.GL_TRUE,
         @sizeOf(imgui.DrawVert),
-        @intToPtr(?*c_void, @byteOffsetOf(imgui.DrawVert, "col")),
+        @intToPtr(?*anyopaque, @offsetOf(imgui.DrawVert, "col")),
     );
 }
 
@@ -214,7 +217,7 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     var last_enable_scissor_test = gl.glIsEnabled(gl.GL_SCISSOR_TEST);
 
     var clip_origin_lower_left = true;
-    if (@hasDecl(gl, "GL_CLIP_ORIGIN") and !os.darwin.is_the_target) {
+    if (@hasDecl(gl, "GL_CLIP_ORIGIN") and !is_darwin) {
         var last_clip_origin = getGLInt(gl.GL_CLIP_ORIGIN); // Support for GL 4.5's glClipControl(GL_UPPER_LEFT)
         if (last_clip_origin == gl.GL_UPPER_LEFT)
             clip_origin_lower_left = false;
@@ -237,10 +240,10 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     if (draw_data.CmdListsCount > 0) {
         for (draw_data.CmdLists.?[0..@intCast(usize, draw_data.CmdListsCount)]) |cmd_list| {
             // Upload vertex/index buffers
-            gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.VtxBuffer.len * @sizeOf(imgui.DrawVert)), cmd_list.VtxBuffer.items, gl.GL_STREAM_DRAW);
-            gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.IdxBuffer.len * @sizeOf(imgui.DrawIdx)), cmd_list.IdxBuffer.items, gl.GL_STREAM_DRAW);
+            gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.VtxBuffer.size_in_bytes()), cmd_list.VtxBuffer.Data, gl.GL_STREAM_DRAW);
+            gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.IdxBuffer.size_in_bytes()), cmd_list.IdxBuffer.Data, gl.GL_STREAM_DRAW);
 
-            for (cmd_list.CmdBuffer.items[0..@intCast(usize, cmd_list.CmdBuffer.len)]) |pcmd| {
+            for (cmd_list.CmdBuffer.items()) |pcmd| {
                 if (pcmd.UserCallback) |fnPtr| {
                     // User callback, registered via ImDrawList::AddCallback()
                     // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
@@ -273,7 +276,7 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
                                 gl.GL_TRIANGLES,
                                 @intCast(gl.GLsizei, pcmd.ElemCount),
                                 if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
-                                @intToPtr(?*const c_void, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
+                                @intToPtr(?*const anyopaque, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
                                 @intCast(gl.GLint, pcmd.VtxOffset),
                             );
                         } else {
@@ -281,7 +284,7 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
                                 gl.GL_TRIANGLES,
                                 @intCast(gl.GLsizei, pcmd.ElemCount),
                                 if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
-                                @intToPtr(?*const c_void, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
+                                @intToPtr(?*const anyopaque, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
                             );
                         }
                     }
@@ -355,14 +358,13 @@ fn CheckShader(handle: gl.GLuint, desc: []const u8) bool {
     gl.glGetShaderiv(handle, gl.GL_COMPILE_STATUS, &status);
     gl.glGetShaderiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
     if (status == gl.GL_FALSE)
-        std.debug.warn("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to compile {}!\n", .{desc});
+        std.debug.print("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to compile {s}!\n", .{desc});
     if (log_length > 1) {
-        var buf: imgui.Vector(u8) = undefined;
-        buf.init();
+        var buf: imgui.Vector(u8) = .{};
         defer buf.deinit();
-        buf.resize(@intCast(c_int, log_length + 1));
-        gl.glGetShaderInfoLog(handle, log_length, null, @ptrCast([*]gl.GLchar, buf.begin()));
-        std.debug.warn("{}\n", .{buf.begin()});
+        buf.resize_undefined(@intCast(u32, log_length + 1));
+        gl.glGetShaderInfoLog(handle, log_length, null, @ptrCast([*]gl.GLchar, buf.Data.?));
+        std.debug.print("{s}\n", .{buf.items()});
     }
     return status != gl.GL_FALSE;
 }
@@ -374,14 +376,13 @@ fn CheckProgram(handle: gl.GLuint, desc: []const u8) bool {
     gl.glGetProgramiv(handle, gl.GL_LINK_STATUS, &status);
     gl.glGetProgramiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
     if (status == gl.GL_FALSE)
-        std.debug.warn("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to link {}! (with GLSL '{}')\n", .{ desc, g_GlslVersionString });
+        std.debug.print("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to link {s}! (with GLSL '{s}')\n", .{ desc, g_GlslVersionString });
     if (log_length > 1) {
-        var buf: imgui.Vector(u8) = undefined;
-        buf.init();
+        var buf: imgui.Vector(u8) = .{};
         defer buf.deinit();
-        buf.resize(@intCast(c_int, log_length + 1));
-        gl.glGetProgramInfoLog(handle, log_length, null, @ptrCast([*]gl.GLchar, buf.begin()));
-        std.debug.warn("{}\n", .{buf.begin()});
+        buf.resize_undefined(@intCast(u32, log_length + 1));
+        gl.glGetProgramInfoLog(handle, log_length, null, @ptrCast([*]gl.GLchar, buf.Data.?));
+        std.debug.print("{s}\n", .{buf.items()});
     }
     return status != gl.GL_FALSE;
 }
@@ -399,7 +400,7 @@ fn CreateDeviceObjects() bool {
     if (std.fmt.parseInt(u32, numberPart, 10)) |value| {
         glsl_version = value;
     } else |err| {
-        std.debug.warn("Couldn't parse glsl version from '{}', '{}'\n", .{ g_GlslVersionString, numberPart });
+        std.debug.print("Couldn't parse glsl version from '{s}', '{s}'. Error: {any}\n", .{ g_GlslVersionString, numberPart, err });
     }
 
     const vertex_shader_glsl_120 = "uniform mat4 ProjMtx;\n" ++

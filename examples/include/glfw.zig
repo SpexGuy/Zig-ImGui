@@ -1,8 +1,8 @@
 const vk = @import("vk.zig");
 
-pub const GLFWmonitor = @OpaqueType();
-pub const GLFWwindow = @OpaqueType();
-pub const GLFWcursor = @OpaqueType();
+pub const GLFWmonitor = opaque {};
+pub const GLFWwindow = opaque {};
+pub const GLFWcursor = opaque {};
 
 pub const GLFWglproc = ?fn () callconv(.C) void;
 pub const GLFWvkproc = ?fn () callconv(.C) void;
@@ -88,8 +88,8 @@ pub extern fn glfwFocusWindow(window: ?*GLFWwindow) void;
 pub extern fn glfwGetWindowMonitor(window: ?*GLFWwindow) ?*GLFWmonitor;
 pub extern fn glfwSetWindowMonitor(window: ?*GLFWwindow, monitor: ?*GLFWmonitor, xpos: c_int, ypos: c_int, width: c_int, height: c_int, refreshRate: c_int) void;
 pub extern fn glfwGetWindowAttrib(window: ?*GLFWwindow, attrib: c_int) c_int;
-pub extern fn glfwSetWindowUserPointer(window: ?*GLFWwindow, pointer: ?*c_void) void;
-pub extern fn glfwGetWindowUserPointer(window: ?*GLFWwindow) ?*c_void;
+pub extern fn glfwSetWindowUserPointer(window: ?*GLFWwindow, pointer: ?*anyopaque) void;
+pub extern fn glfwGetWindowUserPointer(window: ?*GLFWwindow) ?*anyopaque;
 pub extern fn glfwSetWindowPosCallback(window: ?*GLFWwindow, cbfun: GLFWwindowposfun) GLFWwindowposfun;
 pub extern fn glfwSetWindowSizeCallback(window: ?*GLFWwindow, cbfun: GLFWwindowsizefun) GLFWwindowsizefun;
 pub extern fn glfwSetWindowCloseCallback(window: ?*GLFWwindow, cbfun: GLFWwindowclosefun) GLFWwindowclosefun;
@@ -143,7 +143,7 @@ pub extern fn glfwGetInstanceProcAddress(instance: vk.Instance, procname: ?[*:0]
 pub extern fn glfwGetPhysicalDevicePresentationSupport(instance: vk.Instance, device: vk.PhysicalDevice, queuefamily: u32) c_int;
 pub extern fn glfwCreateWindowSurface(instance: vk.Instance, window: *GLFWwindow, allocator: ?*const vk.AllocationCallbacks, surface: *vk.SurfaceKHR) vk.Result;
 
-pub extern fn glfwGetWin32Window(window: ?*GLFWwindow) ?*c_void;
+pub extern fn glfwGetWin32Window(window: ?*GLFWwindow) ?*anyopaque;
 
 pub const GLFW_ACCUM_ALPHA_BITS = 135178;
 pub const GLFW_ACCUM_BLUE_BITS = 135177;
@@ -204,6 +204,33 @@ pub const GLFW_JOYSTICK_7 = 6;
 pub const GLFW_JOYSTICK_8 = 7;
 pub const GLFW_JOYSTICK_9 = 8;
 pub const GLFW_JOYSTICK_LAST = GLFW_JOYSTICK_16;
+pub const GLFW_GAMEPAD_BUTTON_A = 0;
+pub const GLFW_GAMEPAD_BUTTON_B = 1;
+pub const GLFW_GAMEPAD_BUTTON_X = 2;
+pub const GLFW_GAMEPAD_BUTTON_Y = 3;
+pub const GLFW_GAMEPAD_BUTTON_LEFT_BUMPER = 4;
+pub const GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER = 5;
+pub const GLFW_GAMEPAD_BUTTON_BACK = 6;
+pub const GLFW_GAMEPAD_BUTTON_START = 7;
+pub const GLFW_GAMEPAD_BUTTON_GUIDE = 8;
+pub const GLFW_GAMEPAD_BUTTON_LEFT_THUMB = 9;
+pub const GLFW_GAMEPAD_BUTTON_RIGHT_THUMB = 10;
+pub const GLFW_GAMEPAD_BUTTON_DPAD_UP = 11;
+pub const GLFW_GAMEPAD_BUTTON_DPAD_RIGHT = 12;
+pub const GLFW_GAMEPAD_BUTTON_DPAD_DOWN = 13;
+pub const GLFW_GAMEPAD_BUTTON_DPAD_LEFT = 14;
+pub const GLFW_GAMEPAD_BUTTON_LAST = GLFW_GAMEPAD_BUTTON_DPAD_LEFT;
+pub const GLFW_GAMEPAD_BUTTON_CROSS = GLFW_GAMEPAD_BUTTON_A;
+pub const GLFW_GAMEPAD_BUTTON_CIRCLE = GLFW_GAMEPAD_BUTTON_B;
+pub const GLFW_GAMEPAD_BUTTON_SQUARE = GLFW_GAMEPAD_BUTTON_X;
+pub const GLFW_GAMEPAD_BUTTON_TRIANGLE = GLFW_GAMEPAD_BUTTON_Y;
+pub const GLFW_GAMEPAD_AXIS_LEFT_X = 0;
+pub const GLFW_GAMEPAD_AXIS_LEFT_Y = 1;
+pub const GLFW_GAMEPAD_AXIS_RIGHT_X = 2;
+pub const GLFW_GAMEPAD_AXIS_RIGHT_Y = 3;
+pub const GLFW_GAMEPAD_AXIS_LEFT_TRIGGER = 4;
+pub const GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER = 5;
+pub const GLFW_GAMEPAD_AXIS_LAST = GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER;
 pub const GLFW_KEY_0 = 48;
 pub const GLFW_KEY_1 = 49;
 pub const GLFW_KEY_2 = 50;

@@ -1,34 +1,39 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const path = std.fs.path;
 const Builder = std.build.Builder;
 const LibExeObjStep = std.build.LibExeObjStep;
 
-const glslc_command = if (std.builtin.os.tag == .windows) "tools/win/glslc.exe" else "glslc";
+const glslc_command = if (builtin.os.tag == .windows) "tools/win/glslc.exe" else "glslc";
 
 pub fn build(b: *Builder) void {
+    const mode = b.standardReleaseOptions();
+    const target = b.standardTargetOptions(.{});
+
     {
-        const exe = exampleExe(b, "example_glfw_vulkan");
-        linkGlfw(exe);
-        linkVulkan(exe);
+        const exe = exampleExe(b, "example_glfw_vulkan", mode, target);
+        linkGlfw(exe, target);
+        linkVulkan(exe, target);
     }
     {
-        const exe = exampleExe(b, "example_glfw_opengl3");
-        linkGlfw(exe);
-        linkGlad(exe);
+        const exe = exampleExe(b, "example_glfw_opengl3", mode, target);
+        linkGlfw(exe, target);
+        linkGlad(exe, target);
     }
 }
 
-fn exampleExe(b: *Builder, comptime name: var) *LibExeObjStep {
-    const mode = b.standardReleaseOptions();
+fn exampleExe(b: *Builder, comptime name: []const u8, mode: std.builtin.Mode, target: std.zig.CrossTarget) *LibExeObjStep {
     const exe = b.addExecutable(name, name ++ ".zig");
     exe.setBuildMode(mode);
-    exe.linkLibC();
-    exe.addPackagePath("imgui", "../zig/imgui.zig");
-    if (std.builtin.os.tag == .windows) {
-        exe.linkSystemLibrary("../lib/win/cimguid");
-    } else {
-        @compileError("TODO: Build and link cimgui for non-windows platforms");
-    }
+    exe.setTarget(target);
+
+    exe.linkLibCpp();
+    exe.addPackagePath("imgui", "../generated/imgui.zig");
+    exe.addIncludePath("../cimgui");
+    exe.addCSourceFile("../cimgui_unity.cpp", &[_][]const u8{
+        "-fno-sanitize=undefined",
+    });
+
     exe.install();
 
     const run_step = b.step(name, "Run " ++ name);
@@ -38,15 +43,16 @@ fn exampleExe(b: *Builder, comptime name: var) *LibExeObjStep {
     return exe;
 }
 
-fn linkGlad(exe: *LibExeObjStep) void {
+fn linkGlad(exe: *LibExeObjStep, target: std.zig.CrossTarget) void {
+    _ = target;
     exe.addIncludeDir("include/c_include");
     exe.addCSourceFile("c_src/glad.c", &[_][]const u8{"-std=c99"});
     //exe.linkSystemLibrary("opengl");
 }
 
-fn linkGlfw(exe: *LibExeObjStep) void {
-    if (std.builtin.os.tag == .windows) {
-        exe.linkSystemLibrary("lib/win/glfw3");
+fn linkGlfw(exe: *LibExeObjStep, target: std.zig.CrossTarget) void {
+    if (target.isWindows()) {
+        exe.addObjectFile(if (target.getAbi() == .msvc) "lib/win/glfw3.lib" else "lib/win/libglfw3.a");
         exe.linkSystemLibrary("gdi32");
         exe.linkSystemLibrary("shell32");
     } else {
@@ -54,20 +60,15 @@ fn linkGlfw(exe: *LibExeObjStep) void {
     }
 }
 
-fn linkVulkan(exe: *LibExeObjStep) void {
-    if (std.builtin.os.tag == .windows) {
-        exe.linkSystemLibrary("lib/win/vulkan-1");
+fn linkVulkan(exe: *LibExeObjStep, target: std.zig.CrossTarget) void {
+    if (target.isWindows()) {
+        exe.addObjectFile("lib/win/vulkan-1.lib");
     } else {
         exe.linkSystemLibrary("vulkan");
     }
 }
 
-fn linkStbImage(exe: *LibExeObjStep) void {
-    @compileError("This file hasn't actually been added to the project yet.");
-    exe.addCSourceFile("c_src/stb_image.c", [_][]const u8{ "-std=c99", "-DSTB_IMAGE_IMPLEMENTATION=1" });
-}
-
-fn addShader(b: *Builder, exe: var, in_file: []const u8, out_file: []const u8) !void {
+fn addShader(b: *Builder, exe: *LibExeObjStep, in_file: []const u8, out_file: []const u8) !void {
     // example:
     // glslc -o shaders/vert.spv shaders/shader.vert
     const dirname = "shaders";

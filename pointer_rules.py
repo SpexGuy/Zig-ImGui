@@ -253,7 +253,7 @@ def getPointers(numPointers, valueType, context):
             return '*'
         if context.type == CT_PARAM and context.parent.stname and context.name == 'self':
             return '*'
-        if context.type == CT_PARAM and context.name == 'pOut' and context.parent.name.endswith('_nonUDT'):
+        if context.type == CT_PARAM and context.name == 'pOut':
             return '*'
             
     ## Search for a matching rule
