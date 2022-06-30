@@ -10,8 +10,8 @@ git submodule update --init --recursive
 	del ..\..\cimgui.cpp
 	del ..\..\cimgui.h
 	luajit .\generator.lua "gcc" ""
-	copy ..\cimgui.cpp ..\..\generated\cimgui.cpp
-	copy ..\cimgui.h ..\..\generated\cimgui.h
+	copy ..\cimgui.cpp ..\..\zig-imgui\cimgui.cpp
+	copy ..\cimgui.h ..\..\zig-imgui\cimgui.h
 	popd
 
 	goto PYTHON_GENERATE

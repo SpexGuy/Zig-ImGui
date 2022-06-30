@@ -28,9 +28,9 @@ fn exampleExe(b: *Builder, comptime name: []const u8, mode: std.builtin.Mode, ta
     exe.setTarget(target);
 
     exe.linkLibCpp();
-    exe.addPackagePath("imgui", "../generated/imgui.zig");
+    exe.addPackagePath("imgui", "../zig-imgui/imgui.zig");
     exe.addIncludePath("../cimgui");
-    exe.addCSourceFile("../cimgui_unity.cpp", &[_][]const u8{
+    exe.addCSourceFile("../zig-imgui/cimgui_unity.cpp", &[_][]const u8{
         "-fno-sanitize=undefined",
     });
 

@@ -10,7 +10,7 @@ TYPEDEFS_JSON_FILE = 'cimgui/generator/output/typedefs_dict.json'
 COMMANDS_JSON_FILE = 'cimgui/generator/output/definitions.json'
 IMPL_JSON_FILE = 'cimgui/generator/output/definitions_impl.json'
 
-OUTPUT_DIR = 'generated'
+OUTPUT_DIR = 'zig-imgui'
 OUTPUT_FILE = 'imgui.zig'
 TEMPLATE_FILE = 'template.zig'
 
