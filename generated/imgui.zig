@@ -1,6 +1,12 @@
+//! ==========================================================
+//! This file is generated from template.zig and generate.bat.
+//! Do not modify it by hand.
+//! ==========================================================
+
 const std = @import("std");
 const builtin = @import("builtin");
 const assert = @import("std").debug.assert;
+const imgui = @This();
 
 pub const DrawCallback_ResetRenderState = @intToPtr(DrawCallback, ~@as(usize, 0));
 
@@ -43,6 +49,9 @@ pub fn FlagsMixin(comptime FlagType: type) type {
         pub fn isEmpty(a: FlagType) bool {
             return toInt(a) == 0;
         }
+        pub fn eql(a: FlagType, b: FlagType) bool {
+            return toInt(a) == toInt(b);
+        }
     };
 }
 
@@ -74,7 +83,7 @@ pub fn Vector(comptime T: type) type {
 
         // Constructors, destructor
         pub fn deinit(self: *@This()) void {
-            if (self.Data) |d| raw.igMemFree(d);
+            if (self.Data) |d| raw.igMemFree(@ptrCast(*anyopaque, d));
             self.* = undefined;
         }
 
@@ -106,40 +115,43 @@ pub fn Vector(comptime T: type) type {
 
         /// Important: does not destruct anything
         pub fn clear(self: *@This()) void {
-            if (self.Data) |d| raw.igMemFree(d);
+            if (self.Data) |d| raw.igMemFree(@ptrCast(?*anyopaque, d));
             self.* = .{};
         }
 
         /// Destruct and delete all pointer values, then clear the array.
         /// T must be a pointer or optional pointer.
         pub fn clear_delete(self: *@This()) void {
-            var ti = @typeInfo(T);
+            comptime var ti = @typeInfo(T);
             const is_optional = (ti == .Optional);
             if (is_optional) ti = @typeInfo(ti.Optional.child);
-            if (ti != .Pointer) @compileError("clear_delete() can only be called on vectors of pointers.");
+            if (ti != .Pointer or ti.Pointer.is_const or ti.Pointer.size != .One)
+                @compileError("clear_delete() can only be called on vectors of mutable single-item pointers, cannot apply to Vector(" ++ @typeName(T) ++ ").");
             const ValueT = ti.Pointer.child;
 
             if (is_optional) {
                 for (self.items()) |it| {
-                    if (it) |ptr| {
+                    if (it) |_ptr| {
+                        const ptr: *ValueT = _ptr;
                         destruct(ValueT, ptr);
                         raw.igMemFree(ptr);
                     }
                 }
             } else {
-                for (self.items()) |ptr| {
+                for (self.items()) |_ptr| {
+                    const ptr: *ValueT = _ptr;
                     destruct(ValueT, ptr);
-                    raw.igMemFree(ptr);
+                    raw.igMemFree(@ptrCast(?*anyopaque, ptr));
                 }
             }
-            clear();
+            self.clear();
         }
 
         pub fn clear_destruct(self: *@This()) void {
             for (self.items()) |*ptr| {
                 destruct(T, ptr);
             }
-            clear();
+            self.clear();
         }
 
         pub fn empty(self: @This()) bool {
@@ -192,14 +204,14 @@ pub fn Vector(comptime T: type) type {
                 if (self.Size != 0) {
                     @memcpy(@ptrCast([*]u8, new_data.?), @ptrCast([*]const u8, sd), self.Size * @sizeOf(T));
                 }
-                raw.igMemFree(self.Data);
+                raw.igMemFree(@ptrCast(*anyopaque, sd));
             }
             self.Data = new_data;
             self.Capacity = new_capacity;
         }
         pub fn reserve_discard(self: *@This(), new_capacity: u32) void {
             if (new_capacity <= self.Capacity) return;
-            if (self.Data) |sd| raw.igMemFree(sd);
+            if (self.Data) |sd| raw.igMemFree(@ptrCast(*anyopaque, sd));
             self.Data = @ptrCast(?[*]T, @alignCast(@alignOf(T), raw.igMemAlloc(new_capacity * @sizeOf(T))));
             self.Capacity = new_capacity;
         }
@@ -267,13 +279,13 @@ pub fn Vector(comptime T: type) type {
         }
         pub fn contains(self: @This(), v: T) bool {
             for (self.items()) |*it| {
-                if (eql(T, v, it.*)) return true;
+                if (imgui.eql(T, v, it.*)) return true;
             }
             return false;
         }
         pub fn find(self: @This(), v: T) ?u32 {
             return for (self.items()) |*it, i| {
-                if (eql(T, v, it.*)) break @intCast(u32, i);
+                if (imgui.eql(T, v, it.*)) break @intCast(u32, i);
             } else null;
         }
         pub fn find_erase(self: *@This(), v: T) bool {
@@ -290,6 +302,16 @@ pub fn Vector(comptime T: type) type {
             }
             return false;
         }
+
+        pub fn eql(self: @This(), other: @This()) bool {
+            if (self.Size != other.Size) return false;
+            var i: u32 = 0;
+            while (i < self.Size) : (i += 1) {
+                if (!imgui.eql(T, self.Data.?[i], other.Data.?[i]))
+                    return false;
+            }
+            return true;
+        }
     };
 }
 
@@ -299,6 +321,10 @@ pub const Vec2 = extern struct {
     
     pub fn init(x: f32, y: f32) Vec4 {
         return .{ .x = x, .y = y };
+    }
+
+    pub fn eql(self: Vec2, other: Vec2) bool {
+        return self.x == other.x and self.y == other.y;
     }
 };
 
@@ -310,6 +336,13 @@ pub const Vec4 = extern struct {
 
     pub fn init(x: f32, y: f32, z: f32, w: f32) Vec4 {
         return .{ .x = x, .y = y, .z = z, .w = w };
+    }
+
+    pub fn eql(self: Vec4, other: Vec4) bool {
+        return self.x == other.x
+            and self.y == other.y
+            and self.z == other.z
+            and self.w == other.w;
     }
 };
 
@@ -366,6 +399,10 @@ pub const Color = extern struct {
     /// Convert from a floating point color to an integer 0xaabbggrr
     pub fn packABGR(self: Color) u32 {
         return ColorConvertFloat4ToU32(self.Value);
+    }
+
+    pub fn eql(self: Color, other: Color) bool {
+        return self.Value.eql(other.Value);
     }
 };
 
@@ -2937,7 +2974,7 @@ pub const TableColumnSortSpecs = extern struct {
 };
 
 pub const TableSortSpecs = extern struct {
-    Specs: [*c]const TableColumnSortSpecs,
+    Specs: ?[*]const TableColumnSortSpecs,
     SpecsCount: i32,
     SpecsDirty: bool,
 
@@ -3031,7 +3068,7 @@ pub const TextRange = extern struct {
     /// init_Nil(self: ?*anyopaque) void
     pub const init_Nil = raw.ImGuiTextRange_ImGuiTextRange_Nil;
 
-    /// init_Str(self: ?*anyopaque, _b: [*c]const u8, _e: [*c]const u8) void
+    /// init_Str(self: ?*anyopaque, _b: ?[*]const u8, _e: ?[*]const u8) void
     pub const init_Str = raw.ImGuiTextRange_ImGuiTextRange_Str;
 
     /// deinit(self: *TextRange) void
@@ -3245,10 +3282,10 @@ pub inline fn CalcTextSize(text: ?[*]const u8) Vec2 {
 /// Checkbox(label: ?[*:0]const u8, v: *bool) bool
 pub const Checkbox = raw.igCheckbox;
 
-/// CheckboxFlags_IntPtr(label: ?[*:0]const u8, flags: [*c]i32, flags_value: i32) bool
+/// CheckboxFlags_IntPtr(label: ?[*:0]const u8, flags: *i32, flags_value: i32) bool
 pub const CheckboxFlags_IntPtr = raw.igCheckboxFlags_IntPtr;
 
-/// CheckboxFlags_UintPtr(label: ?[*:0]const u8, flags: [*c]u32, flags_value: u32) bool
+/// CheckboxFlags_UintPtr(label: ?[*:0]const u8, flags: *u32, flags_value: u32) bool
 pub const CheckboxFlags_UintPtr = raw.igCheckboxFlags_UintPtr;
 
 /// CloseCurrentPopup() void
@@ -3325,9 +3362,9 @@ pub inline fn Columns() void {
     return @This().ColumnsExt(1, null, true);
 }
 
-/// Combo_Str_arrExt(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*c]const u8, items_count: i32, popup_max_height_in_items: i32) bool
+/// Combo_Str_arrExt(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, popup_max_height_in_items: i32) bool
 pub const Combo_Str_arrExt = raw.igCombo_Str_arr;
-pub inline fn Combo_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*c]const u8, items_count: i32) bool {
+pub inline fn Combo_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32) bool {
     return @This().Combo_Str_arrExt(label, current_item, items, items_count, -1);
 }
 
@@ -4014,9 +4051,9 @@ pub inline fn IsWindowHovered() bool {
 /// LabelText(label: ?[*:0]const u8, fmt: ?[*:0]const u8, ...: ...) void
 pub const LabelText = raw.igLabelText;
 
-/// ListBox_Str_arrExt(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*c]const u8, items_count: i32, height_in_items: i32) bool
+/// ListBox_Str_arrExt(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, height_in_items: i32) bool
 pub const ListBox_Str_arrExt = raw.igListBox_Str_arr;
-pub inline fn ListBox_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*c]const u8, items_count: i32) bool {
+pub inline fn ListBox_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32) bool {
     return @This().ListBox_Str_arrExt(label, current_item, items, items_count, -1);
 }
 
@@ -4631,9 +4668,11 @@ pub inline fn TabItemButton(label: ?[*:0]const u8) bool {
 /// TableGetColumnCount() i32
 pub const TableGetColumnCount = raw.igTableGetColumnCount;
 
-/// TableGetColumnFlagsExt(column_n: i32) TableColumnFlagsInt
-pub const TableGetColumnFlagsExt = raw.igTableGetColumnFlags;
-pub inline fn TableGetColumnFlags() TableColumnFlagsInt {
+pub inline fn TableGetColumnFlagsExt(column_n: i32) TableColumnFlags {
+    const _retflags = raw.igTableGetColumnFlags(column_n);
+    return TableColumnFlags.fromInt(_retflags);
+}
+pub inline fn TableGetColumnFlags() TableColumnFlags {
     return @This().TableGetColumnFlagsExt(-1);
 }
 
@@ -5017,7 +5056,7 @@ pub const raw = struct {
     pub extern fn ImGuiTextFilter_PassFilter(self: *const TextFilter, text: ?[*]const u8, text_end: ?[*]const u8) callconv(.C) bool;
     pub extern fn ImGuiTextFilter_destroy(self: *TextFilter) callconv(.C) void;
     pub extern fn ImGuiTextRange_ImGuiTextRange_Nil(self: ?*anyopaque) callconv(.C) void;
-    pub extern fn ImGuiTextRange_ImGuiTextRange_Str(self: ?*anyopaque, _b: [*c]const u8, _e: [*c]const u8) callconv(.C) void;
+    pub extern fn ImGuiTextRange_ImGuiTextRange_Str(self: ?*anyopaque, _b: ?[*]const u8, _e: ?[*]const u8) callconv(.C) void;
     pub extern fn ImGuiTextRange_destroy(self: *TextRange) callconv(.C) void;
     pub extern fn ImGuiTextRange_empty(self: *const TextRange) callconv(.C) bool;
     pub extern fn ImGuiTextRange_split(self: *const TextRange, separator: u8, out: ?*Vector(TextRange)) callconv(.C) void;
@@ -5062,8 +5101,8 @@ pub const raw = struct {
     pub extern fn igCalcItemWidth() callconv(.C) f32;
     pub extern fn igCalcTextSize(pOut: *Vec2, text: ?[*]const u8, text_end: ?[*]const u8, hide_text_after_double_hash: bool, wrap_width: f32) callconv(.C) void;
     pub extern fn igCheckbox(label: ?[*:0]const u8, v: *bool) callconv(.C) bool;
-    pub extern fn igCheckboxFlags_IntPtr(label: ?[*:0]const u8, flags: [*c]i32, flags_value: i32) callconv(.C) bool;
-    pub extern fn igCheckboxFlags_UintPtr(label: ?[*:0]const u8, flags: [*c]u32, flags_value: u32) callconv(.C) bool;
+    pub extern fn igCheckboxFlags_IntPtr(label: ?[*:0]const u8, flags: *i32, flags_value: i32) callconv(.C) bool;
+    pub extern fn igCheckboxFlags_UintPtr(label: ?[*:0]const u8, flags: *u32, flags_value: u32) callconv(.C) bool;
     pub extern fn igCloseCurrentPopup() callconv(.C) void;
     pub extern fn igCollapsingHeader_TreeNodeFlags(label: ?[*:0]const u8, flags: TreeNodeFlagsInt) callconv(.C) bool;
     pub extern fn igCollapsingHeader_BoolPtr(label: ?[*:0]const u8, p_visible: ?*bool, flags: TreeNodeFlagsInt) callconv(.C) bool;
@@ -5077,7 +5116,7 @@ pub const raw = struct {
     pub extern fn igColorPicker3(label: ?[*:0]const u8, col: *[3]f32, flags: ColorEditFlagsInt) callconv(.C) bool;
     pub extern fn igColorPicker4(label: ?[*:0]const u8, col: *[4]f32, flags: ColorEditFlagsInt, ref_col: ?*const[4]f32) callconv(.C) bool;
     pub extern fn igColumns(count: i32, id: ?[*:0]const u8, border: bool) callconv(.C) void;
-    pub extern fn igCombo_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*c]const u8, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
+    pub extern fn igCombo_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igCombo_Str(label: ?[*:0]const u8, current_item: ?*i32, items_separated_by_zeros: ?[*]const u8, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igCombo_FnBoolPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*anyopaque, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igCreateContext(shared_font_atlas: ?*FontAtlas) callconv(.C) ?*Context;
@@ -5229,7 +5268,7 @@ pub const raw = struct {
     pub extern fn igIsWindowFocused(flags: FocusedFlagsInt) callconv(.C) bool;
     pub extern fn igIsWindowHovered(flags: HoveredFlagsInt) callconv(.C) bool;
     pub extern fn igLabelText(label: ?[*:0]const u8, fmt: ?[*:0]const u8, ...) callconv(.C) void;
-    pub extern fn igListBox_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*c]const u8, items_count: i32, height_in_items: i32) callconv(.C) bool;
+    pub extern fn igListBox_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, height_in_items: i32) callconv(.C) bool;
     pub extern fn igListBox_FnBoolPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?fn (data: ?*anyopaque, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: i32, height_in_items: i32) callconv(.C) bool;
     pub extern fn igLoadIniSettingsFromDisk(ini_filename: ?[*:0]const u8) callconv(.C) void;
     pub extern fn igLoadIniSettingsFromMemory(ini_data: ?[*]const u8, ini_size: usize) callconv(.C) void;

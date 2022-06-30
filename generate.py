@@ -255,7 +255,8 @@ class ZigData:
         needsWrap = False
         beforeCall = []
         wrappedRetType = retType
-        returnName = None
+        returnExpr = None
+        returnCapture = None
 
         defaultParamStrs = []
         defaultPassStrs = []
@@ -266,8 +267,11 @@ class ZigData:
 
         jDefaults = jFunc['defaults']
 
-        if 'Flags' in wrappedRetType:
-            print("Warning: flags return type not supported for "+baseName);
+        if wrappedRetType.endswith('FlagsInt'):
+            needsWrap = True
+            wrappedRetType = wrappedRetType[:-len('Int')]
+            returnCapture = '_retflags'
+            returnExpr = wrappedRetType + '.fromInt(_retflags)'
 
         if 'nonUDT' in jFunc and jFunc['nonUDT'] == 1:
             assert(retType == 'void')
@@ -284,7 +288,7 @@ class ZigData:
 
             beforeCall.append('var out: '+wrappedRetType+' = undefined;')
             passStrs.append('&out')
-            returnName = 'out'
+            returnExpr = 'out'
 
         for name, typeStr, udtptr in params:
             if name == 'type':
@@ -322,11 +326,14 @@ class ZigData:
             for line in beforeCall:
                 wrapper.append('    ' + line)
             callStr = 'raw.'+rawName+'('+', '.join(passStrs)+');'
-            if returnName is None:
+            if returnExpr is None:
                 wrapper.append('    return '+callStr)
             else:
-                wrapper.append('    '+callStr)
-                wrapper.append('    return '+returnName+';')
+                if returnCapture is None:
+                    wrapper.append('    '+callStr)
+                else:
+                    wrapper.append('    const '+returnCapture+' = '+callStr)
+                wrapper.append('    return '+returnExpr+';')
             wrapper.append('}')
         else:
             wrapper.append('/// '+wrappedName+'('+', '.join(paramStrs)+') '+wrappedRetType)
@@ -677,4 +684,6 @@ if __name__ == '__main__':
     makedirs(OUTPUT_DIR, exist_ok=True)
     with open(OUTPUT_DIR+'/'+OUTPUT_FILE, "w", newline='\n') as f:
         data.writeFile(f)
+    
+    warnForUnusedRules()
     

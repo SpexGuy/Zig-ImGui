@@ -1,6 +1,12 @@
+//! ==========================================================
+//! This file is generated from template.zig and generate.bat.
+//! Do not modify it by hand.
+//! ==========================================================
+
 const std = @import("std");
 const builtin = @import("builtin");
 const assert = @import("std").debug.assert;
+const imgui = @This();
 
 pub const DrawCallback_ResetRenderState = @intToPtr(DrawCallback, ~@as(usize, 0));
 
@@ -43,6 +49,9 @@ pub fn FlagsMixin(comptime FlagType: type) type {
         pub fn isEmpty(a: FlagType) bool {
             return toInt(a) == 0;
         }
+        pub fn eql(a: FlagType, b: FlagType) bool {
+            return toInt(a) == toInt(b);
+        }
     };
 }
 
@@ -74,7 +83,7 @@ pub fn Vector(comptime T: type) type {
 
         // Constructors, destructor
         pub fn deinit(self: *@This()) void {
-            if (self.Data) |d| raw.igMemFree(d);
+            if (self.Data) |d| raw.igMemFree(@ptrCast(*anyopaque, d));
             self.* = undefined;
         }
 
@@ -106,40 +115,43 @@ pub fn Vector(comptime T: type) type {
 
         /// Important: does not destruct anything
         pub fn clear(self: *@This()) void {
-            if (self.Data) |d| raw.igMemFree(d);
+            if (self.Data) |d| raw.igMemFree(@ptrCast(?*anyopaque, d));
             self.* = .{};
         }
 
         /// Destruct and delete all pointer values, then clear the array.
         /// T must be a pointer or optional pointer.
         pub fn clear_delete(self: *@This()) void {
-            var ti = @typeInfo(T);
+            comptime var ti = @typeInfo(T);
             const is_optional = (ti == .Optional);
             if (is_optional) ti = @typeInfo(ti.Optional.child);
-            if (ti != .Pointer) @compileError("clear_delete() can only be called on vectors of pointers.");
+            if (ti != .Pointer or ti.Pointer.is_const or ti.Pointer.size != .One)
+                @compileError("clear_delete() can only be called on vectors of mutable single-item pointers, cannot apply to Vector(" ++ @typeName(T) ++ ").");
             const ValueT = ti.Pointer.child;
 
             if (is_optional) {
                 for (self.items()) |it| {
-                    if (it) |ptr| {
+                    if (it) |_ptr| {
+                        const ptr: *ValueT = _ptr;
                         destruct(ValueT, ptr);
                         raw.igMemFree(ptr);
                     }
                 }
             } else {
-                for (self.items()) |ptr| {
+                for (self.items()) |_ptr| {
+                    const ptr: *ValueT = _ptr;
                     destruct(ValueT, ptr);
-                    raw.igMemFree(ptr);
+                    raw.igMemFree(@ptrCast(?*anyopaque, ptr));
                 }
             }
-            clear();
+            self.clear();
         }
 
         pub fn clear_destruct(self: *@This()) void {
             for (self.items()) |*ptr| {
                 destruct(T, ptr);
             }
-            clear();
+            self.clear();
         }
 
         pub fn empty(self: @This()) bool {
@@ -192,14 +204,14 @@ pub fn Vector(comptime T: type) type {
                 if (self.Size != 0) {
                     @memcpy(@ptrCast([*]u8, new_data.?), @ptrCast([*]const u8, sd), self.Size * @sizeOf(T));
                 }
-                raw.igMemFree(self.Data);
+                raw.igMemFree(@ptrCast(*anyopaque, sd));
             }
             self.Data = new_data;
             self.Capacity = new_capacity;
         }
         pub fn reserve_discard(self: *@This(), new_capacity: u32) void {
             if (new_capacity <= self.Capacity) return;
-            if (self.Data) |sd| raw.igMemFree(sd);
+            if (self.Data) |sd| raw.igMemFree(@ptrCast(*anyopaque, sd));
             self.Data = @ptrCast(?[*]T, @alignCast(@alignOf(T), raw.igMemAlloc(new_capacity * @sizeOf(T))));
             self.Capacity = new_capacity;
         }
@@ -267,13 +279,13 @@ pub fn Vector(comptime T: type) type {
         }
         pub fn contains(self: @This(), v: T) bool {
             for (self.items()) |*it| {
-                if (eql(T, v, it.*)) return true;
+                if (imgui.eql(T, v, it.*)) return true;
             }
             return false;
         }
         pub fn find(self: @This(), v: T) ?u32 {
             return for (self.items()) |*it, i| {
-                if (eql(T, v, it.*)) break @intCast(u32, i);
+                if (imgui.eql(T, v, it.*)) break @intCast(u32, i);
             } else null;
         }
         pub fn find_erase(self: *@This(), v: T) bool {
@@ -290,6 +302,16 @@ pub fn Vector(comptime T: type) type {
             }
             return false;
         }
+
+        pub fn eql(self: @This(), other: @This()) bool {
+            if (self.Size != other.Size) return false;
+            var i: u32 = 0;
+            while (i < self.Size) : (i += 1) {
+                if (!imgui.eql(T, self.Data.?[i], other.Data.?[i]))
+                    return false;
+            }
+            return true;
+        }
     };
 }
 
@@ -299,6 +321,10 @@ pub const Vec2 = extern struct {
     
     pub fn init(x: f32, y: f32) Vec4 {
         return .{ .x = x, .y = y };
+    }
+
+    pub fn eql(self: Vec2, other: Vec2) bool {
+        return self.x == other.x and self.y == other.y;
     }
 };
 
@@ -310,6 +336,13 @@ pub const Vec4 = extern struct {
 
     pub fn init(x: f32, y: f32, z: f32, w: f32) Vec4 {
         return .{ .x = x, .y = y, .z = z, .w = w };
+    }
+
+    pub fn eql(self: Vec4, other: Vec4) bool {
+        return self.x == other.x
+            and self.y == other.y
+            and self.z == other.z
+            and self.w == other.w;
     }
 };
 
@@ -366,6 +399,10 @@ pub const Color = extern struct {
     /// Convert from a floating point color to an integer 0xaabbggrr
     pub fn packABGR(self: Color) u32 {
         return ColorConvertFloat4ToU32(self.Value);
+    }
+
+    pub fn eql(self: Color, other: Color) bool {
+        return self.Value.eql(other.Value);
     }
 };
 

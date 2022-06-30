@@ -79,6 +79,9 @@ class Always:
     def __eq__(self, test):
         return True
 
+    def __repr__(self):
+        return 'Always()'
+
 class Not:
     def __init__(self, match):
         self.match = match
@@ -86,20 +89,29 @@ class Not:
     def __eq__(self, text):
         return not (self.match == text)
 
+    def __repr__(self):
+        return 'Not(' + repr(self.match) + ')'
+
 class Contains:
     def __init__(self, text):
         self.text = text
     
     def __eq__(self, test):
         return self.text in test
-        
+
+    def __repr__(self):
+        return 'Contains(' + repr(self.text) + ')'
+
 class StartsWith:
     def __init__(self, text):
         self.text = text
     
     def __eq__(self, test):
         return test.startswith(self.text)
-        
+
+    def __repr__(self):
+        return 'StartsWith(' + repr(self.text) + ')'
+
 class EndsWith:
     def __init__(self, text):
         self.text = text
@@ -107,12 +119,20 @@ class EndsWith:
     def __eq__(self, test):
         return test.endswith(self.text)
 
+    def __repr__(self):
+        return 'EndsWith(' + repr(self.text) + ')'
+
 class Regex:
     def __init__(self, regexStr):
         self.re = re.compile(r'\A' + regexStr + r'\Z')
+        self.raw_text = regexStr
     
     def __eq__(self, test):
         return self.re.match(test)
+
+    def __repr__(self):
+        return 'Regex(' + repr(self.raw_text) + ')'
+
         
 ## Rules is a dictionary.  The first key is the number of indirections.  The second is the C value type.
 ## The value of that lookup is an array of rules.  Each rule is a tuple (match, zigPointerStr).  match is
@@ -126,8 +146,8 @@ Rules = {
             (['igInputTextWithHint', 'hint'], '?[*:0]'),
             (['igSetClipboardText', 'text'], '?[*:0]'),
             (['igBeginCombo', 'preview_value'], '?[*:0]'),
-            (['igCombo', 'items'], '[*:0]'),
-            (['igListBoxStr_arr', 'items'], '[*:0]'),
+            (['igCombo_Str_arr', 'items'], '[*:0]'),
+            (['igListBox_Str_arr', 'items'], '[*:0]'),
             (['igColumns', 'id'], '?[*:0]'),
             (['ImGuiTextBuffer_append', 'str'], '?[*]'),
 
@@ -168,7 +188,7 @@ Rules = {
             ([EndsWith('data')], '?[*]'),
 
             (['ImGuiTextRange', Always()], '?[*]'),
-            (['ImGuiTextRange_ImGuiTextRangeStr', Always()], '?[*]'),
+            (['ImGuiTextRange_ImGuiTextRange_Str', Always()], '?[*]'),
         ]),
         (Always(), [
             ([Regex('ImGuiStorage_Get.*Ref'), 'return'], '?*')
@@ -180,9 +200,10 @@ Rules = {
         ('int', [
             (['out_bytes_per_pixel'], '?*'),
             (['current_item'], '?*'),
+            (['igCheckboxFlags_IntPtr', 'flags'], '*'),
         ]),
         ('unsigned int', [
-            (['igCheckboxFlags', 'flags'], '?*'),
+            (['igCheckboxFlags_UintPtr', 'flags'], '*'),
         ]),
         ('size_t', [
             (['igSaveIniSettingsToMemory', 'out_ini_size'], '?*'),
@@ -201,19 +222,8 @@ Rules = {
             (['igIsMousePosValid', 'mouse_pos'], '?*'),
             (['points'], '?[*]'),
         ]),
-        ('ImVector', [
-            ([Regex('ImVector_.*_swap'), 'rhs'], '*'),
-        ]),
-        ('T', [
-            (['it'], '[*]'),
-            (['it_last'], '[*]'),
-            ([Regex('ImVector_.*_front(_const)?'), 'return'], '*'),
-            ([Regex('ImVector_.*_back(_const)?'), 'return'], '*'),
-            ([Regex('ImVector_.*_begin(_const)?'), 'return'], '[*]'),
-            ([Regex('ImVector_.*_end(_const)?'), 'return'], '[*]'),
-            ([Regex('ImVector_.*_find(_const)?'), 'return'], '[*]'),
-            ([Regex('ImVector_.*_insert'), 'return'], '[*]'),
-            ([Regex('ImVector_.*_erase(_unsorted|TPtr)?'), 'return'], '[*]'),
+        ('ImGuiTableColumnSortSpecs', [
+            (['ImGuiTableSortSpecs', 'Specs'], '?[*]'),
         ]),
         (StartsWith("Im"), [
             ([EndsWith('Ptr')], '?[*]'),
@@ -225,7 +235,6 @@ Rules = {
             ([StartsWith('TexPixels')], '?[*]'),
             ([StartsWith('p_')], '?*'),
             ([StartsWith('v')], '*'),
-            ([StartsWith('v_')], '*'),
             ([StartsWith('out_')], '*'),
         ]),
     ],
@@ -235,10 +244,24 @@ Rules = {
             ([StartsWith('ImFontAtlas_GetTexData'), 'out_pixels'], '*?[*]'),
             (['ImDrawData', 'CmdLists'], '?[*]*'),
             (['ImFont_CalcTextSizeA', 'remaining'], '?*?[*:0]'),
-            (['ImFont_CalcTextSizeA_nonUDT', 'remaining'], '?*?[*:0]'),
         ]),
     ],
 }
+
+RuleUsage = {}
+for ind, groups in Rules.items():
+    ind_usage = []
+    for cond, rules in groups:
+        ind_usage.append([False] * len(rules))
+    RuleUsage[ind] = ind_usage
+
+def warnForUnusedRules():
+    for ind, groups in Rules.items():
+        ind_usage = RuleUsage[ind]
+        for (cond, rules), rules_usage in zip(groups, ind_usage):
+            for rule, used in zip(rules, rules_usage):
+                if not used:
+                    print("Unused rule: [%d][%s] %s" % (ind, repr(cond), repr(rule)))
 
 def ruleMatches(rule, context):
     for matchValue in reversed(rule):
@@ -262,10 +285,11 @@ def getPointers(numPointers, valueType, context):
     ## Search for a matching rule
     rulesByDepth = Rules.get(numPointers)
     if rulesByDepth:
-        for typeRules in rulesByDepth:
+        for groupIdx, typeRules in enumerate(rulesByDepth):
             if typeRules[0] == valueType:
-                for rule in typeRules[1]:
+                for ruleIdx, rule in enumerate(typeRules[1]):
                     if ruleMatches(rule[0], context):
+                        RuleUsage[numPointers][groupIdx][ruleIdx] = True
                         return rule[1]
     
     print("no matching pointer rules for", repr(context), '*' * numPointers + valueType)
