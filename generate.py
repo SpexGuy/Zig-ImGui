@@ -230,19 +230,20 @@ class ZigData:
         params = []
         isVarargs = False
         for arg in jFunc['argsT']:
+            udtptr = 'udtptr' in arg and arg['udtptr']
             if arg['type'] == 'va_list':
                 return # skip this function entirely
             if arg['type'] == '...':
-                params.append(('...', '...'))
+                params.append(('...', '...', False))
                 isVarargs = True
             else:
                 argName = arg['name']
-                argType = self.convertComplexType(arg['type'], ParamContext(argName, functionContext))
+                argType = self.convertComplexType(arg['type'], ParamContext(argName, functionContext, udtptr))
                 if argName == 'type':
                     argName = 'kind'
-                params.append((argName, argType))
+                params.append((argName, argType, udtptr))
 
-        paramStrs = [ '...' if typeStr == '...' else (name + ': ' + typeStr) for name, typeStr in params ]
+        paramStrs = [ '...' if typeStr == '...' else (name + ': ' + typeStr) for name, typeStr, udtptr in params ]
         retType = self.convertComplexType(retType, ParamContext('return', functionContext))
 
         rawDecl = '    pub extern fn '+rawName+'('+', '.join(paramStrs)+') callconv(.C) '+retType+';'
@@ -285,15 +286,20 @@ class ZigData:
             passStrs.append('&out')
             returnName = 'out'
 
-        for name, typeStr in params:
+        for name, typeStr, udtptr in params:
             if name == 'type':
                 name = 'kind'
             wrappedType = typeStr
             wrappedPass = name
+
             if typeStr.endswith('FlagsInt') and not ('*' in typeStr):
                 needsWrap = True
                 wrappedType = typeStr.replace('FlagsInt', 'Flags')
                 wrappedPass = name + '.toInt()'
+            elif udtptr:
+                needsWrap = True
+                wrappedType = typeStr[len('*const '):]
+                wrappedPass = '&' + name
 
             paramStrs.append(name + ': ' + wrappedType)
             passStrs.append(wrappedPass)

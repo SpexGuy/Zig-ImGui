@@ -142,13 +142,13 @@ CIMGUI_API void igEnd()
 {
     return ImGui::End();
 }
-CIMGUI_API bool igBeginChild_Str(const char* str_id,ImVec2 size,bool border,ImGuiWindowFlags flags)
+CIMGUI_API bool igBeginChild_Str(const char* str_id,const ImVec2* size,bool border,ImGuiWindowFlags flags)
 {
-    return ImGui::BeginChild(str_id,size,border,flags);
+    return ImGui::BeginChild(str_id,*size,border,flags);
 }
-CIMGUI_API bool igBeginChild_ID(ImGuiID id,ImVec2 size,bool border,ImGuiWindowFlags flags)
+CIMGUI_API bool igBeginChild_ID(ImGuiID id,const ImVec2* size,bool border,ImGuiWindowFlags flags)
 {
-    return ImGui::BeginChild(id,size,border,flags);
+    return ImGui::BeginChild(id,*size,border,flags);
 }
 CIMGUI_API void igEndChild()
 {
@@ -190,21 +190,21 @@ CIMGUI_API float igGetWindowHeight()
 {
     return ImGui::GetWindowHeight();
 }
-CIMGUI_API void igSetNextWindowPos(ImVec2 pos,ImGuiCond cond,ImVec2 pivot)
+CIMGUI_API void igSetNextWindowPos(const ImVec2* pos,ImGuiCond cond,const ImVec2* pivot)
 {
-    return ImGui::SetNextWindowPos(pos,cond,pivot);
+    return ImGui::SetNextWindowPos(*pos,cond,*pivot);
 }
-CIMGUI_API void igSetNextWindowSize(ImVec2 size,ImGuiCond cond)
+CIMGUI_API void igSetNextWindowSize(const ImVec2* size,ImGuiCond cond)
 {
-    return ImGui::SetNextWindowSize(size,cond);
+    return ImGui::SetNextWindowSize(*size,cond);
 }
-CIMGUI_API void igSetNextWindowSizeConstraints(ImVec2 size_min,ImVec2 size_max,ImGuiSizeCallback custom_callback,void* custom_callback_data)
+CIMGUI_API void igSetNextWindowSizeConstraints(const ImVec2* size_min,const ImVec2* size_max,ImGuiSizeCallback custom_callback,void* custom_callback_data)
 {
-    return ImGui::SetNextWindowSizeConstraints(size_min,size_max,custom_callback,custom_callback_data);
+    return ImGui::SetNextWindowSizeConstraints(*size_min,*size_max,custom_callback,custom_callback_data);
 }
-CIMGUI_API void igSetNextWindowContentSize(ImVec2 size)
+CIMGUI_API void igSetNextWindowContentSize(const ImVec2* size)
 {
-    return ImGui::SetNextWindowContentSize(size);
+    return ImGui::SetNextWindowContentSize(*size);
 }
 CIMGUI_API void igSetNextWindowCollapsed(bool collapsed,ImGuiCond cond)
 {
@@ -218,13 +218,13 @@ CIMGUI_API void igSetNextWindowBgAlpha(float alpha)
 {
     return ImGui::SetNextWindowBgAlpha(alpha);
 }
-CIMGUI_API void igSetWindowPos_Vec2(ImVec2 pos,ImGuiCond cond)
+CIMGUI_API void igSetWindowPos_Vec2(const ImVec2* pos,ImGuiCond cond)
 {
-    return ImGui::SetWindowPos(pos,cond);
+    return ImGui::SetWindowPos(*pos,cond);
 }
-CIMGUI_API void igSetWindowSize_Vec2(ImVec2 size,ImGuiCond cond)
+CIMGUI_API void igSetWindowSize_Vec2(const ImVec2* size,ImGuiCond cond)
 {
-    return ImGui::SetWindowSize(size,cond);
+    return ImGui::SetWindowSize(*size,cond);
 }
 CIMGUI_API void igSetWindowCollapsed_Bool(bool collapsed,ImGuiCond cond)
 {
@@ -238,13 +238,13 @@ CIMGUI_API void igSetWindowFontScale(float scale)
 {
     return ImGui::SetWindowFontScale(scale);
 }
-CIMGUI_API void igSetWindowPos_Str(const char* name,ImVec2 pos,ImGuiCond cond)
+CIMGUI_API void igSetWindowPos_Str(const char* name,const ImVec2* pos,ImGuiCond cond)
 {
-    return ImGui::SetWindowPos(name,pos,cond);
+    return ImGui::SetWindowPos(name,*pos,cond);
 }
-CIMGUI_API void igSetWindowSize_Str(const char* name,ImVec2 size,ImGuiCond cond)
+CIMGUI_API void igSetWindowSize_Str(const char* name,const ImVec2* size,ImGuiCond cond)
 {
-    return ImGui::SetWindowSize(name,size,cond);
+    return ImGui::SetWindowSize(name,*size,cond);
 }
 CIMGUI_API void igSetWindowCollapsed_Str(const char* name,bool collapsed,ImGuiCond cond)
 {
@@ -322,9 +322,9 @@ CIMGUI_API void igPushStyleColor_U32(ImGuiCol idx,ImU32 col)
 {
     return ImGui::PushStyleColor(idx,col);
 }
-CIMGUI_API void igPushStyleColor_Vec4(ImGuiCol idx,ImVec4 col)
+CIMGUI_API void igPushStyleColor_Vec4(ImGuiCol idx,const ImVec4* col)
 {
-    return ImGui::PushStyleColor(idx,col);
+    return ImGui::PushStyleColor(idx,*col);
 }
 CIMGUI_API void igPopStyleColor(int count)
 {
@@ -334,9 +334,9 @@ CIMGUI_API void igPushStyleVar_Float(ImGuiStyleVar idx,float val)
 {
     return ImGui::PushStyleVar(idx,val);
 }
-CIMGUI_API void igPushStyleVar_Vec2(ImGuiStyleVar idx,ImVec2 val)
+CIMGUI_API void igPushStyleVar_Vec2(ImGuiStyleVar idx,const ImVec2* val)
 {
-    return ImGui::PushStyleVar(idx,val);
+    return ImGui::PushStyleVar(idx,*val);
 }
 CIMGUI_API void igPopStyleVar(int count)
 {
@@ -398,9 +398,9 @@ CIMGUI_API ImU32 igGetColorU32_Col(ImGuiCol idx,float alpha_mul)
 {
     return ImGui::GetColorU32(idx,alpha_mul);
 }
-CIMGUI_API ImU32 igGetColorU32_Vec4(ImVec4 col)
+CIMGUI_API ImU32 igGetColorU32_Vec4(const ImVec4* col)
 {
-    return ImGui::GetColorU32(col);
+    return ImGui::GetColorU32(*col);
 }
 CIMGUI_API ImU32 igGetColorU32_U32(ImU32 col)
 {
@@ -426,9 +426,9 @@ CIMGUI_API void igSpacing()
 {
     return ImGui::Spacing();
 }
-CIMGUI_API void igDummy(ImVec2 size)
+CIMGUI_API void igDummy(const ImVec2* size)
 {
-    return ImGui::Dummy(size);
+    return ImGui::Dummy(*size);
 }
 CIMGUI_API void igIndent(float indent_w)
 {
@@ -458,9 +458,9 @@ CIMGUI_API float igGetCursorPosY()
 {
     return ImGui::GetCursorPosY();
 }
-CIMGUI_API void igSetCursorPos(ImVec2 local_pos)
+CIMGUI_API void igSetCursorPos(const ImVec2* local_pos)
 {
-    return ImGui::SetCursorPos(local_pos);
+    return ImGui::SetCursorPos(*local_pos);
 }
 CIMGUI_API void igSetCursorPosX(float local_x)
 {
@@ -478,9 +478,9 @@ CIMGUI_API void igGetCursorScreenPos(ImVec2 *pOut)
 {
     *pOut = ImGui::GetCursorScreenPos();
 }
-CIMGUI_API void igSetCursorScreenPos(ImVec2 pos)
+CIMGUI_API void igSetCursorScreenPos(const ImVec2* pos)
 {
-    return ImGui::SetCursorScreenPos(pos);
+    return ImGui::SetCursorScreenPos(*pos);
 }
 CIMGUI_API void igAlignTextToFramePadding()
 {
@@ -549,16 +549,16 @@ CIMGUI_API void igTextV(const char* fmt,va_list args)
 {
     return ImGui::TextV(fmt,args);
 }
-CIMGUI_API void igTextColored(ImVec4 col,const char* fmt,...)
+CIMGUI_API void igTextColored(const ImVec4* col,const char* fmt,...)
 {
     va_list args;
     va_start(args, fmt);
-    ImGui::TextColoredV(col,fmt,args);
+    ImGui::TextColoredV(*col,fmt,args);
     va_end(args);
 }
-CIMGUI_API void igTextColoredV(ImVec4 col,const char* fmt,va_list args)
+CIMGUI_API void igTextColoredV(const ImVec4* col,const char* fmt,va_list args)
 {
-    return ImGui::TextColoredV(col,fmt,args);
+    return ImGui::TextColoredV(*col,fmt,args);
 }
 CIMGUI_API void igTextDisabled(const char* fmt,...)
 {
@@ -604,29 +604,29 @@ CIMGUI_API void igBulletTextV(const char* fmt,va_list args)
 {
     return ImGui::BulletTextV(fmt,args);
 }
-CIMGUI_API bool igButton(const char* label,ImVec2 size)
+CIMGUI_API bool igButton(const char* label,const ImVec2* size)
 {
-    return ImGui::Button(label,size);
+    return ImGui::Button(label,*size);
 }
 CIMGUI_API bool igSmallButton(const char* label)
 {
     return ImGui::SmallButton(label);
 }
-CIMGUI_API bool igInvisibleButton(const char* str_id,ImVec2 size,ImGuiButtonFlags flags)
+CIMGUI_API bool igInvisibleButton(const char* str_id,const ImVec2* size,ImGuiButtonFlags flags)
 {
-    return ImGui::InvisibleButton(str_id,size,flags);
+    return ImGui::InvisibleButton(str_id,*size,flags);
 }
 CIMGUI_API bool igArrowButton(const char* str_id,ImGuiDir dir)
 {
     return ImGui::ArrowButton(str_id,dir);
 }
-CIMGUI_API void igImage(ImTextureID user_texture_id,ImVec2 size,ImVec2 uv0,ImVec2 uv1,ImVec4 tint_col,ImVec4 border_col)
+CIMGUI_API void igImage(ImTextureID user_texture_id,const ImVec2* size,const ImVec2* uv0,const ImVec2* uv1,const ImVec4* tint_col,const ImVec4* border_col)
 {
-    return ImGui::Image(user_texture_id,size,uv0,uv1,tint_col,border_col);
+    return ImGui::Image(user_texture_id,*size,*uv0,*uv1,*tint_col,*border_col);
 }
-CIMGUI_API bool igImageButton(ImTextureID user_texture_id,ImVec2 size,ImVec2 uv0,ImVec2 uv1,int frame_padding,ImVec4 bg_col,ImVec4 tint_col)
+CIMGUI_API bool igImageButton(ImTextureID user_texture_id,const ImVec2* size,const ImVec2* uv0,const ImVec2* uv1,int frame_padding,const ImVec4* bg_col,const ImVec4* tint_col)
 {
-    return ImGui::ImageButton(user_texture_id,size,uv0,uv1,frame_padding,bg_col,tint_col);
+    return ImGui::ImageButton(user_texture_id,*size,*uv0,*uv1,frame_padding,*bg_col,*tint_col);
 }
 CIMGUI_API bool igCheckbox(const char* label,bool* v)
 {
@@ -648,9 +648,9 @@ CIMGUI_API bool igRadioButton_IntPtr(const char* label,int* v,int v_button)
 {
     return ImGui::RadioButton(label,v,v_button);
 }
-CIMGUI_API void igProgressBar(float fraction,ImVec2 size_arg,const char* overlay)
+CIMGUI_API void igProgressBar(float fraction,const ImVec2* size_arg,const char* overlay)
 {
-    return ImGui::ProgressBar(fraction,size_arg,overlay);
+    return ImGui::ProgressBar(fraction,*size_arg,overlay);
 }
 CIMGUI_API void igBullet()
 {
@@ -768,25 +768,25 @@ CIMGUI_API bool igSliderScalarN(const char* label,ImGuiDataType data_type,void* 
 {
     return ImGui::SliderScalarN(label,data_type,p_data,components,p_min,p_max,format,flags);
 }
-CIMGUI_API bool igVSliderFloat(const char* label,ImVec2 size,float* v,float v_min,float v_max,const char* format,ImGuiSliderFlags flags)
+CIMGUI_API bool igVSliderFloat(const char* label,const ImVec2* size,float* v,float v_min,float v_max,const char* format,ImGuiSliderFlags flags)
 {
-    return ImGui::VSliderFloat(label,size,v,v_min,v_max,format,flags);
+    return ImGui::VSliderFloat(label,*size,v,v_min,v_max,format,flags);
 }
-CIMGUI_API bool igVSliderInt(const char* label,ImVec2 size,int* v,int v_min,int v_max,const char* format,ImGuiSliderFlags flags)
+CIMGUI_API bool igVSliderInt(const char* label,const ImVec2* size,int* v,int v_min,int v_max,const char* format,ImGuiSliderFlags flags)
 {
-    return ImGui::VSliderInt(label,size,v,v_min,v_max,format,flags);
+    return ImGui::VSliderInt(label,*size,v,v_min,v_max,format,flags);
 }
-CIMGUI_API bool igVSliderScalar(const char* label,ImVec2 size,ImGuiDataType data_type,void* p_data,const void* p_min,const void* p_max,const char* format,ImGuiSliderFlags flags)
+CIMGUI_API bool igVSliderScalar(const char* label,const ImVec2* size,ImGuiDataType data_type,void* p_data,const void* p_min,const void* p_max,const char* format,ImGuiSliderFlags flags)
 {
-    return ImGui::VSliderScalar(label,size,data_type,p_data,p_min,p_max,format,flags);
+    return ImGui::VSliderScalar(label,*size,data_type,p_data,p_min,p_max,format,flags);
 }
 CIMGUI_API bool igInputText(const char* label,char* buf,size_t buf_size,ImGuiInputTextFlags flags,ImGuiInputTextCallback callback,void* user_data)
 {
     return ImGui::InputText(label,buf,buf_size,flags,callback,user_data);
 }
-CIMGUI_API bool igInputTextMultiline(const char* label,char* buf,size_t buf_size,ImVec2 size,ImGuiInputTextFlags flags,ImGuiInputTextCallback callback,void* user_data)
+CIMGUI_API bool igInputTextMultiline(const char* label,char* buf,size_t buf_size,const ImVec2* size,ImGuiInputTextFlags flags,ImGuiInputTextCallback callback,void* user_data)
 {
-    return ImGui::InputTextMultiline(label,buf,buf_size,size,flags,callback,user_data);
+    return ImGui::InputTextMultiline(label,buf,buf_size,*size,flags,callback,user_data);
 }
 CIMGUI_API bool igInputTextWithHint(const char* label,const char* hint,char* buf,size_t buf_size,ImGuiInputTextFlags flags,ImGuiInputTextCallback callback,void* user_data)
 {
@@ -852,9 +852,9 @@ CIMGUI_API bool igColorPicker4(const char* label,float col[4],ImGuiColorEditFlag
 {
     return ImGui::ColorPicker4(label,col,flags,ref_col);
 }
-CIMGUI_API bool igColorButton(const char* desc_id,ImVec4 col,ImGuiColorEditFlags flags,ImVec2 size)
+CIMGUI_API bool igColorButton(const char* desc_id,const ImVec4* col,ImGuiColorEditFlags flags,const ImVec2* size)
 {
-    return ImGui::ColorButton(desc_id,col,flags,size);
+    return ImGui::ColorButton(desc_id,*col,flags,*size);
 }
 CIMGUI_API void igSetColorEditOptions(ImGuiColorEditFlags flags)
 {
@@ -944,17 +944,17 @@ CIMGUI_API void igSetNextItemOpen(bool is_open,ImGuiCond cond)
 {
     return ImGui::SetNextItemOpen(is_open,cond);
 }
-CIMGUI_API bool igSelectable_Bool(const char* label,bool selected,ImGuiSelectableFlags flags,ImVec2 size)
+CIMGUI_API bool igSelectable_Bool(const char* label,bool selected,ImGuiSelectableFlags flags,const ImVec2* size)
 {
-    return ImGui::Selectable(label,selected,flags,size);
+    return ImGui::Selectable(label,selected,flags,*size);
 }
-CIMGUI_API bool igSelectable_BoolPtr(const char* label,bool* p_selected,ImGuiSelectableFlags flags,ImVec2 size)
+CIMGUI_API bool igSelectable_BoolPtr(const char* label,bool* p_selected,ImGuiSelectableFlags flags,const ImVec2* size)
 {
-    return ImGui::Selectable(label,p_selected,flags,size);
+    return ImGui::Selectable(label,p_selected,flags,*size);
 }
-CIMGUI_API bool igBeginListBox(const char* label,ImVec2 size)
+CIMGUI_API bool igBeginListBox(const char* label,const ImVec2* size)
 {
-    return ImGui::BeginListBox(label,size);
+    return ImGui::BeginListBox(label,*size);
 }
 CIMGUI_API void igEndListBox()
 {
@@ -968,21 +968,21 @@ CIMGUI_API bool igListBox_FnBoolPtr(const char* label,int* current_item,bool(*it
 {
     return ImGui::ListBox(label,current_item,items_getter,data,items_count,height_in_items);
 }
-CIMGUI_API void igPlotLines_FloatPtr(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size,int stride)
+CIMGUI_API void igPlotLines_FloatPtr(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,const ImVec2* graph_size,int stride)
 {
-    return ImGui::PlotLines(label,values,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size,stride);
+    return ImGui::PlotLines(label,values,values_count,values_offset,overlay_text,scale_min,scale_max,*graph_size,stride);
 }
-CIMGUI_API void igPlotLines_FnFloatPtr(const char* label,float(*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size)
+CIMGUI_API void igPlotLines_FnFloatPtr(const char* label,float(*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,const ImVec2* graph_size)
 {
-    return ImGui::PlotLines(label,values_getter,data,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size);
+    return ImGui::PlotLines(label,values_getter,data,values_count,values_offset,overlay_text,scale_min,scale_max,*graph_size);
 }
-CIMGUI_API void igPlotHistogram_FloatPtr(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size,int stride)
+CIMGUI_API void igPlotHistogram_FloatPtr(const char* label,const float* values,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,const ImVec2* graph_size,int stride)
 {
-    return ImGui::PlotHistogram(label,values,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size,stride);
+    return ImGui::PlotHistogram(label,values,values_count,values_offset,overlay_text,scale_min,scale_max,*graph_size,stride);
 }
-CIMGUI_API void igPlotHistogram_FnFloatPtr(const char* label,float(*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,ImVec2 graph_size)
+CIMGUI_API void igPlotHistogram_FnFloatPtr(const char* label,float(*values_getter)(void* data,int idx),void* data,int values_count,int values_offset,const char* overlay_text,float scale_min,float scale_max,const ImVec2* graph_size)
 {
-    return ImGui::PlotHistogram(label,values_getter,data,values_count,values_offset,overlay_text,scale_min,scale_max,graph_size);
+    return ImGui::PlotHistogram(label,values_getter,data,values_count,values_offset,overlay_text,scale_min,scale_max,*graph_size);
 }
 CIMGUI_API void igValue_Bool(const char* prefix,bool b)
 {
@@ -1095,9 +1095,9 @@ CIMGUI_API bool igIsPopupOpen(const char* str_id,ImGuiPopupFlags flags)
 {
     return ImGui::IsPopupOpen(str_id,flags);
 }
-CIMGUI_API bool igBeginTable(const char* str_id,int column,ImGuiTableFlags flags,ImVec2 outer_size,float inner_width)
+CIMGUI_API bool igBeginTable(const char* str_id,int column,ImGuiTableFlags flags,const ImVec2* outer_size,float inner_width)
 {
-    return ImGui::BeginTable(str_id,column,flags,outer_size,inner_width);
+    return ImGui::BeginTable(str_id,column,flags,*outer_size,inner_width);
 }
 CIMGUI_API void igEndTable()
 {
@@ -1279,9 +1279,9 @@ CIMGUI_API void igEndDisabled()
 {
     return ImGui::EndDisabled();
 }
-CIMGUI_API void igPushClipRect(ImVec2 clip_rect_min,ImVec2 clip_rect_max,bool intersect_with_current_clip_rect)
+CIMGUI_API void igPushClipRect(const ImVec2* clip_rect_min,const ImVec2* clip_rect_max,bool intersect_with_current_clip_rect)
 {
-    return ImGui::PushClipRect(clip_rect_min,clip_rect_max,intersect_with_current_clip_rect);
+    return ImGui::PushClipRect(*clip_rect_min,*clip_rect_max,intersect_with_current_clip_rect);
 }
 CIMGUI_API void igPopClipRect()
 {
@@ -1375,13 +1375,13 @@ CIMGUI_API ImDrawList* igGetForegroundDrawList()
 {
     return ImGui::GetForegroundDrawList();
 }
-CIMGUI_API bool igIsRectVisible_Nil(ImVec2 size)
+CIMGUI_API bool igIsRectVisible_Nil(const ImVec2* size)
 {
-    return ImGui::IsRectVisible(size);
+    return ImGui::IsRectVisible(*size);
 }
-CIMGUI_API bool igIsRectVisible_Vec2(ImVec2 rect_min,ImVec2 rect_max)
+CIMGUI_API bool igIsRectVisible_Vec2(const ImVec2* rect_min,const ImVec2* rect_max)
 {
-    return ImGui::IsRectVisible(rect_min,rect_max);
+    return ImGui::IsRectVisible(*rect_min,*rect_max);
 }
 CIMGUI_API double igGetTime()
 {
@@ -1407,9 +1407,9 @@ CIMGUI_API ImGuiStorage* igGetStateStorage()
 {
     return ImGui::GetStateStorage();
 }
-CIMGUI_API bool igBeginChildFrame(ImGuiID id,ImVec2 size,ImGuiWindowFlags flags)
+CIMGUI_API bool igBeginChildFrame(ImGuiID id,const ImVec2* size,ImGuiWindowFlags flags)
 {
-    return ImGui::BeginChildFrame(id,size,flags);
+    return ImGui::BeginChildFrame(id,*size,flags);
 }
 CIMGUI_API void igEndChildFrame()
 {
@@ -1423,9 +1423,9 @@ CIMGUI_API void igColorConvertU32ToFloat4(ImVec4 *pOut,ImU32 in)
 {
     *pOut = ImGui::ColorConvertU32ToFloat4(in);
 }
-CIMGUI_API ImU32 igColorConvertFloat4ToU32(ImVec4 in)
+CIMGUI_API ImU32 igColorConvertFloat4ToU32(const ImVec4* in)
 {
-    return ImGui::ColorConvertFloat4ToU32(in);
+    return ImGui::ColorConvertFloat4ToU32(*in);
 }
 CIMGUI_API void igColorConvertRGBtoHSV(float r,float g,float b,float* out_h,float* out_s,float* out_v)
 {
@@ -1479,9 +1479,9 @@ CIMGUI_API int igGetMouseClickedCount(ImGuiMouseButton button)
 {
     return ImGui::GetMouseClickedCount(button);
 }
-CIMGUI_API bool igIsMouseHoveringRect(ImVec2 r_min,ImVec2 r_max,bool clip)
+CIMGUI_API bool igIsMouseHoveringRect(const ImVec2* r_min,const ImVec2* r_max,bool clip)
 {
-    return ImGui::IsMouseHoveringRect(r_min,r_max,clip);
+    return ImGui::IsMouseHoveringRect(*r_min,*r_max,clip);
 }
 CIMGUI_API bool igIsMousePosValid(const ImVec2* mouse_pos)
 {
@@ -1923,9 +1923,9 @@ CIMGUI_API ImColor* ImColor_ImColor_Float(void* self,float r,float g,float b,flo
 {
     return IM_PLACEMENT_NEW(self) ImColor(r,g,b,a);
 }
-CIMGUI_API ImColor* ImColor_ImColor_Vec4(void* self,ImVec4 col)
+CIMGUI_API ImColor* ImColor_ImColor_Vec4(void* self,const ImVec4* col)
 {
-    return IM_PLACEMENT_NEW(self) ImColor(col);
+    return IM_PLACEMENT_NEW(self) ImColor(*col);
 }
 CIMGUI_API ImColor* ImColor_ImColor_Int(void* self,int r,int g,int b,int a)
 {
@@ -1991,9 +1991,9 @@ CIMGUI_API void ImDrawList_destroy(ImDrawList* self)
 {
     self->~ImDrawList();
 }
-CIMGUI_API void ImDrawList_PushClipRect(ImDrawList* self,ImVec2 clip_rect_min,ImVec2 clip_rect_max,bool intersect_with_current_clip_rect)
+CIMGUI_API void ImDrawList_PushClipRect(ImDrawList* self,const ImVec2* clip_rect_min,const ImVec2* clip_rect_max,bool intersect_with_current_clip_rect)
 {
-    return self->PushClipRect(clip_rect_min,clip_rect_max,intersect_with_current_clip_rect);
+    return self->PushClipRect(*clip_rect_min,*clip_rect_max,intersect_with_current_clip_rect);
 }
 CIMGUI_API void ImDrawList_PushClipRectFullScreen(ImDrawList* self)
 {
@@ -2019,61 +2019,61 @@ CIMGUI_API void ImDrawList_GetClipRectMax(ImVec2 *pOut,const ImDrawList* self)
 {
     *pOut = self->GetClipRectMax();
 }
-CIMGUI_API void ImDrawList_AddLine(ImDrawList* self,ImVec2 p1,ImVec2 p2,ImU32 col,float thickness)
+CIMGUI_API void ImDrawList_AddLine(ImDrawList* self,const ImVec2* p1,const ImVec2* p2,ImU32 col,float thickness)
 {
-    return self->AddLine(p1,p2,col,thickness);
+    return self->AddLine(*p1,*p2,col,thickness);
 }
-CIMGUI_API void ImDrawList_AddRect(ImDrawList* self,ImVec2 p_min,ImVec2 p_max,ImU32 col,float rounding,ImDrawFlags flags,float thickness)
+CIMGUI_API void ImDrawList_AddRect(ImDrawList* self,const ImVec2* p_min,const ImVec2* p_max,ImU32 col,float rounding,ImDrawFlags flags,float thickness)
 {
-    return self->AddRect(p_min,p_max,col,rounding,flags,thickness);
+    return self->AddRect(*p_min,*p_max,col,rounding,flags,thickness);
 }
-CIMGUI_API void ImDrawList_AddRectFilled(ImDrawList* self,ImVec2 p_min,ImVec2 p_max,ImU32 col,float rounding,ImDrawFlags flags)
+CIMGUI_API void ImDrawList_AddRectFilled(ImDrawList* self,const ImVec2* p_min,const ImVec2* p_max,ImU32 col,float rounding,ImDrawFlags flags)
 {
-    return self->AddRectFilled(p_min,p_max,col,rounding,flags);
+    return self->AddRectFilled(*p_min,*p_max,col,rounding,flags);
 }
-CIMGUI_API void ImDrawList_AddRectFilledMultiColor(ImDrawList* self,ImVec2 p_min,ImVec2 p_max,ImU32 col_upr_left,ImU32 col_upr_right,ImU32 col_bot_right,ImU32 col_bot_left)
+CIMGUI_API void ImDrawList_AddRectFilledMultiColor(ImDrawList* self,const ImVec2* p_min,const ImVec2* p_max,ImU32 col_upr_left,ImU32 col_upr_right,ImU32 col_bot_right,ImU32 col_bot_left)
 {
-    return self->AddRectFilledMultiColor(p_min,p_max,col_upr_left,col_upr_right,col_bot_right,col_bot_left);
+    return self->AddRectFilledMultiColor(*p_min,*p_max,col_upr_left,col_upr_right,col_bot_right,col_bot_left);
 }
-CIMGUI_API void ImDrawList_AddQuad(ImDrawList* self,ImVec2 p1,ImVec2 p2,ImVec2 p3,ImVec2 p4,ImU32 col,float thickness)
+CIMGUI_API void ImDrawList_AddQuad(ImDrawList* self,const ImVec2* p1,const ImVec2* p2,const ImVec2* p3,const ImVec2* p4,ImU32 col,float thickness)
 {
-    return self->AddQuad(p1,p2,p3,p4,col,thickness);
+    return self->AddQuad(*p1,*p2,*p3,*p4,col,thickness);
 }
-CIMGUI_API void ImDrawList_AddQuadFilled(ImDrawList* self,ImVec2 p1,ImVec2 p2,ImVec2 p3,ImVec2 p4,ImU32 col)
+CIMGUI_API void ImDrawList_AddQuadFilled(ImDrawList* self,const ImVec2* p1,const ImVec2* p2,const ImVec2* p3,const ImVec2* p4,ImU32 col)
 {
-    return self->AddQuadFilled(p1,p2,p3,p4,col);
+    return self->AddQuadFilled(*p1,*p2,*p3,*p4,col);
 }
-CIMGUI_API void ImDrawList_AddTriangle(ImDrawList* self,ImVec2 p1,ImVec2 p2,ImVec2 p3,ImU32 col,float thickness)
+CIMGUI_API void ImDrawList_AddTriangle(ImDrawList* self,const ImVec2* p1,const ImVec2* p2,const ImVec2* p3,ImU32 col,float thickness)
 {
-    return self->AddTriangle(p1,p2,p3,col,thickness);
+    return self->AddTriangle(*p1,*p2,*p3,col,thickness);
 }
-CIMGUI_API void ImDrawList_AddTriangleFilled(ImDrawList* self,ImVec2 p1,ImVec2 p2,ImVec2 p3,ImU32 col)
+CIMGUI_API void ImDrawList_AddTriangleFilled(ImDrawList* self,const ImVec2* p1,const ImVec2* p2,const ImVec2* p3,ImU32 col)
 {
-    return self->AddTriangleFilled(p1,p2,p3,col);
+    return self->AddTriangleFilled(*p1,*p2,*p3,col);
 }
-CIMGUI_API void ImDrawList_AddCircle(ImDrawList* self,ImVec2 center,float radius,ImU32 col,int num_segments,float thickness)
+CIMGUI_API void ImDrawList_AddCircle(ImDrawList* self,const ImVec2* center,float radius,ImU32 col,int num_segments,float thickness)
 {
-    return self->AddCircle(center,radius,col,num_segments,thickness);
+    return self->AddCircle(*center,radius,col,num_segments,thickness);
 }
-CIMGUI_API void ImDrawList_AddCircleFilled(ImDrawList* self,ImVec2 center,float radius,ImU32 col,int num_segments)
+CIMGUI_API void ImDrawList_AddCircleFilled(ImDrawList* self,const ImVec2* center,float radius,ImU32 col,int num_segments)
 {
-    return self->AddCircleFilled(center,radius,col,num_segments);
+    return self->AddCircleFilled(*center,radius,col,num_segments);
 }
-CIMGUI_API void ImDrawList_AddNgon(ImDrawList* self,ImVec2 center,float radius,ImU32 col,int num_segments,float thickness)
+CIMGUI_API void ImDrawList_AddNgon(ImDrawList* self,const ImVec2* center,float radius,ImU32 col,int num_segments,float thickness)
 {
-    return self->AddNgon(center,radius,col,num_segments,thickness);
+    return self->AddNgon(*center,radius,col,num_segments,thickness);
 }
-CIMGUI_API void ImDrawList_AddNgonFilled(ImDrawList* self,ImVec2 center,float radius,ImU32 col,int num_segments)
+CIMGUI_API void ImDrawList_AddNgonFilled(ImDrawList* self,const ImVec2* center,float radius,ImU32 col,int num_segments)
 {
-    return self->AddNgonFilled(center,radius,col,num_segments);
+    return self->AddNgonFilled(*center,radius,col,num_segments);
 }
-CIMGUI_API void ImDrawList_AddText_Vec2(ImDrawList* self,ImVec2 pos,ImU32 col,const char* text_begin,const char* text_end)
+CIMGUI_API void ImDrawList_AddText_Vec2(ImDrawList* self,const ImVec2* pos,ImU32 col,const char* text_begin,const char* text_end)
 {
-    return self->AddText(pos,col,text_begin,text_end);
+    return self->AddText(*pos,col,text_begin,text_end);
 }
-CIMGUI_API void ImDrawList_AddText_FontPtr(ImDrawList* self,const ImFont* font,float font_size,ImVec2 pos,ImU32 col,const char* text_begin,const char* text_end,float wrap_width,const ImVec4* cpu_fine_clip_rect)
+CIMGUI_API void ImDrawList_AddText_FontPtr(ImDrawList* self,const ImFont* font,float font_size,const ImVec2* pos,ImU32 col,const char* text_begin,const char* text_end,float wrap_width,const ImVec4* cpu_fine_clip_rect)
 {
-    return self->AddText(font,font_size,pos,col,text_begin,text_end,wrap_width,cpu_fine_clip_rect);
+    return self->AddText(font,font_size,*pos,col,text_begin,text_end,wrap_width,cpu_fine_clip_rect);
 }
 CIMGUI_API void ImDrawList_AddPolyline(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col,ImDrawFlags flags,float thickness)
 {
@@ -2083,37 +2083,37 @@ CIMGUI_API void ImDrawList_AddConvexPolyFilled(ImDrawList* self,const ImVec2* po
 {
     return self->AddConvexPolyFilled(points,num_points,col);
 }
-CIMGUI_API void ImDrawList_AddBezierCubic(ImDrawList* self,ImVec2 p1,ImVec2 p2,ImVec2 p3,ImVec2 p4,ImU32 col,float thickness,int num_segments)
+CIMGUI_API void ImDrawList_AddBezierCubic(ImDrawList* self,const ImVec2* p1,const ImVec2* p2,const ImVec2* p3,const ImVec2* p4,ImU32 col,float thickness,int num_segments)
 {
-    return self->AddBezierCubic(p1,p2,p3,p4,col,thickness,num_segments);
+    return self->AddBezierCubic(*p1,*p2,*p3,*p4,col,thickness,num_segments);
 }
-CIMGUI_API void ImDrawList_AddBezierQuadratic(ImDrawList* self,ImVec2 p1,ImVec2 p2,ImVec2 p3,ImU32 col,float thickness,int num_segments)
+CIMGUI_API void ImDrawList_AddBezierQuadratic(ImDrawList* self,const ImVec2* p1,const ImVec2* p2,const ImVec2* p3,ImU32 col,float thickness,int num_segments)
 {
-    return self->AddBezierQuadratic(p1,p2,p3,col,thickness,num_segments);
+    return self->AddBezierQuadratic(*p1,*p2,*p3,col,thickness,num_segments);
 }
-CIMGUI_API void ImDrawList_AddImage(ImDrawList* self,ImTextureID user_texture_id,ImVec2 p_min,ImVec2 p_max,ImVec2 uv_min,ImVec2 uv_max,ImU32 col)
+CIMGUI_API void ImDrawList_AddImage(ImDrawList* self,ImTextureID user_texture_id,const ImVec2* p_min,const ImVec2* p_max,const ImVec2* uv_min,const ImVec2* uv_max,ImU32 col)
 {
-    return self->AddImage(user_texture_id,p_min,p_max,uv_min,uv_max,col);
+    return self->AddImage(user_texture_id,*p_min,*p_max,*uv_min,*uv_max,col);
 }
-CIMGUI_API void ImDrawList_AddImageQuad(ImDrawList* self,ImTextureID user_texture_id,ImVec2 p1,ImVec2 p2,ImVec2 p3,ImVec2 p4,ImVec2 uv1,ImVec2 uv2,ImVec2 uv3,ImVec2 uv4,ImU32 col)
+CIMGUI_API void ImDrawList_AddImageQuad(ImDrawList* self,ImTextureID user_texture_id,const ImVec2* p1,const ImVec2* p2,const ImVec2* p3,const ImVec2* p4,const ImVec2* uv1,const ImVec2* uv2,const ImVec2* uv3,const ImVec2* uv4,ImU32 col)
 {
-    return self->AddImageQuad(user_texture_id,p1,p2,p3,p4,uv1,uv2,uv3,uv4,col);
+    return self->AddImageQuad(user_texture_id,*p1,*p2,*p3,*p4,*uv1,*uv2,*uv3,*uv4,col);
 }
-CIMGUI_API void ImDrawList_AddImageRounded(ImDrawList* self,ImTextureID user_texture_id,ImVec2 p_min,ImVec2 p_max,ImVec2 uv_min,ImVec2 uv_max,ImU32 col,float rounding,ImDrawFlags flags)
+CIMGUI_API void ImDrawList_AddImageRounded(ImDrawList* self,ImTextureID user_texture_id,const ImVec2* p_min,const ImVec2* p_max,const ImVec2* uv_min,const ImVec2* uv_max,ImU32 col,float rounding,ImDrawFlags flags)
 {
-    return self->AddImageRounded(user_texture_id,p_min,p_max,uv_min,uv_max,col,rounding,flags);
+    return self->AddImageRounded(user_texture_id,*p_min,*p_max,*uv_min,*uv_max,col,rounding,flags);
 }
 CIMGUI_API void ImDrawList_PathClear(ImDrawList* self)
 {
     return self->PathClear();
 }
-CIMGUI_API void ImDrawList_PathLineTo(ImDrawList* self,ImVec2 pos)
+CIMGUI_API void ImDrawList_PathLineTo(ImDrawList* self,const ImVec2* pos)
 {
-    return self->PathLineTo(pos);
+    return self->PathLineTo(*pos);
 }
-CIMGUI_API void ImDrawList_PathLineToMergeDuplicate(ImDrawList* self,ImVec2 pos)
+CIMGUI_API void ImDrawList_PathLineToMergeDuplicate(ImDrawList* self,const ImVec2* pos)
 {
-    return self->PathLineToMergeDuplicate(pos);
+    return self->PathLineToMergeDuplicate(*pos);
 }
 CIMGUI_API void ImDrawList_PathFillConvex(ImDrawList* self,ImU32 col)
 {
@@ -2123,25 +2123,25 @@ CIMGUI_API void ImDrawList_PathStroke(ImDrawList* self,ImU32 col,ImDrawFlags fla
 {
     return self->PathStroke(col,flags,thickness);
 }
-CIMGUI_API void ImDrawList_PathArcTo(ImDrawList* self,ImVec2 center,float radius,float a_min,float a_max,int num_segments)
+CIMGUI_API void ImDrawList_PathArcTo(ImDrawList* self,const ImVec2* center,float radius,float a_min,float a_max,int num_segments)
 {
-    return self->PathArcTo(center,radius,a_min,a_max,num_segments);
+    return self->PathArcTo(*center,radius,a_min,a_max,num_segments);
 }
-CIMGUI_API void ImDrawList_PathArcToFast(ImDrawList* self,ImVec2 center,float radius,int a_min_of_12,int a_max_of_12)
+CIMGUI_API void ImDrawList_PathArcToFast(ImDrawList* self,const ImVec2* center,float radius,int a_min_of_12,int a_max_of_12)
 {
-    return self->PathArcToFast(center,radius,a_min_of_12,a_max_of_12);
+    return self->PathArcToFast(*center,radius,a_min_of_12,a_max_of_12);
 }
-CIMGUI_API void ImDrawList_PathBezierCubicCurveTo(ImDrawList* self,ImVec2 p2,ImVec2 p3,ImVec2 p4,int num_segments)
+CIMGUI_API void ImDrawList_PathBezierCubicCurveTo(ImDrawList* self,const ImVec2* p2,const ImVec2* p3,const ImVec2* p4,int num_segments)
 {
-    return self->PathBezierCubicCurveTo(p2,p3,p4,num_segments);
+    return self->PathBezierCubicCurveTo(*p2,*p3,*p4,num_segments);
 }
-CIMGUI_API void ImDrawList_PathBezierQuadraticCurveTo(ImDrawList* self,ImVec2 p2,ImVec2 p3,int num_segments)
+CIMGUI_API void ImDrawList_PathBezierQuadraticCurveTo(ImDrawList* self,const ImVec2* p2,const ImVec2* p3,int num_segments)
 {
-    return self->PathBezierQuadraticCurveTo(p2,p3,num_segments);
+    return self->PathBezierQuadraticCurveTo(*p2,*p3,num_segments);
 }
-CIMGUI_API void ImDrawList_PathRect(ImDrawList* self,ImVec2 rect_min,ImVec2 rect_max,float rounding,ImDrawFlags flags)
+CIMGUI_API void ImDrawList_PathRect(ImDrawList* self,const ImVec2* rect_min,const ImVec2* rect_max,float rounding,ImDrawFlags flags)
 {
-    return self->PathRect(rect_min,rect_max,rounding,flags);
+    return self->PathRect(*rect_min,*rect_max,rounding,flags);
 }
 CIMGUI_API void ImDrawList_AddCallback(ImDrawList* self,ImDrawCallback callback,void* callback_data)
 {
@@ -2175,29 +2175,29 @@ CIMGUI_API void ImDrawList_PrimUnreserve(ImDrawList* self,int idx_count,int vtx_
 {
     return self->PrimUnreserve(idx_count,vtx_count);
 }
-CIMGUI_API void ImDrawList_PrimRect(ImDrawList* self,ImVec2 a,ImVec2 b,ImU32 col)
+CIMGUI_API void ImDrawList_PrimRect(ImDrawList* self,const ImVec2* a,const ImVec2* b,ImU32 col)
 {
-    return self->PrimRect(a,b,col);
+    return self->PrimRect(*a,*b,col);
 }
-CIMGUI_API void ImDrawList_PrimRectUV(ImDrawList* self,ImVec2 a,ImVec2 b,ImVec2 uv_a,ImVec2 uv_b,ImU32 col)
+CIMGUI_API void ImDrawList_PrimRectUV(ImDrawList* self,const ImVec2* a,const ImVec2* b,const ImVec2* uv_a,const ImVec2* uv_b,ImU32 col)
 {
-    return self->PrimRectUV(a,b,uv_a,uv_b,col);
+    return self->PrimRectUV(*a,*b,*uv_a,*uv_b,col);
 }
-CIMGUI_API void ImDrawList_PrimQuadUV(ImDrawList* self,ImVec2 a,ImVec2 b,ImVec2 c,ImVec2 d,ImVec2 uv_a,ImVec2 uv_b,ImVec2 uv_c,ImVec2 uv_d,ImU32 col)
+CIMGUI_API void ImDrawList_PrimQuadUV(ImDrawList* self,const ImVec2* a,const ImVec2* b,const ImVec2* c,const ImVec2* d,const ImVec2* uv_a,const ImVec2* uv_b,const ImVec2* uv_c,const ImVec2* uv_d,ImU32 col)
 {
-    return self->PrimQuadUV(a,b,c,d,uv_a,uv_b,uv_c,uv_d,col);
+    return self->PrimQuadUV(*a,*b,*c,*d,*uv_a,*uv_b,*uv_c,*uv_d,col);
 }
-CIMGUI_API void ImDrawList_PrimWriteVtx(ImDrawList* self,ImVec2 pos,ImVec2 uv,ImU32 col)
+CIMGUI_API void ImDrawList_PrimWriteVtx(ImDrawList* self,const ImVec2* pos,const ImVec2* uv,ImU32 col)
 {
-    return self->PrimWriteVtx(pos,uv,col);
+    return self->PrimWriteVtx(*pos,*uv,col);
 }
 CIMGUI_API void ImDrawList_PrimWriteIdx(ImDrawList* self,ImDrawIdx idx)
 {
     return self->PrimWriteIdx(idx);
 }
-CIMGUI_API void ImDrawList_PrimVtx(ImDrawList* self,ImVec2 pos,ImVec2 uv,ImU32 col)
+CIMGUI_API void ImDrawList_PrimVtx(ImDrawList* self,const ImVec2* pos,const ImVec2* uv,ImU32 col)
 {
-    return self->PrimVtx(pos,uv,col);
+    return self->PrimVtx(*pos,*uv,col);
 }
 CIMGUI_API void ImDrawList__ResetForNewFrame(ImDrawList* self)
 {
@@ -2231,13 +2231,13 @@ CIMGUI_API int ImDrawList__CalcCircleAutoSegmentCount(const ImDrawList* self,flo
 {
     return self->_CalcCircleAutoSegmentCount(radius);
 }
-CIMGUI_API void ImDrawList__PathArcToFastEx(ImDrawList* self,ImVec2 center,float radius,int a_min_sample,int a_max_sample,int a_step)
+CIMGUI_API void ImDrawList__PathArcToFastEx(ImDrawList* self,const ImVec2* center,float radius,int a_min_sample,int a_max_sample,int a_step)
 {
-    return self->_PathArcToFastEx(center,radius,a_min_sample,a_max_sample,a_step);
+    return self->_PathArcToFastEx(*center,radius,a_min_sample,a_max_sample,a_step);
 }
-CIMGUI_API void ImDrawList__PathArcToN(ImDrawList* self,ImVec2 center,float radius,float a_min,float a_max,int num_segments)
+CIMGUI_API void ImDrawList__PathArcToN(ImDrawList* self,const ImVec2* center,float radius,float a_min,float a_max,int num_segments)
 {
-    return self->_PathArcToN(center,radius,a_min,a_max,num_segments);
+    return self->_PathArcToN(*center,radius,a_min,a_max,num_segments);
 }
 CIMGUI_API ImDrawData* ImDrawData_ImDrawData(void* self)
 {
@@ -2255,9 +2255,9 @@ CIMGUI_API void ImDrawData_DeIndexAllBuffers(ImDrawData* self)
 {
     return self->DeIndexAllBuffers();
 }
-CIMGUI_API void ImDrawData_ScaleClipRects(ImDrawData* self,ImVec2 fb_scale)
+CIMGUI_API void ImDrawData_ScaleClipRects(ImDrawData* self,const ImVec2* fb_scale)
 {
-    return self->ScaleClipRects(fb_scale);
+    return self->ScaleClipRects(*fb_scale);
 }
 CIMGUI_API ImFontConfig* ImFontConfig_ImFontConfig(void* self)
 {
@@ -2419,9 +2419,9 @@ CIMGUI_API int ImFontAtlas_AddCustomRectRegular(ImFontAtlas* self,int width,int 
 {
     return self->AddCustomRectRegular(width,height);
 }
-CIMGUI_API int ImFontAtlas_AddCustomRectFontGlyph(ImFontAtlas* self,ImFont* font,ImWchar id,int width,int height,float advance_x,ImVec2 offset)
+CIMGUI_API int ImFontAtlas_AddCustomRectFontGlyph(ImFontAtlas* self,ImFont* font,ImWchar id,int width,int height,float advance_x,const ImVec2* offset)
 {
-    return self->AddCustomRectFontGlyph(font,id,width,height,advance_x,offset);
+    return self->AddCustomRectFontGlyph(font,id,width,height,advance_x,*offset);
 }
 CIMGUI_API ImFontAtlasCustomRect* ImFontAtlas_GetCustomRectByIndex(ImFontAtlas* self,int index)
 {
@@ -2471,13 +2471,13 @@ CIMGUI_API const char* ImFont_CalcWordWrapPositionA(const ImFont* self,float sca
 {
     return self->CalcWordWrapPositionA(scale,text,text_end,wrap_width);
 }
-CIMGUI_API void ImFont_RenderChar(const ImFont* self,ImDrawList* draw_list,float size,ImVec2 pos,ImU32 col,ImWchar c)
+CIMGUI_API void ImFont_RenderChar(const ImFont* self,ImDrawList* draw_list,float size,const ImVec2* pos,ImU32 col,ImWchar c)
 {
-    return self->RenderChar(draw_list,size,pos,col,c);
+    return self->RenderChar(draw_list,size,*pos,col,c);
 }
-CIMGUI_API void ImFont_RenderText(const ImFont* self,ImDrawList* draw_list,float size,ImVec2 pos,ImU32 col,ImVec4 clip_rect,const char* text_begin,const char* text_end,float wrap_width,bool cpu_fine_clip)
+CIMGUI_API void ImFont_RenderText(const ImFont* self,ImDrawList* draw_list,float size,const ImVec2* pos,ImU32 col,const ImVec4* clip_rect,const char* text_begin,const char* text_end,float wrap_width,bool cpu_fine_clip)
 {
-    return self->RenderText(draw_list,size,pos,col,clip_rect,text_begin,text_end,wrap_width,cpu_fine_clip);
+    return self->RenderText(draw_list,size,*pos,col,*clip_rect,text_begin,text_end,wrap_width,cpu_fine_clip);
 }
 CIMGUI_API void ImFont_BuildLookupTable(ImFont* self)
 {

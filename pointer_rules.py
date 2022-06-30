@@ -65,12 +65,13 @@ def FunctionContext(name, stname='', parent=None):
     ctx.stname = stname
     return ctx
 
-def ParamContext(name, parent):
+def ParamContext(name, parent, udtptr=False):
     assert(parent.type == CT_FUNCTION)
     ctx = Context()
     ctx.type = CT_PARAM
     ctx.parent = parent
     ctx.name = name
+    ctx.udtptr = udtptr
     return ctx
 
 
@@ -254,6 +255,8 @@ def getPointers(numPointers, valueType, context):
         if context.type == CT_PARAM and context.parent.stname and context.name == 'self':
             return '*'
         if context.type == CT_PARAM and context.name == 'pOut':
+            return '*'
+        if context.type == CT_PARAM and context.udtptr:
             return '*'
             
     ## Search for a matching rule
