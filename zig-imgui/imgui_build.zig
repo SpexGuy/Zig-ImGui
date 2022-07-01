@@ -10,17 +10,15 @@ pub const pkg = std.build.Pkg{
     .source = .{ .path = zig_imgui_path ++ sep ++ "imgui.zig" },
 };
 
-pub fn link(exe: *std.build.LibExeObjStep, dear_imgui_path: []const u8) void {
-    if (!std.mem.eql(u8, std.fs.path.basename(dear_imgui_path), "imgui")) {
-        std.debug.print("Error: Zig-ImGui requires that Dear ImGui is inside a folder named 'imgui'\n    Cannot use the specified location: {s}\n", .{dear_imgui_path});
-        std.os.exit(1);
-    }
-    const dir_containing_imgui = std.fs.path.dirname(dear_imgui_path) orelse ".";
+pub fn link(exe: *std.build.LibExeObjStep) void {
+    linkWithoutPackage(exe);
+    exe.addPackage(pkg);
+}
+
+pub fn linkWithoutPackage(exe: *std.build.LibExeObjStep) void {
     const imgui_cpp_file = zig_imgui_path ++ sep ++ "cimgui_unity.cpp";
 
-    exe.addPackage(pkg);
     exe.linkLibCpp();
-    exe.addIncludePath(dir_containing_imgui);
     exe.addCSourceFile(imgui_cpp_file, &[_][]const u8 {
         "-fno-sanitize=undefined",
         "-ffunction-sections",
@@ -30,7 +28,6 @@ pub fn link(exe: *std.build.LibExeObjStep, dear_imgui_path: []const u8) void {
 pub fn addTestStep(
     b: *std.build.Builder,
     step_name: []const u8,
-    dear_imgui_path: []const u8,
     mode: std.builtin.Mode,
     target: std.zig.CrossTarget,
 ) void {
@@ -38,7 +35,7 @@ pub fn addTestStep(
     test_exe.setBuildMode(mode);
     test_exe.setTarget(target);
     
-    link(test_exe, dear_imgui_path);
+    link(test_exe);
 
     const test_step = b.step(step_name, "Run zig-imgui tests");
     test_step.dependOn(&test_exe.step);

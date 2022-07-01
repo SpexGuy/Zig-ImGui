@@ -12,7 +12,7 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});
 
-    imgui_build.addTestStep(b, "test", "cimgui/imgui", mode, target);
+    imgui_build.addTestStep(b, "test", mode, target);
 
     {
         const exe = exampleExe(b, "example_glfw_vulkan", mode, target);
@@ -30,7 +30,7 @@ fn exampleExe(b: *Builder, comptime name: []const u8, mode: std.builtin.Mode, ta
     const exe = b.addExecutable(name, "examples/" ++ name ++ ".zig");
     exe.setBuildMode(mode);
     exe.setTarget(target);
-    imgui_build.link(exe, "cimgui/imgui");
+    imgui_build.link(exe);
     exe.install();
 
     const run_step = b.step(name, "Run " ++ name);
