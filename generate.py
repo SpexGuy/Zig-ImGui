@@ -146,7 +146,6 @@ class ZigData:
         self.typedefs.pop(name, None)
         zigName = self.convertTypeName(name)
         sentinels = []
-        aliases = []
         decl = 'pub const '+zigName+' = enum (i32) {\n'
         for value in jsonValues:
             valueName = value['name'].replace(name + '_', '')
@@ -162,10 +161,6 @@ class ZigData:
         decl += '    _,\n'
         if sentinels:
             decl += '\n' + '\n'.join(sentinels) + '\n'
-        if aliases:
-            decl += '\n'
-            decl += '    pub const Self = @This();\n'
-            decl += '\n'.join(aliases) + '\n'
         decl += '};'
         self.enums.append(decl)
         

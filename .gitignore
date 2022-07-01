@@ -1,4 +1,4 @@
 zig-cache/
 zig-out/
 __pycache__/
-examples/imgui.ini
+imgui.ini
