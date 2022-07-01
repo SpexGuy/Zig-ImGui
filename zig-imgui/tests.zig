@@ -7,10 +7,12 @@ extern fn igGET_FLT_MIN() callconv(.C) f32;
 
 test "FLT_MAX" {
     assert(@bitCast(u32, ig.FLT_MAX) == @bitCast(u32, igGET_FLT_MAX()));
+    assert(@bitCast(u32, ig.FLT_MAX) == @bitCast(u32, std.math.floatMax(f32)));
 }
 
 test "FLT_MIN" {
     assert(@bitCast(u32, ig.FLT_MIN) == @bitCast(u32, igGET_FLT_MIN()));
+    assert(@bitCast(u32, ig.FLT_MIN) == @bitCast(u32, std.math.floatMin(f32)));
 }
 
 test "Check version" {

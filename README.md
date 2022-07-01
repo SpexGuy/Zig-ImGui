@@ -49,8 +49,6 @@ fn SetWindowCollapsed_Bool(collapsed: bool) void;
 fn SetWindowCollapsed_BoolExt(collapsed: bool, cond: CondFlags) void;
 ```
 
-Sometimes `FLT_MIN` and `FLT_MAX` are used as sentinel default values.  You *must* use `imgui.FLT_MIN` or `imgui.FLT_MAX` for these values, since `std.math.f32_min` and `std.math.f32_max` have slightly different values.
-
 Nullability and array-ness of pointer parameters is hand-tuned by the logic in pointer_rules.py.  If you find any incorrect translations, please open an issue.
 
 ## Running the examples
