@@ -1,13 +1,19 @@
 const std = @import("std");
+const version: std.SemanticVersion = @import("builtin").zig_version;
+const old_pkg_structure = version.order(std.SemanticVersion.parse("0.9.1") catch unreachable) != .gt;
 
 // @src() is only allowed inside of a function, so we need this wrapper
 fn srcFile() []const u8 { return @src().file; }
 const sep = std.fs.path.sep_str;
 
 const zig_imgui_path = std.fs.path.dirname(srcFile()).?;
-pub const pkg = std.build.Pkg{
+const zig_imgui_file = zig_imgui_path ++ sep ++ "imgui.zig";
+pub const pkg = if (old_pkg_structure) std.build.Pkg{
     .name = "imgui",
-    .source = .{ .path = zig_imgui_path ++ sep ++ "imgui.zig" },
+    .path = .{ .path = zig_imgui_file },
+} else std.build.Pkg{
+    .name = "imgui",
+    .source = .{ .path = zig_imgui_file },
 };
 
 pub fn link(exe: *std.build.LibExeObjStep) void {

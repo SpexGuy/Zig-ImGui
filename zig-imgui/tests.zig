@@ -1,5 +1,6 @@
 const std = @import("std");
 const ig = @import("imgui");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 
 extern fn igGET_FLT_MAX() callconv(.C) f32;
@@ -7,12 +8,14 @@ extern fn igGET_FLT_MIN() callconv(.C) f32;
 
 test "FLT_MAX" {
     assert(@bitCast(u32, ig.FLT_MAX) == @bitCast(u32, igGET_FLT_MAX()));
-    assert(@bitCast(u32, ig.FLT_MAX) == @bitCast(u32, std.math.floatMax(f32)));
+    const zig_flt_max: f32 = if (@hasDecl(std.math, "floatMax")) std.math.floatMax(f32) else std.math.f32_max;
+    assert(@bitCast(u32, ig.FLT_MAX) == @bitCast(u32, zig_flt_max));
 }
 
 test "FLT_MIN" {
     assert(@bitCast(u32, ig.FLT_MIN) == @bitCast(u32, igGET_FLT_MIN()));
-    assert(@bitCast(u32, ig.FLT_MIN) == @bitCast(u32, std.math.floatMin(f32)));
+    const zig_flt_min: f32 = if (@hasDecl(std.math, "floatMin")) std.math.floatMin(f32) else std.math.f32_min;
+    assert(@bitCast(u32, ig.FLT_MIN) == @bitCast(u32, zig_flt_min));
 }
 
 test "Check version" {
@@ -49,25 +52,28 @@ test "Compile everything" {
     compileEverything(ig, skip_none);
 
     // Compile instantiations of Vector
-    const skip_value_type = &[_][]const u8{ "value_type" };
-    const skip_clear_delete = skip_value_type ++ &[_][]const u8{ "clear_delete" };
-    const skip_comparisons = skip_clear_delete ++ &[_][]const u8{ "contains", "find", "find_erase", "find_erase_unsorted", "eql" };
-    compileEverything(ig.Vector(ig.Vec2), skip_clear_delete);
-    compileEverything(ig.Vector(*ig.Vec4), skip_value_type);
-    compileEverything(ig.Vector(?*ig.Vec4), skip_value_type);
-    compileEverything(ig.Vector(*const ig.Vec4), skip_clear_delete);
-    compileEverything(ig.Vector(?*const ig.Vec4), skip_clear_delete);
-    compileEverything(ig.Vector(*ig.Vec4), skip_value_type);
-    compileEverything(ig.Vector(?*ig.Vec4), skip_value_type);
-    compileEverything(ig.Vector(u32), skip_clear_delete);
-    compileEverything(ig.Vector(i32), skip_clear_delete);
-    compileEverything(ig.Vector(*ig.Vector(u32)), skip_value_type);
-    compileEverything(ig.Vector(?*ig.Vector(u32)), skip_value_type);
-    compileEverything(ig.Vector(ig.Vector(u32)), skip_clear_delete);
-    compileEverything(ig.Vector([*:0]u8), skip_clear_delete);
-    compileEverything(ig.Vector(?[*:0]u8), skip_clear_delete);
-    compileEverything(ig.Vector([*]u8), skip_clear_delete);
-    compileEverything(ig.Vector(?[*]u8), skip_clear_delete);
-    compileEverything(ig.Vector([]u8), skip_comparisons);
-    compileEverything(ig.Vector(?[]u8), skip_comparisons);
+    // The skipping logic doesn't work in 0.9.1 or earlier
+    if (comptime builtin.zig_version.order(std.SemanticVersion.parse("0.9.1") catch unreachable) == .gt) {
+        const skip_value_type = &[_][]const u8{ "value_type" };
+        const skip_clear_delete = skip_value_type ++ &[_][]const u8{ "clear_delete" };
+        const skip_comparisons = skip_clear_delete ++ &[_][]const u8{ "contains", "find", "find_erase", "find_erase_unsorted", "eql" };
+        compileEverything(ig.Vector(ig.Vec2), skip_clear_delete);
+        compileEverything(ig.Vector(*ig.Vec4), skip_value_type);
+        compileEverything(ig.Vector(?*ig.Vec4), skip_value_type);
+        compileEverything(ig.Vector(*const ig.Vec4), skip_clear_delete);
+        compileEverything(ig.Vector(?*const ig.Vec4), skip_clear_delete);
+        compileEverything(ig.Vector(*ig.Vec4), skip_value_type);
+        compileEverything(ig.Vector(?*ig.Vec4), skip_value_type);
+        compileEverything(ig.Vector(u32), skip_clear_delete);
+        compileEverything(ig.Vector(i32), skip_clear_delete);
+        compileEverything(ig.Vector(*ig.Vector(u32)), skip_value_type);
+        compileEverything(ig.Vector(?*ig.Vector(u32)), skip_value_type);
+        compileEverything(ig.Vector(ig.Vector(u32)), skip_clear_delete);
+        compileEverything(ig.Vector([*:0]u8), skip_clear_delete);
+        compileEverything(ig.Vector(?[*:0]u8), skip_clear_delete);
+        compileEverything(ig.Vector([*]u8), skip_clear_delete);
+        compileEverything(ig.Vector(?[*]u8), skip_clear_delete);
+        compileEverything(ig.Vector([]u8), skip_comparisons);
+        compileEverything(ig.Vector(?[]u8), skip_comparisons);
+    }
 }
