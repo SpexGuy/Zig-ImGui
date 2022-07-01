@@ -406,6 +406,34 @@ pub const Color = extern struct {
     }
 };
 
+fn imguiZigAlloc(_: *anyopaque, len: usize, ptr_align: u29, len_align: u29, ret_addr: usize) std.mem.Allocator.Error![]u8 {
+    _ = len_align; _ = ret_addr;
+    assert(ptr_align <= @alignOf(*anyopaque)); // Alignment larger than pointers is not supported
+    return @ptrCast([*]u8, raw.igMemAlloc(len) orelse return error.OutOfMemory)[0..len];
+}
+fn imguiZigResize(_: *anyopaque, buf: []u8, buf_align: u29, new_len: usize, len_align: u29, ret_addr: usize) ?usize {
+    _ = len_align; _ = ret_addr;
+    assert(buf_align <= @alignOf(*anyopaque)); // Alignment larger than pointers is not supported
+    if (new_len > buf.len) return null;
+    if (new_len == 0 and buf.len != 0) raw.igMemFree(buf.ptr);
+    return new_len;
+}
+fn imguiZigFree(_: *anyopaque, buf: []u8, buf_align: u29, ret_addr: usize) void {
+    _ = buf_align; _ = ret_addr;
+    if (buf.len != 0) raw.igMemFree(buf.ptr);
+}
+
+const allocator_vtable: std.mem.Allocator.VTable = .{
+    .alloc = imguiZigAlloc,
+    .resize = imguiZigResize,
+    .free = imguiZigFree,
+};
+
+pub const allocator: std.mem.Allocator = .{
+    .ptr = undefined,
+    .vtable = &allocator_vtable,
+};
+
 // ---------------- Everything above here comes from template.zig ------------------
 // ---------------- Everything below here is generated -----------------------------
 
