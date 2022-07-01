@@ -9,18 +9,17 @@ It is currently up to date with [Dear ImGui v1.88](https://github.com/ocornut/im
 Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the following:
 
 - Copy the zig-imgui directory into your project
-- Add [Dear ImGui v1.88](https://github.com/ocornut/imgui/tree/v1.88) to your source tree, in a folder named "imgui".
 - In your build.zig, do the following:
     ```zig
     const imgui_build = @import("path/to/zig-imgui/imgui_build.zig");
-    imgui_build.link(exe_that_needs_imgui, "path/to/dear/imgui");
+    imgui_build.link(exe_that_needs_imgui);
     ```
 - If you would like to run basic tests on the bindings in your project, add this to build.zig:
     ```zig
-    imgui_build.addTestStep(b, "imgui:test", "path/to/dear/imgui");
+    imgui_build.addTestStep(b, "imgui:test", mode, target);
     ```
     and then run `zig build imgui:test`
-- If you need to use zig-imgui as a dependency of another package, use `imgui_build.pkg` as the dependency.  Be sure to call `imgui_build.link` on any executable or test which uses this dependency.
+- If you need to use zig-imgui as a dependency of another package, use `imgui_build.pkg` as the dependency.  Be sure to call `imgui_build.link` or `imgui_build.linkWithoutPackage` on any executable or test which uses this dependency.
 - In your project, use `@import("imgui")` to obtain the bindings.
 - See the examples in `example/` for basic usage examples.
 - For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.88/docs).
