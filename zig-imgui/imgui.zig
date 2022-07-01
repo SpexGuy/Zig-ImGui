@@ -459,17 +459,16 @@ pub const DrawFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const RoundCornersTop = Self{ .RoundCornersTopLeft=true, .RoundCornersTopRight=true };
-    pub const RoundCornersBottom = Self{ .RoundCornersBottomLeft=true, .RoundCornersBottomRight=true };
-    pub const RoundCornersLeft = Self{ .RoundCornersTopLeft=true, .RoundCornersBottomLeft=true };
-    pub const RoundCornersRight = Self{ .RoundCornersTopRight=true, .RoundCornersBottomRight=true };
-    pub const RoundCornersAll = Self{ .RoundCornersTopLeft=true, .RoundCornersTopRight=true, .RoundCornersBottomLeft=true, .RoundCornersBottomRight=true };
-    pub const RoundCornersDefault_ = Self{ .RoundCornersTopLeft=true, .RoundCornersTopRight=true, .RoundCornersBottomLeft=true, .RoundCornersBottomRight=true };
-    pub const RoundCornersMask_ = Self{ .RoundCornersTopLeft=true, .RoundCornersTopRight=true, .RoundCornersBottomLeft=true, .RoundCornersBottomRight=true, .RoundCornersNone=true };
+    pub const None: @This() = .{};
+    pub const RoundCornersTop: @This() = .{ .RoundCornersTopLeft=true, .RoundCornersTopRight=true };
+    pub const RoundCornersBottom: @This() = .{ .RoundCornersBottomLeft=true, .RoundCornersBottomRight=true };
+    pub const RoundCornersLeft: @This() = .{ .RoundCornersTopLeft=true, .RoundCornersBottomLeft=true };
+    pub const RoundCornersRight: @This() = .{ .RoundCornersTopRight=true, .RoundCornersBottomRight=true };
+    pub const RoundCornersAll: @This() = .{ .RoundCornersTopLeft=true, .RoundCornersTopRight=true, .RoundCornersBottomLeft=true, .RoundCornersBottomRight=true };
+    pub const RoundCornersDefault_: @This() = .{ .RoundCornersTopLeft=true, .RoundCornersTopRight=true, .RoundCornersBottomLeft=true, .RoundCornersBottomRight=true };
+    pub const RoundCornersMask_: @This() = .{ .RoundCornersTopLeft=true, .RoundCornersTopRight=true, .RoundCornersBottomLeft=true, .RoundCornersBottomRight=true, .RoundCornersNone=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const DrawListFlagsInt = FlagsInt;
@@ -507,10 +506,9 @@ pub const DrawListFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const FontAtlasFlagsInt = FlagsInt;
@@ -548,10 +546,9 @@ pub const FontAtlasFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const BackendFlagsInt = FlagsInt;
@@ -589,10 +586,9 @@ pub const BackendFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const ButtonFlagsInt = FlagsInt;
@@ -630,12 +626,11 @@ pub const ButtonFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const MouseButtonMask_ = Self{ .MouseButtonLeft=true, .MouseButtonRight=true, .MouseButtonMiddle=true };
-    pub const MouseButtonDefault_ = Self{ .MouseButtonLeft=true };
+    pub const None: @This() = .{};
+    pub const MouseButtonMask_: @This() = .{ .MouseButtonLeft=true, .MouseButtonRight=true, .MouseButtonMiddle=true };
+    pub const MouseButtonDefault_: @This() = .{ .MouseButtonLeft=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const ColorEditFlagsInt = FlagsInt;
@@ -673,15 +668,14 @@ pub const ColorEditFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const DefaultOptions_ = Self{ .DisplayRGB=true, .Uint8=true, .PickerHueBar=true, .InputRGB=true };
-    pub const DisplayMask_ = Self{ .DisplayRGB=true, .DisplayHSV=true, .DisplayHex=true };
-    pub const DataTypeMask_ = Self{ .Uint8=true, .Float=true };
-    pub const PickerMask_ = Self{ .PickerHueBar=true, .PickerHueWheel=true };
-    pub const InputMask_ = Self{ .InputRGB=true, .InputHSV=true };
+    pub const None: @This() = .{};
+    pub const DefaultOptions_: @This() = .{ .DisplayRGB=true, .Uint8=true, .PickerHueBar=true, .InputRGB=true };
+    pub const DisplayMask_: @This() = .{ .DisplayRGB=true, .DisplayHSV=true, .DisplayHex=true };
+    pub const DataTypeMask_: @This() = .{ .Uint8=true, .Float=true };
+    pub const PickerMask_: @This() = .{ .PickerHueBar=true, .PickerHueWheel=true };
+    pub const InputMask_: @This() = .{ .InputRGB=true, .InputHSV=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const ComboFlagsInt = FlagsInt;
@@ -719,11 +713,10 @@ pub const ComboFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const HeightMask_ = Self{ .HeightSmall=true, .HeightRegular=true, .HeightLarge=true, .HeightLargest=true };
+    pub const None: @This() = .{};
+    pub const HeightMask_: @This() = .{ .HeightSmall=true, .HeightRegular=true, .HeightLarge=true, .HeightLargest=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const CondFlagsInt = FlagsInt;
@@ -761,10 +754,9 @@ pub const CondFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const ConfigFlagsInt = FlagsInt;
@@ -802,10 +794,9 @@ pub const ConfigFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const DragDropFlagsInt = FlagsInt;
@@ -843,11 +834,10 @@ pub const DragDropFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const AcceptPeekOnly = Self{ .AcceptBeforeDelivery=true, .AcceptNoDrawDefaultRect=true };
+    pub const None: @This() = .{};
+    pub const AcceptPeekOnly: @This() = .{ .AcceptBeforeDelivery=true, .AcceptNoDrawDefaultRect=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const FocusedFlagsInt = FlagsInt;
@@ -885,11 +875,10 @@ pub const FocusedFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const RootAndChildWindows = Self{ .ChildWindows=true, .RootWindow=true };
+    pub const None: @This() = .{};
+    pub const RootAndChildWindows: @This() = .{ .ChildWindows=true, .RootWindow=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const HoveredFlagsInt = FlagsInt;
@@ -927,12 +916,11 @@ pub const HoveredFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const RectOnly = Self{ .AllowWhenBlockedByPopup=true, .AllowWhenBlockedByActiveItem=true, .AllowWhenOverlapped=true };
-    pub const RootAndChildWindows = Self{ .ChildWindows=true, .RootWindow=true };
+    pub const None: @This() = .{};
+    pub const RectOnly: @This() = .{ .AllowWhenBlockedByPopup=true, .AllowWhenBlockedByActiveItem=true, .AllowWhenOverlapped=true };
+    pub const RootAndChildWindows: @This() = .{ .ChildWindows=true, .RootWindow=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const InputTextFlagsInt = FlagsInt;
@@ -970,10 +958,9 @@ pub const InputTextFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const ModFlagsInt = FlagsInt;
@@ -1011,10 +998,9 @@ pub const ModFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const PopupFlagsInt = FlagsInt;
@@ -1052,14 +1038,13 @@ pub const PopupFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const MouseButtonLeft = Self{};
-    pub const MouseButtonMask_ = Self{ .MouseButtonRight=true, .MouseButtonMiddle=true, .__reserved_bit_02=true, .__reserved_bit_03=true, .__reserved_bit_04=true };
-    pub const MouseButtonDefault_ = Self{ .MouseButtonRight=true };
-    pub const AnyPopup = Self{ .AnyPopupId=true, .AnyPopupLevel=true };
+    pub const None: @This() = .{};
+    pub const MouseButtonLeft: @This() = .{};
+    pub const MouseButtonMask_: @This() = .{ .MouseButtonRight=true, .MouseButtonMiddle=true, .__reserved_bit_02=true, .__reserved_bit_03=true, .__reserved_bit_04=true };
+    pub const MouseButtonDefault_: @This() = .{ .MouseButtonRight=true };
+    pub const AnyPopup: @This() = .{ .AnyPopupId=true, .AnyPopupLevel=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const SelectableFlagsInt = FlagsInt;
@@ -1097,10 +1082,9 @@ pub const SelectableFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const SliderFlagsInt = FlagsInt;
@@ -1138,11 +1122,10 @@ pub const SliderFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const InvalidMask_ = Self{ .__reserved_bit_00=true, .__reserved_bit_01=true, .__reserved_bit_02=true, .__reserved_bit_03=true, .__reserved_bit_28=true, .__reserved_bit_29=true, .__reserved_bit_30=true };
+    pub const None: @This() = .{};
+    pub const InvalidMask_: @This() = .{ .__reserved_bit_00=true, .__reserved_bit_01=true, .__reserved_bit_02=true, .__reserved_bit_03=true, .__reserved_bit_28=true, .__reserved_bit_29=true, .__reserved_bit_30=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const TabBarFlagsInt = FlagsInt;
@@ -1180,12 +1163,11 @@ pub const TabBarFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const FittingPolicyMask_ = Self{ .FittingPolicyResizeDown=true, .FittingPolicyScroll=true };
-    pub const FittingPolicyDefault_ = Self{ .FittingPolicyResizeDown=true };
+    pub const None: @This() = .{};
+    pub const FittingPolicyMask_: @This() = .{ .FittingPolicyResizeDown=true, .FittingPolicyScroll=true };
+    pub const FittingPolicyDefault_: @This() = .{ .FittingPolicyResizeDown=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const TabItemFlagsInt = FlagsInt;
@@ -1223,10 +1205,9 @@ pub const TabItemFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const TableColumnFlagsInt = FlagsInt;
@@ -1264,13 +1245,12 @@ pub const TableColumnFlags = packed struct {
     NoDirectResize_: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const WidthMask_ = Self{ .WidthStretch=true, .WidthFixed=true };
-    pub const IndentMask_ = Self{ .IndentEnable=true, .IndentDisable=true };
-    pub const StatusMask_ = Self{ .IsEnabled=true, .IsVisible=true, .IsSorted=true, .IsHovered=true };
+    pub const None: @This() = .{};
+    pub const WidthMask_: @This() = .{ .WidthStretch=true, .WidthFixed=true };
+    pub const IndentMask_: @This() = .{ .IndentEnable=true, .IndentDisable=true };
+    pub const StatusMask_: @This() = .{ .IsEnabled=true, .IsVisible=true, .IsSorted=true, .IsHovered=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const TableFlagsInt = FlagsInt;
@@ -1308,17 +1288,16 @@ pub const TableFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const BordersH = Self{ .BordersInnerH=true, .BordersOuterH=true };
-    pub const BordersV = Self{ .BordersInnerV=true, .BordersOuterV=true };
-    pub const BordersInner = Self{ .BordersInnerH=true, .BordersInnerV=true };
-    pub const BordersOuter = Self{ .BordersOuterH=true, .BordersOuterV=true };
-    pub const Borders = Self{ .BordersInnerH=true, .BordersOuterH=true, .BordersInnerV=true, .BordersOuterV=true };
-    pub const SizingStretchProp = Self{ .SizingFixedFit=true, .SizingFixedSame=true };
-    pub const SizingMask_ = Self{ .SizingFixedFit=true, .SizingFixedSame=true, .SizingStretchSame=true };
+    pub const None: @This() = .{};
+    pub const BordersH: @This() = .{ .BordersInnerH=true, .BordersOuterH=true };
+    pub const BordersV: @This() = .{ .BordersInnerV=true, .BordersOuterV=true };
+    pub const BordersInner: @This() = .{ .BordersInnerH=true, .BordersInnerV=true };
+    pub const BordersOuter: @This() = .{ .BordersOuterH=true, .BordersOuterV=true };
+    pub const Borders: @This() = .{ .BordersInnerH=true, .BordersOuterH=true, .BordersInnerV=true, .BordersOuterV=true };
+    pub const SizingStretchProp: @This() = .{ .SizingFixedFit=true, .SizingFixedSame=true };
+    pub const SizingMask_: @This() = .{ .SizingFixedFit=true, .SizingFixedSame=true, .SizingStretchSame=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const TableRowFlagsInt = FlagsInt;
@@ -1356,10 +1335,9 @@ pub const TableRowFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const TreeNodeFlagsInt = FlagsInt;
@@ -1397,11 +1375,10 @@ pub const TreeNodeFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const CollapsingHeader = Self{ .Framed=true, .NoTreePushOnOpen=true, .NoAutoOpenOnLog=true };
+    pub const None: @This() = .{};
+    pub const CollapsingHeader: @This() = .{ .Framed=true, .NoTreePushOnOpen=true, .NoAutoOpenOnLog=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const ViewportFlagsInt = FlagsInt;
@@ -1439,10 +1416,9 @@ pub const ViewportFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
+    pub const None: @This() = .{};
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const WindowFlagsInt = FlagsInt;
@@ -1480,13 +1456,12 @@ pub const WindowFlags = packed struct {
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
 
-    const Self = @This();
-    pub const None = Self{};
-    pub const NoNav = Self{ .NoNavInputs=true, .NoNavFocus=true };
-    pub const NoDecoration = Self{ .NoTitleBar=true, .NoResize=true, .NoScrollbar=true, .NoCollapse=true };
-    pub const NoInputs = Self{ .NoMouseInputs=true, .NoNavInputs=true, .NoNavFocus=true };
+    pub const None: @This() = .{};
+    pub const NoNav: @This() = .{ .NoNavInputs=true, .NoNavFocus=true };
+    pub const NoDecoration: @This() = .{ .NoTitleBar=true, .NoResize=true, .NoScrollbar=true, .NoCollapse=true };
+    pub const NoInputs: @This() = .{ .NoMouseInputs=true, .NoNavInputs=true, .NoNavFocus=true };
 
-    pub usingnamespace FlagsMixin(Self);
+    pub usingnamespace FlagsMixin(@This());
 };
 
 pub const Col = enum (i32) {
@@ -1714,12 +1689,10 @@ pub const Key = enum (i32) {
 
     pub const COUNT = 645;
     pub const NamedKey_BEGIN = 512;
-    pub const KeysData_OFFSET = 0;
-
-    pub const Self = @This();
-    pub const NamedKey_END = Self.COUNT;
-    pub const NamedKey_COUNT = Self.NamedKey_END - Self.NamedKey_BEGIN;
-    pub const KeysData_SIZE = Self.COUNT;
+    pub const NamedKey_END = @This().COUNT;
+    pub const NamedKey_COUNT = @This().NamedKey_END - @This().NamedKey_BEGIN;
+    pub const KeysData_SIZE = @This().NamedKey_COUNT;
+    pub const KeysData_OFFSET = @This().NamedKey_BEGIN;
 };
 
 pub const MouseButton = enum (i32) {
@@ -2600,8 +2573,6 @@ pub const IO = extern struct {
     MetricsActiveWindows: i32,
     MetricsActiveAllocations: i32,
     MouseDelta: Vec2,
-    KeyMap: [Key.COUNT]i32,
-    KeysDown: [Key.COUNT]bool,
     MousePos: Vec2,
     MouseDown: [5]bool,
     MouseWheel: f32,

@@ -1,4 +1,5 @@
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS 1
+#define IMGUI_DISABLE_OBSOLETE_KEYIO 1
 #define IMGUI_IMPL_API extern "C"
 
 #include "imgui/imgui.cpp"

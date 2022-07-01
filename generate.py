@@ -129,17 +129,15 @@ class ZigData:
         for bitName in bits:
             decl += '    ' + bitName + ': bool = false,\n'
         if aliases:
-            decl += '\n    const Self = @This();\n'
+            decl += '\n'
             for alias, intValue in aliases:
                 values = [ '.' + bits[x] + '=true' for x in range(32) if (intValue & (1<<x)) != 0 ]
                 if values:
-                    init = 'Self{ ' + ', '.join(values) + ' }'
+                    init = '.{ ' + ', '.join(values) + ' }'
                 else:
-                    init = 'Self{}'
-                decl += '    pub const ' + alias + ' = ' + init + ';\n'
-            decl += '\n    pub usingnamespace FlagsMixin(Self);\n'
-        else:
-            decl += '\n    pub usingnamespace FlagsMixin(@This());\n'
+                    init = '.{}'
+                decl += '    pub const ' + alias + ': @This() = ' + init + ';\n'
+        decl += '\n    pub usingnamespace FlagsMixin(@This());\n'
             
         decl += '};'
         self.bitsets.append(decl)
@@ -155,12 +153,12 @@ class ZigData:
             if valueName[0] >= '0' and valueName[0] <= '9':
                 valueName = '@"' + valueName + '"'
             valueValue = str(value['value'])
-            if valueName == 'COUNT' or valueName.endswith('_BEGIN') or valueName.endswith('_OFFSET'):
+            if name in valueValue:
+                valueValue = valueValue.replace(name+'_', '@This().')
+            if valueName == 'COUNT' or valueName.endswith('_BEGIN') or valueName.endswith('_OFFSET') or valueName.endswith('_END') or valueName.endswith('_COUNT') or valueName.endswith('_SIZE'):
                 sentinels.append('    pub const '+valueName+' = '+valueValue+';')
-            elif name in valueValue:
-                aliases.append('    pub const '+valueName+' = '+valueValue.replace(name+'_', 'Self.')+';')
             else:
-                decl += '    '+valueName+' = '+str(value['value'])+',\n'
+                decl += '    '+valueName+' = '+valueValue+',\n'
         decl += '    _,\n'
         if sentinels:
             decl += '\n' + '\n'.join(sentinels) + '\n'

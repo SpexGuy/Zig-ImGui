@@ -509,8 +509,8 @@ typedef enum {
     ImGuiKey_NamedKey_BEGIN = 512,
     ImGuiKey_NamedKey_END = ImGuiKey_COUNT,
     ImGuiKey_NamedKey_COUNT = ImGuiKey_NamedKey_END - ImGuiKey_NamedKey_BEGIN,
-    ImGuiKey_KeysData_SIZE = ImGuiKey_COUNT,
-    ImGuiKey_KeysData_OFFSET = 0
+    ImGuiKey_KeysData_SIZE = ImGuiKey_NamedKey_COUNT,
+    ImGuiKey_KeysData_OFFSET = ImGuiKey_NamedKey_BEGIN
 }ImGuiKey_;
 typedef enum {
     ImGuiModFlags_None = 0,
@@ -822,8 +822,6 @@ struct ImGuiIO
     int MetricsActiveWindows;
     int MetricsActiveAllocations;
     ImVec2 MouseDelta;
-    int KeyMap[ImGuiKey_COUNT];
-    bool KeysDown[ImGuiKey_COUNT];
     ImVec2 MousePos;
     bool MouseDown[5];
     float MouseWheel;
