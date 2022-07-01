@@ -4,7 +4,7 @@ const path = std.fs.path;
 const Builder = std.build.Builder;
 const LibExeObjStep = std.build.LibExeObjStep;
 
-const imgui_build = @import("zig-imgui/build.zig");
+const imgui_build = @import("zig-imgui/imgui_build.zig");
 
 const glslc_command = if (builtin.os.tag == .windows) "tools/win/glslc.exe" else "glslc";
 

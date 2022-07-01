@@ -1,11 +1,5 @@
 const std = @import("std");
 
-pub fn build(b: *std.build.Builder) void {
-    const mode = b.standardReleaseOptions();
-    const target = b.standardTargetOptions(.{});
-    addTestStep(b, "test", "../cimgui/imgui", mode, target);
-}
-
 // @src() is only allowed inside of a function, so we need this wrapper
 fn srcFile() []const u8 { return @src().file; }
 const sep = std.fs.path.sep_str;
