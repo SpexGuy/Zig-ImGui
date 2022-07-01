@@ -139,7 +139,12 @@ pub fn main() !void {
         var display_h: c_int = 0;
         glfw.glfwGetFramebufferSize(window, &display_w, &display_h);
         gl.glViewport(0, 0, display_w, display_h);
-        gl.glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        gl.glClearColor(
+            clear_color.x * clear_color.w,
+            clear_color.y * clear_color.w,
+            clear_color.z * clear_color.w,
+            clear_color.w,
+        );
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         impl_gl3.RenderDrawData(imgui.GetDrawData());
 

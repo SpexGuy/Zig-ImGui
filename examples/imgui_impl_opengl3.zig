@@ -34,88 +34,154 @@ const imgui = @import("imgui");
 const gl = @import("include/gl.zig");
 const builtin = @import("builtin");
 
+const assert = std.debug.assert;
+
 const is_darwin = builtin.os.tag.isDarwin();
 
 // Desktop GL 3.2+ has glDrawElementsBaseVertex() which GL ES and WebGL don't have.
-const IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET = true;
+const MAY_HAVE_VTX_OFFSET = @hasDecl(gl, "glDrawElementsBaseVertex");
+const MAY_HAVE_BIND_SAMPLER = @hasDecl(gl, "glBindSampler");
+const MAY_HAVE_PRIMITIVE_RESTART = @hasDecl(gl, "GL_PRIMITIVE_RESTART");
+const MAY_HAVE_EXTENSIONS = @hasDecl(gl, "GL_NUM_EXTENSIONS");
+const MAY_HAVE_CLIP_ORIGIN = @hasDecl(gl, "GL_CLIP_ORIGIN");
+const HAS_POLYGON_MODE = @hasDecl(gl, "glPolygonMode");
 
 // OpenGL Data
-var g_GlVersion: gl.GLuint = 0; // Extracted at runtime using GL_MAJOR_VERSION, GL_MINOR_VERSION queries.
-var g_GlslVersionStringMem: [32]u8 = undefined; // Specified by user or detected based on compile time GL settings.
-var g_GlslVersionString: []u8 = &g_GlslVersionStringMem; // slice of g_GlslVersionStringMem
-var g_FontTexture: c_uint = 0;
-var g_ShaderHandle: c_uint = 0;
-var g_VertHandle: c_uint = 0;
-var g_FragHandle: c_uint = 0;
-var g_AttribLocationTex: i32 = 0;
-var g_AttribLocationProjMtx: i32 = 0; // Uniforms location
-var g_AttribLocationVtxPos: i32 = 0;
-var g_AttribLocationVtxUV: i32 = 0;
-var g_AttribLocationVtxColor: i32 = 0; // Vertex attributes location
-var g_VboHandle: c_uint = 0;
-var g_ElementsHandle: c_uint = 0;
+const Data = extern struct {
+    GlVersion: gl.GLuint = 0, // Extracted at runtime using GL_MAJOR_VERSION, GL_MINOR_VERSION queries.
+    GlslVersionString: [32]u8 = undefined, // Specified by user or detected based on compile time GL settings.
+    FontTexture: c_uint = 0,
+    ShaderHandle: c_uint = 0,
+    AttribLocationTex: i32 = 0,
+    AttribLocationProjMtx: i32 = 0, // Uniforms location
+    AttribLocationVtxPos: i32 = 0,
+    AttribLocationVtxUV: i32 = 0,
+    AttribLocationVtxColor: i32 = 0, // Vertex attributes location
+    VboHandle: c_uint = 0,
+    ElementsHandle: c_uint = 0,
+    VertexBufferSize: gl.GLsizeiptr = 0,
+    IndexBufferSize: gl.GLsizeiptr = 0,
+    HasClipOrigin: bool = false,
+    UseBufferSubData: bool = false,
+};
+
+fn GetBackendData() ?*Data {
+    return if (imgui.GetCurrentContext() != null) @ptrCast(?*Data, @alignCast(@alignOf(Data), imgui.GetIO().BackendRendererUserData)) else null;
+}
 
 // Functions
-pub fn Init(glsl_version_opt: ?[:0]const u8) bool {
+pub fn Init(glsl_version_opt: ?[]const u8) bool {
+    const io = imgui.GetIO();
+    assert(io.BackendRendererUserData == null); // Already initialized a renderer backend
+
+    const bd = @ptrCast(*Data, @alignCast(@alignOf(Data), imgui.MemAlloc(@sizeOf(Data))));
+    bd.* = .{};
+
+    io.BackendRendererUserData = bd;
+    io.BackendRendererName = "imgui_impl_opengl3";
+
     // Query for GL version
-    var major: gl.GLint = undefined;
-    var minor: gl.GLint = undefined;
+    var major: gl.GLint = 0;
+    var minor: gl.GLint = 0;
     gl.glGetIntegerv(gl.GL_MAJOR_VERSION, &major);
     gl.glGetIntegerv(gl.GL_MINOR_VERSION, &minor);
-    g_GlVersion = @intCast(gl.GLuint, major * 1000 + minor);
+    if (major == 0 and minor == 0) {
+        const gl_version = gl.glGetString(gl.GL_VERSION);
+        var it = std.mem.tokenize(u8, std.mem.span(gl_version), ".");
+        major = std.fmt.parseInt(gl.GLint, it.next() orelse "0", 10) catch 0;
+        minor = std.fmt.parseInt(gl.GLint, it.next() orelse "0", 10) catch 0;
+    }
+    bd.GlVersion = @intCast(gl.GLuint, major * 100 + minor);
+
+    // Query vendor to enable glBufferSubData kludge
+    if (builtin.os.tag == .windows) {
+        if (gl.glGetString(gl.GL_VENDOR)) |vendor| {
+            if (std.mem.eql(u8, vendor[0..5], "Intel")) {
+                bd.UseBufferSubData = true;
+            }
+        }
+    }
 
     // Setup back-end capabilities flags
-    var io = imgui.GetIO();
-    io.BackendRendererName = "imgui_impl_opengl3";
-    if (IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET) {
-        if (g_GlVersion >= 3200)
-            io.BackendFlags.RendererHasVtxOffset = true; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+    if (MAY_HAVE_VTX_OFFSET and bd.GlVersion >= 320) {
+        io.BackendFlags.RendererHasVtxOffset = true; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
     }
 
     // Store GLSL version string so we can refer to it later in case we recreate shaders.
     // Note: GLSL version is NOT the same as GL version. Leave this to NULL if unsure.
-    var glsl_version: [:0]const u8 = undefined;
-    if (glsl_version_opt) |value| {
-        glsl_version = value;
-    } else {
-        glsl_version = "#version 130";
-    }
+    const default_glsl_version = if (is_darwin) "#version 150" else "#version 130";
+    const glsl_version: []const u8 = glsl_version_opt orelse default_glsl_version;
 
-    std.debug.assert(glsl_version.len + 2 < g_GlslVersionStringMem.len);
-    std.mem.copy(u8, g_GlslVersionStringMem[0..glsl_version.len], glsl_version);
-    g_GlslVersionStringMem[glsl_version.len] = '\n';
-    g_GlslVersionStringMem[glsl_version.len + 1] = 0;
-    g_GlslVersionString = g_GlslVersionStringMem[0..glsl_version.len];
+    assert(glsl_version.len + 2 < bd.GlslVersionString.len);
+    std.mem.copy(u8, bd.GlslVersionString[0..glsl_version.len], glsl_version);
+    bd.GlslVersionString[glsl_version.len] = '\n';
+    bd.GlslVersionString[glsl_version.len + 1] = 0;
 
     // Make a dummy GL call (we don't actually need the result)
     // IF YOU GET A CRASH HERE: it probably means that you haven't initialized the OpenGL function loader used by this code.
-    // Desktop OpenGL 3/4 need a function loader. See the IMGUI_IMPL_OPENGL_LOADER_xxx explanation above.
+    // Desktop OpenGL 3/4 need a function loader. See the LOADER_xxx explanation above.
     var current_texture: gl.GLint = undefined;
     gl.glGetIntegerv(gl.GL_TEXTURE_BINDING_2D, &current_texture);
+
+    bd.HasClipOrigin = (bd.GlVersion >= 450);
+    if (MAY_HAVE_EXTENSIONS) {
+        var extensions: gl.GLint = 0;
+        gl.glGetIntegerv(gl.GL_NUM_EXTENSIONS, &extensions);
+        var i: gl.GLint = 0;
+        while (i < extensions) : (i += 1) {
+            if (gl.glGetStringi(gl.GL_EXTENSIONS, @intCast(gl.GLuint, i))) |ext_nt| {
+                const ext = std.mem.span(ext_nt);
+                if (std.mem.eql(u8, ext, "GL_ARB_clip_control"))
+                    bd.HasClipOrigin = true;
+            }
+        }
+    }
 
     return true;
 }
 
 pub fn Shutdown() void {
+    const bd = GetBackendData().?; // Not initialized or already shutdown?
+    const io = imgui.GetIO();
+
     DestroyDeviceObjects();
+    io.BackendRendererName = null;
+    io.BackendRendererUserData = null;
+    imgui.MemFree(bd);
 }
 
 pub fn NewFrame() void {
-    if (g_ShaderHandle == 0) {
+    const bd = GetBackendData().?; // Did you call Init()?
+    if (bd.ShaderHandle == 0) {
         _ = CreateDeviceObjects();
     }
 }
 
 fn SetupRenderState(draw_data: *imgui.DrawData, fb_width: c_int, fb_height: c_int, vertex_array_object: gl.GLuint) void {
+    const bd = GetBackendData().?;
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
     gl.glEnable(gl.GL_BLEND);
     gl.glBlendEquation(gl.GL_FUNC_ADD);
-    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
+    gl.glBlendFuncSeparate(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA, gl.GL_ONE, gl.GL_ONE_MINUS_SRC_ALPHA);
     gl.glDisable(gl.GL_CULL_FACE);
     gl.glDisable(gl.GL_DEPTH_TEST);
+    gl.glDisable(gl.GL_STENCIL_TEST);
     gl.glEnable(gl.GL_SCISSOR_TEST);
-    if (@hasDecl(gl, "glPolygonMode")) {
+
+    if (MAY_HAVE_PRIMITIVE_RESTART and bd.GlVersion >= 310) {
+        gl.glDisable(gl.GL_PRIMITIVE_RESTART);
+    }
+    if (HAS_POLYGON_MODE) {
         gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
+    }
+
+    // Support for GL 4.5 rarely used glClipControl(GL_UPPER_LEFT)
+    var clip_origin_lower_left = true;
+    if (MAY_HAVE_CLIP_ORIGIN and bd.HasClipOrigin) {
+        var current_clip_origin: gl.GLint = 0;
+        gl.glGetIntegerv(gl.GL_CLIP_ORIGIN, &current_clip_origin);
+        if (current_clip_origin == gl.GL_UPPER_LEFT)
+            clip_origin_lower_left = false;
     }
 
     // Setup viewport, orthographic projection matrix
@@ -125,28 +191,32 @@ fn SetupRenderState(draw_data: *imgui.DrawData, fb_width: c_int, fb_height: c_in
     var R = draw_data.DisplayPos.x + draw_data.DisplaySize.x;
     var T = draw_data.DisplayPos.y;
     var B = draw_data.DisplayPos.y + draw_data.DisplaySize.y;
+    if (MAY_HAVE_CLIP_ORIGIN and !clip_origin_lower_left) {
+        // swap top and bottom if origin is upper left
+        const tmp = T; T = B; B = tmp;
+    }
     const ortho_projection = [4][4]f32{
         [4]f32{ 2.0 / (R - L), 0.0, 0.0, 0.0 },
         [4]f32{ 0.0, 2.0 / (T - B), 0.0, 0.0 },
         [4]f32{ 0.0, 0.0, -1.0, 0.0 },
         [4]f32{ (R + L) / (L - R), (T + B) / (B - T), 0.0, 1.0 },
     };
-    gl.glUseProgram(g_ShaderHandle);
-    gl.glUniform1i(g_AttribLocationTex, 0);
-    gl.glUniformMatrix4fv(g_AttribLocationProjMtx, 1, gl.GL_FALSE, &ortho_projection[0][0]);
-    if (@hasDecl(gl, "glBindSampler")) {
+    gl.glUseProgram(bd.ShaderHandle);
+    gl.glUniform1i(bd.AttribLocationTex, 0);
+    gl.glUniformMatrix4fv(bd.AttribLocationProjMtx, 1, gl.GL_FALSE, &ortho_projection[0][0]);
+    if (MAY_HAVE_BIND_SAMPLER and bd.GlVersion >= 330) {
         gl.glBindSampler(0, 0); // We use combined texture/sampler state. Applications using GL 3.3 may set that otherwise.
     }
 
     gl.glBindVertexArray(vertex_array_object);
     // Bind vertex/index buffers and setup attributes for ImDrawVert
-    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, g_VboHandle);
-    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, g_ElementsHandle);
-    gl.glEnableVertexAttribArray(@intCast(c_uint, g_AttribLocationVtxPos));
-    gl.glEnableVertexAttribArray(@intCast(c_uint, g_AttribLocationVtxUV));
-    gl.glEnableVertexAttribArray(@intCast(c_uint, g_AttribLocationVtxColor));
+    gl.glBindBuffer(gl.GL_ARRAY_BUFFER, bd.VboHandle);
+    gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, bd.ElementsHandle);
+    gl.glEnableVertexAttribArray(@intCast(c_uint, bd.AttribLocationVtxPos));
+    gl.glEnableVertexAttribArray(@intCast(c_uint, bd.AttribLocationVtxUV));
+    gl.glEnableVertexAttribArray(@intCast(c_uint, bd.AttribLocationVtxColor));
     gl.glVertexAttribPointer(
-        @intCast(c_uint, g_AttribLocationVtxPos),
+        @intCast(c_uint, bd.AttribLocationVtxPos),
         2,
         gl.GL_FLOAT,
         gl.GL_FALSE,
@@ -154,7 +224,7 @@ fn SetupRenderState(draw_data: *imgui.DrawData, fb_width: c_int, fb_height: c_in
         @intToPtr(?*anyopaque, @offsetOf(imgui.DrawVert, "pos")),
     );
     gl.glVertexAttribPointer(
-        @intCast(c_uint, g_AttribLocationVtxUV),
+        @intCast(c_uint, bd.AttribLocationVtxUV),
         2,
         gl.GL_FLOAT,
         gl.GL_FALSE,
@@ -162,7 +232,7 @@ fn SetupRenderState(draw_data: *imgui.DrawData, fb_width: c_int, fb_height: c_in
         @intToPtr(?*anyopaque, @offsetOf(imgui.DrawVert, "uv")),
     );
     gl.glVertexAttribPointer(
-        @intCast(c_uint, g_AttribLocationVtxColor),
+        @intCast(c_uint, bd.AttribLocationVtxColor),
         4,
         gl.GL_UNSIGNED_BYTE,
         gl.GL_TRUE,
@@ -183,45 +253,43 @@ fn getGLInts(name: gl.GLenum, comptime N: comptime_int) [N]gl.GLint {
 }
 
 // OpenGL3 Render function.
-// (this used to be set in io.RenderDrawListsFn and called by ImGui::Render(), but you can now call this directly from your main loop)
-// Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so.
+// Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly.
+// This is in order to be able to run within any OpenGL engine that doesn't do so.
 pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-    var fb_width = @floatToInt(c_int, draw_data.DisplaySize.x * draw_data.FramebufferScale.x);
-    var fb_height = @floatToInt(c_int, draw_data.DisplaySize.y * draw_data.FramebufferScale.y);
+    const fb_width = @floatToInt(c_int, draw_data.DisplaySize.x * draw_data.FramebufferScale.x);
+    const fb_height = @floatToInt(c_int, draw_data.DisplaySize.y * draw_data.FramebufferScale.y);
     if (fb_width <= 0 or fb_height <= 0)
         return;
 
+    const bd = GetBackendData().?;
+
     // Backup GL state
-    var last_active_texture = @intCast(gl.GLenum, getGLInt(gl.GL_ACTIVE_TEXTURE));
+    const last_active_texture = @intCast(gl.GLenum, getGLInt(gl.GL_ACTIVE_TEXTURE));
     gl.glActiveTexture(gl.GL_TEXTURE0);
-    var last_program = getGLInt(gl.GL_CURRENT_PROGRAM);
-    var last_texture = getGLInt(gl.GL_TEXTURE_BINDING_2D);
+    const last_program = getGLInt(gl.GL_CURRENT_PROGRAM);
+    const last_texture = getGLInt(gl.GL_TEXTURE_BINDING_2D);
 
-    var last_sampler = if (@hasDecl(gl, "GL_SAMPLER_BINDING")) getGLInt(gl.GL_SAMPLER_BINDING) else void{};
-    var last_array_buffer = getGLInt(gl.GL_ARRAY_BUFFER_BINDING);
-    var last_vertex_array_object = getGLInt(gl.GL_VERTEX_ARRAY_BINDING);
-    var last_polygon_mode = if (@hasDecl(gl, "GL_POLYGON_MODE")) getGLInts(gl.GL_POLYGON_MODE, 2) else void{};
+    const last_sampler = if (MAY_HAVE_BIND_SAMPLER and bd.GlVersion >= 330) getGLInt(gl.GL_SAMPLER_BINDING) else @as(gl.GLint, 0);
+    const last_array_buffer = getGLInt(gl.GL_ARRAY_BUFFER_BINDING);
+    const last_vertex_array_object = getGLInt(gl.GL_VERTEX_ARRAY_BINDING);
+    const last_polygon_mode = if (HAS_POLYGON_MODE) getGLInts(gl.GL_POLYGON_MODE, 2) else void{};
 
-    var last_viewport = getGLInts(gl.GL_VIEWPORT, 4);
-    var last_scissor_box = getGLInts(gl.GL_SCISSOR_BOX, 4);
-    var last_blend_src_rgb = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_SRC_RGB));
-    var last_blend_dst_rgb = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_DST_RGB));
-    var last_blend_src_alpha = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_SRC_ALPHA));
-    var last_blend_dst_alpha = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_DST_ALPHA));
-    var last_blend_equation_rgb = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_EQUATION_RGB));
-    var last_blend_equation_alpha = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_EQUATION_ALPHA));
-    var last_enable_blend = gl.glIsEnabled(gl.GL_BLEND);
-    var last_enable_cull_face = gl.glIsEnabled(gl.GL_CULL_FACE);
-    var last_enable_depth_test = gl.glIsEnabled(gl.GL_DEPTH_TEST);
-    var last_enable_scissor_test = gl.glIsEnabled(gl.GL_SCISSOR_TEST);
+    const last_viewport = getGLInts(gl.GL_VIEWPORT, 4);
+    const last_scissor_box = getGLInts(gl.GL_SCISSOR_BOX, 4);
+    const last_blend_src_rgb = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_SRC_RGB));
+    const last_blend_dst_rgb = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_DST_RGB));
+    const last_blend_src_alpha = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_SRC_ALPHA));
+    const last_blend_dst_alpha = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_DST_ALPHA));
+    const last_blend_equation_rgb = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_EQUATION_RGB));
+    const last_blend_equation_alpha = @intCast(gl.GLenum, getGLInt(gl.GL_BLEND_EQUATION_ALPHA));
+    const last_enable_blend = gl.glIsEnabled(gl.GL_BLEND);
+    const last_enable_cull_face = gl.glIsEnabled(gl.GL_CULL_FACE);
+    const last_enable_depth_test = gl.glIsEnabled(gl.GL_DEPTH_TEST);
+    const last_enable_stencil_test = gl.glIsEnabled(gl.GL_STENCIL_TEST);
+    const last_enable_scissor_test = gl.glIsEnabled(gl.GL_SCISSOR_TEST);
 
-    var clip_origin_lower_left = true;
-    if (@hasDecl(gl, "GL_CLIP_ORIGIN") and !is_darwin) {
-        var last_clip_origin = getGLInt(gl.GL_CLIP_ORIGIN); // Support for GL 4.5's glClipControl(GL_UPPER_LEFT)
-        if (last_clip_origin == gl.GL_UPPER_LEFT)
-            clip_origin_lower_left = false;
-    }
+    const last_enable_primitive_restart = if (MAY_HAVE_PRIMITIVE_RESTART and bd.GlVersion >= 310) gl.glIsEnabled(gl.GL_PRIMITIVE_RESTART) else gl.GL_FALSE;
 
     // Setup desired GL state
     // Recreate the VAO every time (this is to easily allow multiple GL contexts to be rendered to. VAO are not shared among GL contexts)
@@ -240,8 +308,26 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     if (draw_data.CmdListsCount > 0) {
         for (draw_data.CmdLists.?[0..@intCast(usize, draw_data.CmdListsCount)]) |cmd_list| {
             // Upload vertex/index buffers
-            gl.glBufferData(gl.GL_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.VtxBuffer.size_in_bytes()), cmd_list.VtxBuffer.Data, gl.GL_STREAM_DRAW);
-            gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, @intCast(gl.GLsizeiptr, cmd_list.IdxBuffer.size_in_bytes()), cmd_list.IdxBuffer.Data, gl.GL_STREAM_DRAW);
+            // - On Intel windows drivers we got reports that regular glBufferData() led to accumulating leaks when using multi-viewports, so we started using orphaning + glBufferSubData(). (See https://github.com/ocornut/imgui/issues/4468)
+            // - On NVIDIA drivers we got reports that using orphaning + glBufferSubData() led to glitches when using multi-viewports.
+            // - OpenGL drivers are in a very sorry state in 2022, for now we are switching code path based on vendors.
+            const vtx_buffer_size = cmd_list.VtxBuffer.size_in_bytes();
+            const idx_buffer_size = cmd_list.IdxBuffer.size_in_bytes();
+            if (bd.UseBufferSubData) {
+                if (bd.VertexBufferSize < vtx_buffer_size) {
+                    bd.VertexBufferSize = vtx_buffer_size;
+                    gl.glBufferData(gl.GL_ARRAY_BUFFER, bd.VertexBufferSize, null, gl.GL_STREAM_DRAW);
+                }
+                if (bd.IndexBufferSize < idx_buffer_size) {
+                    bd.IndexBufferSize = idx_buffer_size;
+                    gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, bd.IndexBufferSize, null, gl.GL_STREAM_DRAW);
+                }
+                gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, vtx_buffer_size, cmd_list.VtxBuffer.Data);
+                gl.glBufferSubData(gl.GL_ELEMENT_ARRAY_BUFFER, 0, idx_buffer_size, cmd_list.IdxBuffer.Data); 
+            } else {
+                gl.glBufferData(gl.GL_ARRAY_BUFFER, vtx_buffer_size, cmd_list.VtxBuffer.Data, gl.GL_STREAM_DRAW);
+                gl.glBufferData(gl.GL_ELEMENT_ARRAY_BUFFER, idx_buffer_size, cmd_list.IdxBuffer.Data, gl.GL_STREAM_DRAW);
+            }
 
             for (cmd_list.CmdBuffer.items()) |pcmd| {
                 if (pcmd.UserCallback) |fnPtr| {
@@ -254,39 +340,42 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
                     }
                 } else {
                     // Project scissor/clipping rectangles into framebuffer space
-                    var clip_rect = imgui.Vec4{
+                    var clip_min = imgui.Vec2{
                         .x = (pcmd.ClipRect.x - clip_off.x) * clip_scale.x,
                         .y = (pcmd.ClipRect.y - clip_off.y) * clip_scale.y,
-                        .z = (pcmd.ClipRect.z - clip_off.x) * clip_scale.x,
-                        .w = (pcmd.ClipRect.w - clip_off.y) * clip_scale.y,
                     };
+                    var clip_max = imgui.Vec2{
+                        .x = (pcmd.ClipRect.z - clip_off.x) * clip_scale.x,
+                        .y = (pcmd.ClipRect.w - clip_off.y) * clip_scale.y,
+                    };
+                    if (clip_max.x <= clip_min.x or clip_max.y <= clip_min.y)
+                        continue;
 
-                    if (clip_rect.x < @intToFloat(f32, fb_width) and clip_rect.y < @intToFloat(f32, fb_height) and clip_rect.z >= 0.0 and clip_rect.w >= 0.0) {
-                        // Apply scissor/clipping rectangle
-                        if (clip_origin_lower_left) {
-                            gl.glScissor(@floatToInt(c_int, clip_rect.x), fb_height - @floatToInt(c_int, clip_rect.w), @floatToInt(c_int, clip_rect.z - clip_rect.x), @floatToInt(c_int, clip_rect.w - clip_rect.y));
-                        } else {
-                            gl.glScissor(@floatToInt(c_int, clip_rect.x), @floatToInt(c_int, clip_rect.y), @floatToInt(c_int, clip_rect.z), @floatToInt(c_int, clip_rect.w)); // Support for GL 4.5 rarely used glClipControl(GL_UPPER_LEFT)
-                        }
+                    // Apply scissor/clipping rectangle (Y is inverted in OpenGL)
+                    gl.glScissor(
+                        @floatToInt(c_int, clip_min.x),
+                        fb_height - @floatToInt(c_int, clip_max.y),
+                        @floatToInt(c_int, clip_max.x - clip_min.x),
+                        @floatToInt(c_int, clip_max.y - clip_min.y),
+                    );
 
-                        // Bind texture, Draw
-                        gl.glBindTexture(gl.GL_TEXTURE_2D, @intCast(gl.GLuint, @ptrToInt(pcmd.TextureId)));
-                        if (IMGUI_IMPL_OPENGL_MAY_HAVE_VTX_OFFSET and g_GlVersion >= 3200) {
-                            gl.glDrawElementsBaseVertex(
-                                gl.GL_TRIANGLES,
-                                @intCast(gl.GLsizei, pcmd.ElemCount),
-                                if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
-                                @intToPtr(?*const anyopaque, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
-                                @intCast(gl.GLint, pcmd.VtxOffset),
-                            );
-                        } else {
-                            gl.glDrawElements(
-                                gl.GL_TRIANGLES,
-                                @intCast(gl.GLsizei, pcmd.ElemCount),
-                                if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
-                                @intToPtr(?*const anyopaque, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
-                            );
-                        }
+                    // Bind texture, Draw
+                    gl.glBindTexture(gl.GL_TEXTURE_2D, @intCast(gl.GLuint, @ptrToInt(pcmd.GetTexID())));
+                    if (MAY_HAVE_VTX_OFFSET and bd.GlVersion >= 320) {
+                        gl.glDrawElementsBaseVertex(
+                            gl.GL_TRIANGLES,
+                            @intCast(gl.GLsizei, pcmd.ElemCount),
+                            if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
+                            @intToPtr(?*const anyopaque, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
+                            @intCast(gl.GLint, pcmd.VtxOffset),
+                        );
+                    } else {
+                        gl.glDrawElements(
+                            gl.GL_TRIANGLES,
+                            @intCast(gl.GLsizei, pcmd.ElemCount),
+                            if (@sizeOf(imgui.DrawIdx) == 2) gl.GL_UNSIGNED_SHORT else gl.GL_UNSIGNED_INT,
+                            @intToPtr(?*const anyopaque, pcmd.IdxOffset * @sizeOf(imgui.DrawIdx)),
+                        );
                     }
                 }
             }
@@ -299,7 +388,7 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     // Restore modified GL state
     gl.glUseProgram(@intCast(c_uint, last_program));
     gl.glBindTexture(gl.GL_TEXTURE_2D, @intCast(c_uint, last_texture));
-    if (@hasDecl(gl, "GL_SAMPLER_BINDING")) gl.glBindSampler(0, last_sampler);
+    if (MAY_HAVE_BIND_SAMPLER and bd.GlVersion >= 330) gl.glBindSampler(0, last_sampler);
     gl.glActiveTexture(last_active_texture);
     gl.glBindVertexArray(@intCast(c_uint, last_vertex_array_object));
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, @intCast(c_uint, last_array_buffer));
@@ -308,25 +397,31 @@ pub fn RenderDrawData(draw_data: *imgui.DrawData) void {
     if (last_enable_blend != 0) gl.glEnable(gl.GL_BLEND) else gl.glDisable(gl.GL_BLEND);
     if (last_enable_cull_face != 0) gl.glEnable(gl.GL_CULL_FACE) else gl.glDisable(gl.GL_CULL_FACE);
     if (last_enable_depth_test != 0) gl.glEnable(gl.GL_DEPTH_TEST) else gl.glDisable(gl.GL_DEPTH_TEST);
+    if (last_enable_stencil_test != 0) gl.glEnable(gl.GL_STENCIL_TEST) else gl.glDisable(gl.GL_STENCIL_TEST);
     if (last_enable_scissor_test != 0) gl.glEnable(gl.GL_SCISSOR_TEST) else gl.glDisable(gl.GL_SCISSOR_TEST);
-    if (@hasDecl(gl, "GL_POLYGON_MODE")) gl.glPolygonMode(gl.GL_FRONT_AND_BACK, @intCast(gl.GLenum, last_polygon_mode[0]));
+    if (MAY_HAVE_PRIMITIVE_RESTART and bd.GlVersion > 310)
+        if (last_enable_primitive_restart != 0) gl.glEnable(gl.GL_PRIMITIVE_RESTART) else gl.glDisable(gl.GL_PRIMITIVE_RESTART);
+    if (HAS_POLYGON_MODE) gl.glPolygonMode(gl.GL_FRONT_AND_BACK, @intCast(gl.GLenum, last_polygon_mode[0]));
     gl.glViewport(last_viewport[0], last_viewport[1], @intCast(gl.GLsizei, last_viewport[2]), @intCast(gl.GLsizei, last_viewport[3]));
     gl.glScissor(last_scissor_box[0], last_scissor_box[1], @intCast(gl.GLsizei, last_scissor_box[2]), @intCast(gl.GLsizei, last_scissor_box[3]));
 }
 
 fn CreateFontsTexture() bool {
-    // Build texture atlas
     const io = imgui.GetIO();
+    const bd = GetBackendData().?;
+
+    // Build texture atlas
     var pixels: ?[*]u8 = undefined;
     var width: i32 = undefined;
     var height: i32 = undefined;
     io.Fonts.?.GetTexDataAsRGBA32(&pixels, &width, &height); // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
 
     // Upload texture to graphics system
+    // (Bilinear sampling is required by default. Set 'io.Fonts->Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
     var last_texture: gl.GLint = undefined;
     gl.glGetIntegerv(gl.GL_TEXTURE_BINDING_2D, &last_texture);
-    gl.glGenTextures(1, &g_FontTexture);
-    gl.glBindTexture(gl.GL_TEXTURE_2D, g_FontTexture);
+    gl.glGenTextures(1, &bd.FontTexture);
+    gl.glBindTexture(gl.GL_TEXTURE_2D, bd.FontTexture);
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR);
     gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR);
     if (@hasDecl(gl, "GL_UNPACK_ROW_LENGTH"))
@@ -334,7 +429,7 @@ fn CreateFontsTexture() bool {
     gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, pixels);
 
     // Store our identifier
-    io.Fonts.?.TexID = @intToPtr(imgui.TextureID, g_FontTexture);
+    io.Fonts.?.SetTexID(@intToPtr(imgui.TextureID, bd.FontTexture));
 
     // Restore state
     gl.glBindTexture(gl.GL_TEXTURE_2D, @intCast(c_uint, last_texture));
@@ -343,22 +438,24 @@ fn CreateFontsTexture() bool {
 }
 
 fn DestroyFontsTexture() void {
-    if (g_FontTexture != 0) {
-        const io = imgui.GetIO();
-        gl.glDeleteTextures(1, &g_FontTexture);
-        io.Fonts.?.TexID = null;
-        g_FontTexture = 0;
+    const io = imgui.GetIO();
+    const bd = GetBackendData().?;
+    if (bd.FontTexture != 0) {
+        gl.glDeleteTextures(1, &bd.FontTexture);
+        io.Fonts.?.SetTexID(null);
+        bd.FontTexture = 0;
     }
 }
 
 // If you get an error please report on github. You may try different GL context version or GLSL version. See GL<>GLSL version table at the top of this file.
 fn CheckShader(handle: gl.GLuint, desc: []const u8) bool {
+    const bd = GetBackendData().?;
     var status: gl.GLint = 0;
     var log_length: gl.GLint = 0;
     gl.glGetShaderiv(handle, gl.GL_COMPILE_STATUS, &status);
     gl.glGetShaderiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
     if (status == gl.GL_FALSE)
-        std.debug.print("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to compile {s}!\n", .{desc});
+        std.debug.print("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to compile {s}! With GLSL: {s}\n", .{desc, std.mem.sliceTo(&bd.GlslVersionString, 0)});
     if (log_length > 1) {
         var buf: imgui.Vector(u8) = .{};
         defer buf.deinit();
@@ -371,12 +468,13 @@ fn CheckShader(handle: gl.GLuint, desc: []const u8) bool {
 
 // If you get an error please report on GitHub. You may try different GL context version or GLSL version.
 fn CheckProgram(handle: gl.GLuint, desc: []const u8) bool {
+    const bd = GetBackendData().?;
     var status: gl.GLint = 0;
     var log_length: gl.GLint = 0;
     gl.glGetProgramiv(handle, gl.GL_LINK_STATUS, &status);
     gl.glGetProgramiv(handle, gl.GL_INFO_LOG_LENGTH, &log_length);
     if (status == gl.GL_FALSE)
-        std.debug.print("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to link {s}! (with GLSL '{s}')\n", .{ desc, g_GlslVersionString });
+        std.debug.print("ERROR: imgui_impl_opengl3.CreateDeviceObjects: failed to link {s}! With GLSL {s}\n", .{ desc, std.mem.sliceTo(&bd.GlslVersionString, 0) });
     if (log_length > 1) {
         var buf: imgui.Vector(u8) = .{};
         defer buf.deinit();
@@ -388,6 +486,8 @@ fn CheckProgram(handle: gl.GLuint, desc: []const u8) bool {
 }
 
 fn CreateDeviceObjects() bool {
+    const bd = GetBackendData().?;
+
     // Backup GL state
     var last_texture = getGLInt(gl.GL_TEXTURE_BINDING_2D);
     var last_array_buffer = getGLInt(gl.GL_ARRAY_BUFFER_BINDING);
@@ -396,11 +496,11 @@ fn CreateDeviceObjects() bool {
     // Parse GLSL version string
     var glsl_version: u32 = 130;
 
-    const numberPart = g_GlslVersionStringMem["#version ".len..g_GlslVersionString.len];
+    const numberPart = std.mem.sliceTo(bd.GlslVersionString["#version ".len..], '\n');
     if (std.fmt.parseInt(u32, numberPart, 10)) |value| {
         glsl_version = value;
     } else |err| {
-        std.debug.print("Couldn't parse glsl version from '{s}', '{s}'. Error: {any}\n", .{ g_GlslVersionString, numberPart, err });
+        std.debug.print("Couldn't parse glsl version from '{s}', '{s}'. Error: {any}\n", .{ std.mem.sliceTo(&bd.GlslVersionString, 0), numberPart, err });
     }
 
     const vertex_shader_glsl_120 = "uniform mat4 ProjMtx;\n" ++
@@ -429,7 +529,7 @@ fn CreateDeviceObjects() bool {
         "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n" ++
         "}\n";
 
-    const vertex_shader_glsl_300_es = "precision mediump float;\n" ++
+    const vertex_shader_glsl_300_es = "precision highp float;\n" ++
         "layout (location = 0) in vec2 Position;\n" ++
         "layout (location = 1) in vec2 UV;\n" ++
         "layout (location = 2) in vec4 Color;\n" ++
@@ -496,8 +596,8 @@ fn CreateDeviceObjects() bool {
         "}\n";
 
     // Select shaders matching our GLSL versions
-    var vertex_shader: [*]const u8 = undefined;
-    var fragment_shader: [*]const u8 = undefined;
+    var vertex_shader: [*:0]const u8 = undefined;
+    var fragment_shader: [*:0]const u8 = undefined;
     if (glsl_version < 130) {
         vertex_shader = vertex_shader_glsl_120;
         fragment_shader = fragment_shader_glsl_120;
@@ -513,33 +613,39 @@ fn CreateDeviceObjects() bool {
     }
 
     // Create shaders
-    const vertex_shader_with_version = [_][*]const u8{ &g_GlslVersionStringMem, vertex_shader };
-    g_VertHandle = gl.glCreateShader(gl.GL_VERTEX_SHADER);
-    gl.glShaderSource(g_VertHandle, 2, &vertex_shader_with_version, null);
-    gl.glCompileShader(g_VertHandle);
-    _ = CheckShader(g_VertHandle, "vertex shader");
+    const version_str = @ptrCast([*:0]const u8, &bd.GlslVersionString);
+    const vertex_shader_with_version = [_][*:0]const u8{ version_str, vertex_shader };
+    const vert_handle = gl.glCreateShader(gl.GL_VERTEX_SHADER);
+    gl.glShaderSource(vert_handle, 2, &vertex_shader_with_version, null);
+    gl.glCompileShader(vert_handle);
+    _ = CheckShader(vert_handle, "vertex shader");
 
-    const fragment_shader_with_version = [_][*]const u8{ &g_GlslVersionStringMem, fragment_shader };
-    g_FragHandle = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
-    gl.glShaderSource(g_FragHandle, 2, &fragment_shader_with_version, null);
-    gl.glCompileShader(g_FragHandle);
-    _ = CheckShader(g_FragHandle, "fragment shader");
+    const fragment_shader_with_version = [_][*:0]const u8{ version_str, fragment_shader };
+    const frag_handle = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
+    gl.glShaderSource(frag_handle, 2, &fragment_shader_with_version, null);
+    gl.glCompileShader(frag_handle);
+    _ = CheckShader(frag_handle, "fragment shader");
 
-    g_ShaderHandle = gl.glCreateProgram();
-    gl.glAttachShader(g_ShaderHandle, g_VertHandle);
-    gl.glAttachShader(g_ShaderHandle, g_FragHandle);
-    gl.glLinkProgram(g_ShaderHandle);
-    _ = CheckProgram(g_ShaderHandle, "shader program");
+    bd.ShaderHandle = gl.glCreateProgram();
+    gl.glAttachShader(bd.ShaderHandle, vert_handle);
+    gl.glAttachShader(bd.ShaderHandle, frag_handle);
+    gl.glLinkProgram(bd.ShaderHandle);
+    _ = CheckProgram(bd.ShaderHandle, "shader program");
 
-    g_AttribLocationTex = gl.glGetUniformLocation(g_ShaderHandle, "Texture");
-    g_AttribLocationProjMtx = gl.glGetUniformLocation(g_ShaderHandle, "ProjMtx");
-    g_AttribLocationVtxPos = gl.glGetAttribLocation(g_ShaderHandle, "Position");
-    g_AttribLocationVtxUV = gl.glGetAttribLocation(g_ShaderHandle, "UV");
-    g_AttribLocationVtxColor = gl.glGetAttribLocation(g_ShaderHandle, "Color");
+    gl.glDetachShader(bd.ShaderHandle, vert_handle);
+    gl.glDetachShader(bd.ShaderHandle, frag_handle);
+    gl.glDeleteShader(vert_handle);
+    gl.glDeleteShader(frag_handle);
+
+    bd.AttribLocationTex = gl.glGetUniformLocation(bd.ShaderHandle, "Texture");
+    bd.AttribLocationProjMtx = gl.glGetUniformLocation(bd.ShaderHandle, "ProjMtx");
+    bd.AttribLocationVtxPos = gl.glGetAttribLocation(bd.ShaderHandle, "Position");
+    bd.AttribLocationVtxUV = gl.glGetAttribLocation(bd.ShaderHandle, "UV");
+    bd.AttribLocationVtxColor = gl.glGetAttribLocation(bd.ShaderHandle, "Color");
 
     // Create buffers
-    gl.glGenBuffers(1, &g_VboHandle);
-    gl.glGenBuffers(1, &g_ElementsHandle);
+    gl.glGenBuffers(1, &bd.VboHandle);
+    gl.glGenBuffers(1, &bd.ElementsHandle);
 
     _ = CreateFontsTexture();
 
@@ -552,32 +658,18 @@ fn CreateDeviceObjects() bool {
 }
 
 fn DestroyDeviceObjects() void {
-    if (g_VboHandle != 0) {
-        gl.glDeleteBuffers(1, &g_VboHandle);
-        g_VboHandle = 0;
+    const bd = GetBackendData().?;
+    if (bd.VboHandle != 0) {
+        gl.glDeleteBuffers(1, &bd.VboHandle);
+        bd.VboHandle = 0;
     }
-    if (g_ElementsHandle != 0) {
-        gl.glDeleteBuffers(1, &g_ElementsHandle);
-        g_ElementsHandle = 0;
+    if (bd.ElementsHandle != 0) {
+        gl.glDeleteBuffers(1, &bd.ElementsHandle);
+        bd.ElementsHandle = 0;
     }
-    if (g_ShaderHandle != 0 and g_VertHandle != 0) {
-        gl.glDetachShader(g_ShaderHandle, g_VertHandle);
+    if (bd.ShaderHandle != 0) {
+        gl.glDeleteProgram(bd.ShaderHandle);
+        bd.ShaderHandle = 0;
     }
-    if (g_ShaderHandle != 0 and g_FragHandle != 0) {
-        gl.glDetachShader(g_ShaderHandle, g_FragHandle);
-    }
-    if (g_VertHandle != 0) {
-        gl.glDeleteShader(g_VertHandle);
-        g_VertHandle = 0;
-    }
-    if (g_FragHandle != 0) {
-        gl.glDeleteShader(g_FragHandle);
-        g_FragHandle = 0;
-    }
-    if (g_ShaderHandle != 0) {
-        gl.glDeleteProgram(g_ShaderHandle);
-        g_ShaderHandle = 0;
-    }
-
     DestroyFontsTexture();
 }
