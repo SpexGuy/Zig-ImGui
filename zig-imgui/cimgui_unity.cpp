@@ -6,4 +6,4 @@
 #include "imgui/imgui_demo.cpp"
 #include "imgui/imgui_tables.cpp"
 #include "imgui/imgui_widgets.cpp"
-#include "generated/cimgui.cpp"
+#include "cimgui.cpp"
