@@ -4,14 +4,10 @@ const imgui = @import("imgui");
 const glfw = @import("include/glfw.zig");
 const assert = std.debug.assert;
 
-const GLFW_HAS_WINDOW_TOPMOST = (glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100 >= 3200); // 3.2+ GLFW_FLOATING
-const GLFW_HAS_WINDOW_HOVERED = (glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100 >= 3300); // 3.3+ GLFW_HOVERED
-const GLFW_HAS_WINDOW_ALPHA = (glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100 >= 3300); // 3.3+ glfwSetWindowOpacity
-const GLFW_HAS_PER_MONITOR_DPI = (glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100 >= 3300); // 3.3+ glfwGetMonitorContentScale
-const GLFW_HAS_VULKAN = (glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100 >= 3200); // 3.2+ glfwCreateWindowSurface
-const GLFW_HAS_NEW_CURSORS = @hasDecl(glfw, "GLFW_RESIZE_NESW_CURSOR") and (glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100 >= 3400); // 3.4+ GLFW_RESIZE_ALL_CURSOR, GLFW_RESIZE_NESW_CURSOR, GLFW_RESIZE_NWSE_CURSOR, GLFW_NOT_ALLOWED_CURSOR
-const GLFW_HAS_GAMEPAD_API = (glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100 >= 3300); // 3.3+ glfwGetGamepadState() new api
-const GLFW_HAS_GET_KEY_NAME = (glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100 >= 3200); // 3.2+ glfwGetKeyName()
+const GLFW_HEADER_VERSION = glfw.GLFW_VERSION_MAJOR * 1000 + glfw.GLFW_VERSION_MINOR * 100;
+const GLFW_HAS_NEW_CURSORS = @hasDecl(glfw, "GLFW_RESIZE_NESW_CURSOR") and (GLFW_HEADER_VERSION >= 3400); // 3.4+ GLFW_RESIZE_ALL_CURSOR, GLFW_RESIZE_NESW_CURSOR, GLFW_RESIZE_NWSE_CURSOR, GLFW_NOT_ALLOWED_CURSOR
+const GLFW_HAS_GAMEPAD_API = (GLFW_HEADER_VERSION >= 3300); // 3.3+ glfwGetGamepadState() new api
+const GLFW_HAS_GET_KEY_NAME = (GLFW_HEADER_VERSION >= 3200); // 3.2+ glfwGetKeyName()
 
 const IS_EMSCRIPTEN = false;
 
@@ -56,11 +52,11 @@ fn GetBackendData() ?*Data {
 
 // Functions
 fn GetClipboardText(user_data: ?*anyopaque) callconv(.C) ?[*:0]const u8 {
-    return glfw.glfwGetClipboardString(@ptrCast(?*glfw.GLFWwindow, user_data));
+    return glfw.glfwGetClipboardString(@ptrCast(*glfw.GLFWwindow, user_data));
 }
 
 fn SetClipboardText(user_data: ?*anyopaque, text: ?[*:0]const u8) callconv(.C) void {
-    glfw.glfwSetClipboardString(@ptrCast(?*glfw.GLFWwindow, user_data), text);
+    glfw.glfwSetClipboardString(@ptrCast(*glfw.GLFWwindow, user_data), text.?);
 }
 
 fn KeyToImGuiKey(key: i32) imgui.Key {
@@ -194,7 +190,7 @@ fn UpdateKeyModifiers(mods: i32) void {
     io.AddKeyEvent(.ModSuper, (mods & glfw.GLFW_MOD_SUPER) != 0);
 }
 
-pub fn MouseButtonCallback(window: ?*glfw.GLFWwindow, button: i32, action: i32, mods: i32) callconv(.C) void {
+pub fn MouseButtonCallback(window: *glfw.GLFWwindow, button: i32, action: i32, mods: i32) callconv(.C) void {
     const bd = GetBackendData().?;
     if (bd.PrevUserCallbackMousebutton != null and window == bd.Window)
         bd.PrevUserCallbackMousebutton.?(window, button, action, mods);
@@ -206,7 +202,7 @@ pub fn MouseButtonCallback(window: ?*glfw.GLFWwindow, button: i32, action: i32, 
         io.AddMouseButtonEvent(button, action == glfw.GLFW_PRESS);
 }
 
-pub fn ScrollCallback(window: ?*glfw.GLFWwindow, xoffset: f64, yoffset: f64) callconv(.C) void {
+pub fn ScrollCallback(window: *glfw.GLFWwindow, xoffset: f64, yoffset: f64) callconv(.C) void {
     const bd = GetBackendData().?;
     if (bd.PrevUserCallbackScroll != null and window == bd.Window)
         bd.PrevUserCallbackScroll.?(window, xoffset, yoffset);
@@ -240,7 +236,7 @@ fn TranslateUntranslatedKey(raw_key: i32, scancode: i32) i32 {
     return raw_key;
 }
 
-pub fn KeyCallback(window: ?*glfw.GLFWwindow, raw_keycode: i32, scancode: i32, action: i32, mods: i32) callconv(.C) void {
+pub fn KeyCallback(window: *glfw.GLFWwindow, raw_keycode: i32, scancode: i32, action: i32, mods: i32) callconv(.C) void {
     const bd = GetBackendData().?;
     if (bd.PrevUserCallbackKey != null and window == bd.Window)
         bd.PrevUserCallbackKey.?(window, raw_keycode, scancode, action, mods);
@@ -262,7 +258,7 @@ pub fn KeyCallback(window: ?*glfw.GLFWwindow, raw_keycode: i32, scancode: i32, a
     io.SetKeyEventNativeData(imgui_key, keycode, scancode); // To support legacy indexing (<1.87 user code)
 }
 
-pub fn WindowFocusCallback(window: ?*glfw.GLFWwindow, focused: i32) callconv(.C) void {
+pub fn WindowFocusCallback(window: *glfw.GLFWwindow, focused: i32) callconv(.C) void {
     const bd = GetBackendData().?;
     if (bd.PrevUserCallbackWindowFocus != null and window == bd.Window)
         bd.PrevUserCallbackWindowFocus.?(window, focused);
@@ -271,7 +267,7 @@ pub fn WindowFocusCallback(window: ?*glfw.GLFWwindow, focused: i32) callconv(.C)
     io.AddFocusEvent(focused != 0);
 }
 
-pub fn CursorPosCallback(window: ?*glfw.GLFWwindow, x: f64, y: f64) callconv(.C) void {
+pub fn CursorPosCallback(window: *glfw.GLFWwindow, x: f64, y: f64) callconv(.C) void {
     const bd = GetBackendData().?;
     if (bd.PrevUserCallbackCursorPos != null and window == bd.Window)
         bd.PrevUserCallbackCursorPos.?(window, x, y);
@@ -283,7 +279,7 @@ pub fn CursorPosCallback(window: ?*glfw.GLFWwindow, x: f64, y: f64) callconv(.C)
 
 // Workaround: X11 seems to send spurious Leave/Enter events which would make us lose our position,
 // so we back it up and restore on Leave/Enter (see https://github.com/ocornut/imgui/issues/4984)
-pub fn CursorEnterCallback(window: ?*glfw.GLFWwindow, entered: i32) callconv(.C) void {
+pub fn CursorEnterCallback(window: *glfw.GLFWwindow, entered: i32) callconv(.C) void {
     const bd = GetBackendData().?;
     if (bd.PrevUserCallbackCursorEnter != null and window == bd.Window)
         bd.PrevUserCallbackCursorEnter.?(window, entered);
@@ -299,7 +295,7 @@ pub fn CursorEnterCallback(window: ?*glfw.GLFWwindow, entered: i32) callconv(.C)
     }
 }
 
-pub fn CharCallback(window: ?*glfw.GLFWwindow, c: u32) callconv(.C) void {
+pub fn CharCallback(window: *glfw.GLFWwindow, c: u32) callconv(.C) void {
     const bd = GetBackendData().?;
     if (bd.PrevUserCallbackChar != null and window == bd.Window)
         bd.PrevUserCallbackChar.?(window, c);
@@ -308,7 +304,7 @@ pub fn CharCallback(window: ?*glfw.GLFWwindow, c: u32) callconv(.C) void {
     io.AddInputCharacter(c);
 }
 
-pub fn MonitorCallback(monitor: ?*glfw.GLFWmonitor, event: i32) callconv(.C) void {
+pub fn MonitorCallback(monitor: *glfw.GLFWmonitor, event: i32) callconv(.C) void {
     const bd = GetBackendData().?;
     if (bd.PrevUserCallbackMonitor != null)
         bd.PrevUserCallbackMonitor.?(monitor, event);
@@ -316,7 +312,7 @@ pub fn MonitorCallback(monitor: ?*glfw.GLFWmonitor, event: i32) callconv(.C) voi
     // Unused in 'master' branch but 'docking' branch will use this, so we declare it ahead of it so if you have to install callbacks you can install this one too.
 }
 
-pub fn InstallCallbacks(window: ?*glfw.GLFWwindow) void {
+pub fn InstallCallbacks(window: *glfw.GLFWwindow) void {
     const bd = GetBackendData().?;
     assert(bd.InstalledCallbacks == false); // Callbacks already installed!
     assert(bd.Window == window);
@@ -332,7 +328,7 @@ pub fn InstallCallbacks(window: ?*glfw.GLFWwindow) void {
     bd.InstalledCallbacks = true;
 }
 
-pub fn RestoreCallbacks(window: ?*glfw.GLFWwindow) void {
+pub fn RestoreCallbacks(window: *glfw.GLFWwindow) void {
     const bd = GetBackendData().?;
     assert(bd.InstalledCallbacks == true); // Callbacks not installed!
     assert(bd.Window == window);
@@ -356,7 +352,7 @@ pub fn RestoreCallbacks(window: ?*glfw.GLFWwindow) void {
     bd.PrevUserCallbackMonitor = null;
 }
 
-fn Init(window: ?*glfw.GLFWwindow, install_callbacks: bool, client_api: GlfwClientApi) bool {
+fn Init(window: *glfw.GLFWwindow, install_callbacks: bool, client_api: GlfwClientApi) bool {
     const io = imgui.GetIO();
     assert(io.BackendPlatformUserData == null); // Already initialized a platform backend!
 
@@ -412,15 +408,15 @@ fn Init(window: ?*glfw.GLFWwindow, install_callbacks: bool, client_api: GlfwClie
     return true;
 }
 
-pub fn InitForOpenGL(window: ?*glfw.GLFWwindow, install_callbacks: bool) bool {
+pub fn InitForOpenGL(window: *glfw.GLFWwindow, install_callbacks: bool) bool {
     return Init(window, install_callbacks, .OpenGL);
 }
 
-pub fn InitForVulkan(window: ?*glfw.GLFWwindow, install_callbacks: bool) bool {
+pub fn InitForVulkan(window: *glfw.GLFWwindow, install_callbacks: bool) bool {
     return Init(window, install_callbacks, .Vulkan);
 }
 
-pub fn InitForOther(window: ?*glfw.GLFWwindow, install_callbacks: bool) bool {
+pub fn InitForOther(window: *glfw.GLFWwindow, install_callbacks: bool) bool {
     return Init(window, install_callbacks, .Unknown);
 }
 
@@ -430,10 +426,10 @@ pub fn Shutdown() void {
     const io = imgui.GetIO();
 
     if (bd.?.InstalledCallbacks)
-        RestoreCallbacks(bd.?.Window);
+        RestoreCallbacks(bd.?.Window.?);
 
     for (bd.?.MouseCursors) |cursor|
-        glfw.glfwDestroyCursor(cursor);
+        if (cursor) |c| glfw.glfwDestroyCursor(c);
 
     io.BackendPlatformName = null;
     io.BackendPlatformUserData = null;
@@ -445,17 +441,17 @@ fn UpdateMouseData() void {
     const io = imgui.GetIO();
 
     const is_app_focused = if (IS_EMSCRIPTEN) true
-        else (glfw.glfwGetWindowAttrib(bd.Window, glfw.GLFW_FOCUSED) != 0);
+        else (glfw.glfwGetWindowAttrib(bd.Window.?, glfw.GLFW_FOCUSED) != 0);
     if (is_app_focused) {
         // (Optional) Set OS mouse position from Dear ImGui if requested (rarely used, only when ImGuiConfigFlags_NavEnableSetMousePos is enabled by user)
         if (io.WantSetMousePos)
-            glfw.glfwSetCursorPos(bd.Window, io.MousePos.x, io.MousePos.y);
+            glfw.glfwSetCursorPos(bd.Window.?, io.MousePos.x, io.MousePos.y);
 
         // (Optional) Fallback to provide mouse position when focused (ImGui_ImplGlfw_CursorPosCallback already provides this when hovered or captured)
         if (is_app_focused and bd.MouseWindow == null) {
             var mouse_x: f64 = 0;
             var mouse_y: f64 = 0;
-            glfw.glfwGetCursorPos(bd.Window, &mouse_x, &mouse_y);
+            glfw.glfwGetCursorPos(bd.Window.?, &mouse_x, &mouse_y);
             io.AddMousePosEvent(@floatCast(f32, mouse_x), @floatCast(f32, mouse_y));
             bd.LastValidMousePos = .{ .x = @floatCast(f32, mouse_x), .y = @floatCast(f32, mouse_y) };
         }
@@ -465,18 +461,18 @@ fn UpdateMouseData() void {
 fn UpdateMouseCursor() void {
     const bd = GetBackendData().?;
     const io = imgui.GetIO();
-    if ((io.ConfigFlags.NoMouseCursorChange) or glfw.glfwGetInputMode(bd.Window, glfw.GLFW_CURSOR) == glfw.GLFW_CURSOR_DISABLED)
+    if ((io.ConfigFlags.NoMouseCursorChange) or glfw.glfwGetInputMode(bd.Window.?, glfw.GLFW_CURSOR) == glfw.GLFW_CURSOR_DISABLED)
         return;
 
     const imgui_cursor = imgui.GetMouseCursor();
     if (imgui_cursor == .None or io.MouseDrawCursor) {
         // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
-        glfw.glfwSetInputMode(bd.Window, glfw.GLFW_CURSOR, glfw.GLFW_CURSOR_HIDDEN);
+        glfw.glfwSetInputMode(bd.Window.?, glfw.GLFW_CURSOR, glfw.GLFW_CURSOR_HIDDEN);
     } else {
         // Show OS mouse cursor
         // FIXME-PLATFORM: Unfocused windows seems to fail changing the mouse cursor with GLFW 3.2, but 3.3 works here.
-        glfw.glfwSetCursor(bd.Window, bd.MouseCursors[@intCast(usize, @enumToInt(imgui_cursor))] orelse bd.MouseCursors[@intCast(usize, @enumToInt(imgui.MouseCursor.Arrow))]);
-        glfw.glfwSetInputMode(bd.Window, glfw.GLFW_CURSOR, glfw.GLFW_CURSOR_NORMAL);
+        glfw.glfwSetCursor(bd.Window.?, bd.MouseCursors[@intCast(usize, @enumToInt(imgui_cursor))] orelse bd.MouseCursors[@intCast(usize, @enumToInt(imgui.MouseCursor.Arrow))]);
+        glfw.glfwSetInputMode(bd.Window.?, glfw.GLFW_CURSOR, glfw.GLFW_CURSOR_NORMAL);
     }
 }
 
@@ -520,7 +516,7 @@ fn UpdateGamepads() void {
     io.BackendFlags.HasGamepad = false;
     if (GLFW_HAS_GAMEPAD_API) {
         var gamepad: glfw.GLFWgamepadstate = undefined;
-        if (!glfw.glfwGetGamepadState(glfw.GLFW_JOYSTICK_1, &gamepad))
+        if (glfw.glfwGetGamepadState(glfw.GLFW_JOYSTICK_1, &gamepad) == 0)
             return;
         inline for (mappings) |m| switch (m.kind) {
             .Button => io.AddKeyEvent(m.key, gamepad.buttons[m.btn] != 0),
@@ -559,8 +555,8 @@ pub fn NewFrame() void {
     var h: c_int = 0;
     var display_w: c_int = 0;
     var display_h: c_int = 0;
-    glfw.glfwGetWindowSize(bd.Window, &w, &h);
-    glfw.glfwGetFramebufferSize(bd.Window, &display_w, &display_h);
+    glfw.glfwGetWindowSize(bd.Window.?, &w, &h);
+    glfw.glfwGetFramebufferSize(bd.Window.?, &display_w, &display_h);
     io.DisplaySize = .{ .x = @intToFloat(f32, w), .y = @intToFloat(f32, h) };
     if (w > 0 and h > 0) {
         io.DisplayFramebufferScale = .{

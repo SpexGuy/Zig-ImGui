@@ -323,8 +323,9 @@ pub fn main() !void {
         return error.VulkanNotSupported;
     }
     var extensions_count: u32 = 0;
-    var extensions = glfw.glfwGetRequiredInstanceExtensions(&extensions_count);
-    try SetupVulkan(extensions[0..extensions_count], allocator);
+    var extensions_ptr = glfw.glfwGetRequiredInstanceExtensions(&extensions_count);
+    const extensions = if (extensions_count > 0) extensions_ptr.?[0..extensions_count] else &[_][*:0]const u8{};
+    try SetupVulkan(extensions, allocator);
 
     // Create Window Surface
     var surface: vk.SurfaceKHR = undefined;

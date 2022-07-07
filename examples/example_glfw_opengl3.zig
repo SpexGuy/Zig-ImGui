@@ -39,9 +39,8 @@ pub fn main() !void {
     }
 
     // Create window with graphics context
-    const window = glfw.glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", null, null);
-    if (window == null)
-        return error.GlfwCreateWindowFailed;
+    const window = glfw.glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", null, null)
+        orelse return error.GlfwCreateWindowFailed;
     glfw.glfwMakeContextCurrent(window);
     glfw.glfwSwapInterval(1); // Enable vsync
 
@@ -61,7 +60,7 @@ pub fn main() !void {
     //imgui.StyleColorsClassic();
 
     // Setup Platform/Renderer bindings
-    _ = impl_glfw.InitForOpenGL(window.?, true);
+    _ = impl_glfw.InitForOpenGL(window, true);
     _ = impl_gl3.Init(glsl_version);
 
     // Load Fonts
