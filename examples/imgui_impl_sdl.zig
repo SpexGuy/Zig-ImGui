@@ -275,9 +275,7 @@ pub fn ProcessEvent(event: ?*sdl.SDL_Event) bool {
         },
         sdl.SDL_MOUSEWHEEL => {
             const wheel: sdl.SDL_MouseWheelEvent = event.?.wheel;
-            const wheel_x: f32 = if (wheel.x > 0) 1.0 else |wx| if (wx < 0) -1.0 else 0.0;
-            const wheel_y: f32 = if (wheel.y > 0) 1.0 else |wy| if (wy < 0) -1.0 else 0.0;
-            io.AddMouseWheelEvent(wheel_x, wheel_y);
+            io.AddMouseWheelEvent(@intToFloat(f32, wheel.x), @intToFloat(f32, wheel.y));
             return true;
         },
         sdl.SDL_MOUSEBUTTONDOWN, sdl.SDL_MOUSEBUTTONUP => {
