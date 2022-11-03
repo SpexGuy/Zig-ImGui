@@ -8,7 +8,7 @@ const builtin = @import("builtin");
 const assert = @import("std").debug.assert;
 const imgui = @This();
 
-pub const DrawCallback_ResetRenderState = @intToPtr(DrawCallback, ~@as(usize, 0));
+pub const DrawCallback_ResetRenderState = @intToPtr(DrawCallback, ~@as(usize, 3));
 
 pub const VERSION = "1.88";
 pub fn CHECKVERSION() void {

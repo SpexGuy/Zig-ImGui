@@ -64,7 +64,7 @@ pub const InitInfo = struct {
     ImageCount: u32, // >= MinImageCount
     MSAASamples: vk.SampleCountFlags, // >= VK_SAMPLE_COUNT_1_BIT
     VkAllocator: ?*const vk.AllocationCallbacks,
-    CheckVkResultFn: ?fn (i32) callconv(.C) void = null,
+    CheckVkResultFn: ?*const fn (i32) callconv(.C) void = null,
 };
 
 const Frame = struct {

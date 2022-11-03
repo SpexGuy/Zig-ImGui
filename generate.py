@@ -496,7 +496,7 @@ class ZigData:
                         paramType += '*'
                         paramName = paramName[1:].strip()
                     zigParams.append(paramName + ': ' + self.convertComplexType(paramType, ParamContext(paramName, funcContext)))
-            return '?fn ('+', '.join(zigParams)+') callconv(.C) '+zigReturnType
+            return '?*const fn ('+', '.join(zigParams)+') callconv(.C) '+zigReturnType
         
         valueConst = False
         if type.startswith('const'):
@@ -679,4 +679,4 @@ if __name__ == '__main__':
         data.writeFile(f)
     
     warnForUnusedRules()
-    
+

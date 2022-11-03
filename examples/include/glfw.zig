@@ -373,33 +373,33 @@ pub const GLFW_COCOA_MENUBAR = 0x00051002;
 
 pub const GLFW_DONT_CARE = -1;
 
-pub const GLFWglproc = ?fn(...) callconv(.C) void;
-pub const GLFWvkproc = ?fn(...) callconv(vk.CallConv) void;
+pub const GLFWglproc = ?*const fn(...) callconv(.C) void;
+pub const GLFWvkproc = ?*const fn(...) callconv(vk.CallConv) void;
 
 pub const GLFWmonitor = opaque{};
 pub const GLFWwindow = opaque{};
 pub const GLFWcursor = opaque{};
 
-pub const GLFWerrorfun = ?fn(error_code: i32, description: ?[*:0]const u8) callconv(.C) void;
-pub const GLFWwindowposfun = ?fn(window: *GLFWwindow, xpos: i32, ypos: i32) callconv(.C) void;
-pub const GLFWwindowsizefun = ?fn(window: *GLFWwindow, width: i32, height: i32) callconv(.C) void;
-pub const GLFWwindowclosefun = ?fn(window: *GLFWwindow) callconv(.C) void;
-pub const GLFWwindowrefreshfun = ?fn(window: *GLFWwindow) callconv(.C) void;
-pub const GLFWwindowfocusfun = ?fn(window: *GLFWwindow, focused: i32) callconv(.C) void;
-pub const GLFWwindowiconifyfun = ?fn(window: *GLFWwindow, iconified: i32) callconv(.C) void;
-pub const GLFWwindowmaximizefun = ?fn(window: *GLFWwindow, maximized: i32) callconv(.C) void;
-pub const GLFWframebuffersizefun = ?fn(window: *GLFWwindow, width: i32, height: i32) callconv(.C) void;
-pub const GLFWwindowcontentscalefun = ?fn(window: *GLFWwindow, xscale: f32, yscale: f32) callconv(.C) void;
-pub const GLFWmousebuttonfun = ?fn(window: *GLFWwindow, button: i32, action: i32, mods: i32) callconv(.C) void;
-pub const GLFWcursorposfun = ?fn(window: *GLFWwindow, xpos: f64, ypos: f64) callconv(.C) void;
-pub const GLFWcursorenterfun = ?fn(window: *GLFWwindow, entered: i32) callconv(.C) void;
-pub const GLFWscrollfun = ?fn(window: *GLFWwindow, xoffset: f64, yoffset: f64) callconv(.C) void;
-pub const GLFWkeyfun = ?fn(window: *GLFWwindow, key: i32, scancode: i32, action: i32, mods: i32) callconv(.C) void;
-pub const GLFWcharfun = ?fn(window: *GLFWwindow, codepoint: u32) callconv(.C) void;
-pub const GLFWcharmodsfun = ?fn(window: *GLFWwindow, codepoint: u32, mods: i32) callconv(.C) void;
-pub const GLFWdropfun = ?fn(window: *GLFWwindow, path_count: i32, paths: ?[*]?[*:0]const u8) callconv(.C) void;
-pub const GLFWmonitorfun = ?fn(monitor: *GLFWmonitor, event: i32) callconv(.C) void;
-pub const GLFWjoystickfun = ?fn(jid: i32, event: i32) callconv(.C) void;
+pub const GLFWerrorfun = ?*const fn(error_code: i32, description: ?[*:0]const u8) callconv(.C) void;
+pub const GLFWwindowposfun = ?*const fn(window: *GLFWwindow, xpos: i32, ypos: i32) callconv(.C) void;
+pub const GLFWwindowsizefun = ?*const fn(window: *GLFWwindow, width: i32, height: i32) callconv(.C) void;
+pub const GLFWwindowclosefun = ?*const fn(window: *GLFWwindow) callconv(.C) void;
+pub const GLFWwindowrefreshfun = ?*const fn(window: *GLFWwindow) callconv(.C) void;
+pub const GLFWwindowfocusfun = ?*const fn(window: *GLFWwindow, focused: i32) callconv(.C) void;
+pub const GLFWwindowiconifyfun = ?*const fn(window: *GLFWwindow, iconified: i32) callconv(.C) void;
+pub const GLFWwindowmaximizefun = ?*const fn(window: *GLFWwindow, maximized: i32) callconv(.C) void;
+pub const GLFWframebuffersizefun = ?*const fn(window: *GLFWwindow, width: i32, height: i32) callconv(.C) void;
+pub const GLFWwindowcontentscalefun = ?*const fn(window: *GLFWwindow, xscale: f32, yscale: f32) callconv(.C) void;
+pub const GLFWmousebuttonfun = ?*const fn(window: *GLFWwindow, button: i32, action: i32, mods: i32) callconv(.C) void;
+pub const GLFWcursorposfun = ?*const fn(window: *GLFWwindow, xpos: f64, ypos: f64) callconv(.C) void;
+pub const GLFWcursorenterfun = ?*const fn(window: *GLFWwindow, entered: i32) callconv(.C) void;
+pub const GLFWscrollfun = ?*const fn(window: *GLFWwindow, xoffset: f64, yoffset: f64) callconv(.C) void;
+pub const GLFWkeyfun = ?*const fn(window: *GLFWwindow, key: i32, scancode: i32, action: i32, mods: i32) callconv(.C) void;
+pub const GLFWcharfun = ?*const fn(window: *GLFWwindow, codepoint: u32) callconv(.C) void;
+pub const GLFWcharmodsfun = ?*const fn(window: *GLFWwindow, codepoint: u32, mods: i32) callconv(.C) void;
+pub const GLFWdropfun = ?*const fn(window: *GLFWwindow, path_count: i32, paths: ?[*]?[*:0]const u8) callconv(.C) void;
+pub const GLFWmonitorfun = ?*const fn(monitor: *GLFWmonitor, event: i32) callconv(.C) void;
+pub const GLFWjoystickfun = ?*const fn(jid: i32, event: i32) callconv(.C) void;
 
 pub const GLFWvidmode = extern struct {
     width: i32,

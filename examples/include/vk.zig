@@ -62,9 +62,9 @@ pub const CallConv = if (builtin.os.tag == .windows)
         // calling convention, i.e. float parameters are passed in registers. This
         // is true even if the rest of the application passes floats on the stack,
         // as it does by default when compiling for the armeabi-v7a NDK ABI.
-        builtin.CallingConvention.AAPCSVFP
+        std.builtin.CallingConvention.AAPCSVFP
     else
-        builtin.CallingConvention.C;
+        std.builtin.CallingConvention.C;
 
 
 pub const VERSION_1_0 = 1;
@@ -3037,14 +3037,14 @@ pub const InstanceCreateInfo = extern struct {
     ppEnabledExtensionNames: [*]const CString = undefined,
 };
 
-pub const PFN_AllocationFunction = fn (
+pub const PFN_AllocationFunction = *const fn (
     ?*anyopaque,
     usize,
     usize,
     SystemAllocationScope,
 ) callconv(CallConv) ?*anyopaque;
 
-pub const PFN_ReallocationFunction = fn (
+pub const PFN_ReallocationFunction = *const fn (
     ?*anyopaque,
     ?*anyopaque,
     usize,
@@ -3052,19 +3052,19 @@ pub const PFN_ReallocationFunction = fn (
     SystemAllocationScope,
 ) callconv(CallConv) ?*anyopaque;
 
-pub const PFN_FreeFunction = fn (
+pub const PFN_FreeFunction = *const fn (
     ?*anyopaque,
     ?*anyopaque,
 ) callconv(CallConv) void;
 
-pub const PFN_InternalAllocationNotification = fn (
+pub const PFN_InternalAllocationNotification = *const fn (
     ?*anyopaque,
     usize,
     InternalAllocationType,
     SystemAllocationScope,
 ) callconv(CallConv) void;
 
-pub const PFN_InternalFreeNotification = fn (
+pub const PFN_InternalFreeNotification = *const fn (
     ?*anyopaque,
     usize,
     InternalAllocationType,
@@ -3311,7 +3311,7 @@ pub const PhysicalDeviceMemoryProperties = extern struct {
     memoryHeaps: [MAX_MEMORY_HEAPS]MemoryHeap,
 };
 
-pub const PFN_VoidFunction = fn () callconv(CallConv) void;
+pub const PFN_VoidFunction = *const fn () callconv(CallConv) void;
 
 pub const DeviceQueueCreateInfo = extern struct {
     sType: StructureType = .DEVICE_QUEUE_CREATE_INFO,
@@ -5065,7 +5065,7 @@ pub extern fn vkCmdExecuteCommands(
 pub inline fn CreateInstance(createInfo: InstanceCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INITIALIZATION_FAILED,VK_LAYER_NOT_PRESENT,VK_EXTENSION_NOT_PRESENT,VK_INCOMPATIBLE_DRIVER,VK_UNDOCUMENTED_ERROR}!Instance {
     var out_instance: Instance = undefined;
     const result = vkCreateInstance(&createInfo, pAllocator, &out_instance);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5089,7 +5089,7 @@ pub inline fn EnumeratePhysicalDevices(instance: Instance, physicalDevices: []Ph
     var returnValues: EnumeratePhysicalDevicesResult = undefined;
     var physicalDeviceCount: u32 = @intCast(u32, physicalDevices.len);
     const result = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5104,7 +5104,7 @@ pub inline fn EnumeratePhysicalDevices(instance: Instance, physicalDevices: []Ph
 pub inline fn EnumeratePhysicalDevicesCount(instance: Instance) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INITIALIZATION_FAILED,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_physicalDeviceCount: u32 = undefined;
     const result = vkEnumeratePhysicalDevices(instance, &out_physicalDeviceCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5130,7 +5130,7 @@ pub inline fn GetPhysicalDeviceFormatProperties(physicalDevice: PhysicalDevice, 
 pub inline fn GetPhysicalDeviceImageFormatProperties(physicalDevice: PhysicalDevice, format: Format, inType: ImageType, tiling: ImageTiling, usage: ImageUsageFlags, flags: ImageCreateFlags) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_FORMAT_NOT_SUPPORTED,VK_UNDOCUMENTED_ERROR}!ImageFormatProperties {
     var out_imageFormatProperties: ImageFormatProperties = undefined;
     const result = vkGetPhysicalDeviceImageFormatProperties(physicalDevice, format, inType, tiling, usage.toInt(), flags.toInt(), &out_imageFormatProperties);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5172,7 +5172,7 @@ pub const GetDeviceProcAddr = vkGetDeviceProcAddr;
 pub inline fn CreateDevice(physicalDevice: PhysicalDevice, createInfo: DeviceCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INITIALIZATION_FAILED,VK_EXTENSION_NOT_PRESENT,VK_FEATURE_NOT_PRESENT,VK_TOO_MANY_OBJECTS,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!Device {
     var out_device: Device = undefined;
     const result = vkCreateDevice(physicalDevice, &createInfo, pAllocator, &out_device);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5197,7 +5197,7 @@ pub inline fn EnumerateInstanceExtensionProperties(pLayerName: ?CString, propert
     var returnValues: EnumerateInstanceExtensionPropertiesResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkEnumerateInstanceExtensionProperties(pLayerName, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5212,7 +5212,7 @@ pub inline fn EnumerateInstanceExtensionProperties(pLayerName: ?CString, propert
 pub inline fn EnumerateInstanceExtensionPropertiesCount(pLayerName: ?CString) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_LAYER_NOT_PRESENT,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkEnumerateInstanceExtensionProperties(pLayerName, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5231,7 +5231,7 @@ pub inline fn EnumerateDeviceExtensionProperties(physicalDevice: PhysicalDevice,
     var returnValues: EnumerateDeviceExtensionPropertiesResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkEnumerateDeviceExtensionProperties(physicalDevice, pLayerName, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5246,7 +5246,7 @@ pub inline fn EnumerateDeviceExtensionProperties(physicalDevice: PhysicalDevice,
 pub inline fn EnumerateDeviceExtensionPropertiesCount(physicalDevice: PhysicalDevice, pLayerName: ?CString) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_LAYER_NOT_PRESENT,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkEnumerateDeviceExtensionProperties(physicalDevice, pLayerName, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5265,7 +5265,7 @@ pub inline fn EnumerateInstanceLayerProperties(properties: []LayerProperties) er
     var returnValues: EnumerateInstanceLayerPropertiesResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkEnumerateInstanceLayerProperties(&propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5279,7 +5279,7 @@ pub inline fn EnumerateInstanceLayerProperties(properties: []LayerProperties) er
 pub inline fn EnumerateInstanceLayerPropertiesCount() error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkEnumerateInstanceLayerProperties(&out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5297,7 +5297,7 @@ pub inline fn EnumerateDeviceLayerProperties(physicalDevice: PhysicalDevice, pro
     var returnValues: EnumerateDeviceLayerPropertiesResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkEnumerateDeviceLayerProperties(physicalDevice, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5311,7 +5311,7 @@ pub inline fn EnumerateDeviceLayerProperties(physicalDevice: PhysicalDevice, pro
 pub inline fn EnumerateDeviceLayerPropertiesCount(physicalDevice: PhysicalDevice) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkEnumerateDeviceLayerProperties(physicalDevice, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5329,7 +5329,7 @@ pub inline fn GetDeviceQueue(device: Device, queueFamilyIndex: u32, queueIndex: 
 
 pub inline fn QueueSubmit(queue: Queue, submits: []const SubmitInfo, fence: Fence) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkQueueSubmit(queue, @intCast(u32, submits.len), submits.ptr, fence);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5341,7 +5341,7 @@ pub inline fn QueueSubmit(queue: Queue, submits: []const SubmitInfo, fence: Fenc
 
 pub inline fn QueueWaitIdle(queue: Queue) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkQueueWaitIdle(queue);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5353,7 +5353,7 @@ pub inline fn QueueWaitIdle(queue: Queue) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_
 
 pub inline fn DeviceWaitIdle(device: Device) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkDeviceWaitIdle(device);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5366,7 +5366,7 @@ pub inline fn DeviceWaitIdle(device: Device) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_
 pub inline fn AllocateMemory(device: Device, allocateInfo: MemoryAllocateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_TOO_MANY_OBJECTS,VK_INVALID_EXTERNAL_HANDLE,VK_INVALID_OPAQUE_CAPTURE_ADDRESS,VK_UNDOCUMENTED_ERROR}!DeviceMemory {
     var out_memory: DeviceMemory = undefined;
     const result = vkAllocateMemory(device, &allocateInfo, pAllocator, &out_memory);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5383,7 +5383,7 @@ pub const FreeMemory = vkFreeMemory;
 
 pub inline fn MapMemory(device: Device, memory: DeviceMemory, offset: DeviceSize, size: DeviceSize, flags: MemoryMapFlags, ppData: ?**anyopaque) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_MEMORY_MAP_FAILED,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkMapMemory(device, memory, offset, size, flags.toInt(), ppData);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5397,7 +5397,7 @@ pub const UnmapMemory = vkUnmapMemory;
 
 pub inline fn FlushMappedMemoryRanges(device: Device, memoryRanges: []const MappedMemoryRange) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkFlushMappedMemoryRanges(device, @intCast(u32, memoryRanges.len), memoryRanges.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5408,7 +5408,7 @@ pub inline fn FlushMappedMemoryRanges(device: Device, memoryRanges: []const Mapp
 
 pub inline fn InvalidateMappedMemoryRanges(device: Device, memoryRanges: []const MappedMemoryRange) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkInvalidateMappedMemoryRanges(device, @intCast(u32, memoryRanges.len), memoryRanges.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5425,7 +5425,7 @@ pub inline fn GetDeviceMemoryCommitment(device: Device, memory: DeviceMemory) De
 
 pub inline fn BindBufferMemory(device: Device, buffer: Buffer, memory: DeviceMemory, memoryOffset: DeviceSize) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INVALID_OPAQUE_CAPTURE_ADDRESS,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkBindBufferMemory(device, buffer, memory, memoryOffset);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5437,7 +5437,7 @@ pub inline fn BindBufferMemory(device: Device, buffer: Buffer, memory: DeviceMem
 
 pub inline fn BindImageMemory(device: Device, image: Image, memory: DeviceMemory, memoryOffset: DeviceSize) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkBindImageMemory(device, image, memory, memoryOffset);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5486,7 +5486,7 @@ pub inline fn GetPhysicalDeviceSparseImageFormatPropertiesCount(physicalDevice: 
 
 pub inline fn QueueBindSparse(queue: Queue, bindInfo: []const BindSparseInfo, fence: Fence) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkQueueBindSparse(queue, @intCast(u32, bindInfo.len), bindInfo.ptr, fence);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5499,7 +5499,7 @@ pub inline fn QueueBindSparse(queue: Queue, bindInfo: []const BindSparseInfo, fe
 pub inline fn CreateFence(device: Device, createInfo: FenceCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!Fence {
     var out_fence: Fence = undefined;
     const result = vkCreateFence(device, &createInfo, pAllocator, &out_fence);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5513,7 +5513,7 @@ pub const DestroyFence = vkDestroyFence;
 
 pub inline fn ResetFences(device: Device, fences: []const Fence) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkResetFences(device, @intCast(u32, fences.len), fences.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5524,7 +5524,7 @@ pub inline fn ResetFences(device: Device, fences: []const Fence) error{VK_OUT_OF
 
 pub inline fn GetFenceStatus(device: Device, fence: Fence) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!Result {
     const result = vkGetFenceStatus(device, fence);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5537,7 +5537,7 @@ pub inline fn GetFenceStatus(device: Device, fence: Fence) error{VK_OUT_OF_HOST_
 
 pub inline fn WaitForFences(device: Device, fences: []const Fence, waitAll: Bool32, timeout: u64) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!Result {
     const result = vkWaitForFences(device, @intCast(u32, fences.len), fences.ptr, waitAll, timeout);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5551,7 +5551,7 @@ pub inline fn WaitForFences(device: Device, fences: []const Fence, waitAll: Bool
 pub inline fn CreateSemaphore(device: Device, createInfo: SemaphoreCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!Semaphore {
     var out_semaphore: Semaphore = undefined;
     const result = vkCreateSemaphore(device, &createInfo, pAllocator, &out_semaphore);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5566,7 +5566,7 @@ pub const DestroySemaphore = vkDestroySemaphore;
 pub inline fn CreateEvent(device: Device, createInfo: EventCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!Event {
     var out_event: Event = undefined;
     const result = vkCreateEvent(device, &createInfo, pAllocator, &out_event);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5580,7 +5580,7 @@ pub const DestroyEvent = vkDestroyEvent;
 
 pub inline fn GetEventStatus(device: Device, event: Event) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!Result {
     const result = vkGetEventStatus(device, event);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5593,7 +5593,7 @@ pub inline fn GetEventStatus(device: Device, event: Event) error{VK_OUT_OF_HOST_
 
 pub inline fn SetEvent(device: Device, event: Event) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkSetEvent(device, event);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5604,7 +5604,7 @@ pub inline fn SetEvent(device: Device, event: Event) error{VK_OUT_OF_HOST_MEMORY
 
 pub inline fn ResetEvent(device: Device, event: Event) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkResetEvent(device, event);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5616,7 +5616,7 @@ pub inline fn ResetEvent(device: Device, event: Event) error{VK_OUT_OF_HOST_MEMO
 pub inline fn CreateQueryPool(device: Device, createInfo: QueryPoolCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!QueryPool {
     var out_queryPool: QueryPool = undefined;
     const result = vkCreateQueryPool(device, &createInfo, pAllocator, &out_queryPool);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5630,7 +5630,7 @@ pub const DestroyQueryPool = vkDestroyQueryPool;
 
 pub inline fn GetQueryPoolResults(device: Device, queryPool: QueryPool, firstQuery: u32, queryCount: u32, data: []u8, stride: DeviceSize, flags: QueryResultFlags) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!Result {
     const result = vkGetQueryPoolResults(device, queryPool, firstQuery, queryCount, @intCast(usize, data.len), data.ptr, stride, flags.toInt());
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5644,7 +5644,7 @@ pub inline fn GetQueryPoolResults(device: Device, queryPool: QueryPool, firstQue
 pub inline fn CreateBuffer(device: Device, createInfo: BufferCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INVALID_OPAQUE_CAPTURE_ADDRESS,VK_UNDOCUMENTED_ERROR}!Buffer {
     var out_buffer: Buffer = undefined;
     const result = vkCreateBuffer(device, &createInfo, pAllocator, &out_buffer);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5660,7 +5660,7 @@ pub const DestroyBuffer = vkDestroyBuffer;
 pub inline fn CreateBufferView(device: Device, createInfo: BufferViewCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!BufferView {
     var out_view: BufferView = undefined;
     const result = vkCreateBufferView(device, &createInfo, pAllocator, &out_view);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5675,7 +5675,7 @@ pub const DestroyBufferView = vkDestroyBufferView;
 pub inline fn CreateImage(device: Device, createInfo: ImageCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!Image {
     var out_image: Image = undefined;
     const result = vkCreateImage(device, &createInfo, pAllocator, &out_image);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5696,7 +5696,7 @@ pub inline fn GetImageSubresourceLayout(device: Device, image: Image, subresourc
 pub inline fn CreateImageView(device: Device, createInfo: ImageViewCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!ImageView {
     var out_view: ImageView = undefined;
     const result = vkCreateImageView(device, &createInfo, pAllocator, &out_view);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5711,7 +5711,7 @@ pub const DestroyImageView = vkDestroyImageView;
 pub inline fn CreateShaderModule(device: Device, createInfo: ShaderModuleCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INVALID_SHADER_NV,VK_UNDOCUMENTED_ERROR}!ShaderModule {
     var out_shaderModule: ShaderModule = undefined;
     const result = vkCreateShaderModule(device, &createInfo, pAllocator, &out_shaderModule);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5727,7 +5727,7 @@ pub const DestroyShaderModule = vkDestroyShaderModule;
 pub inline fn CreatePipelineCache(device: Device, createInfo: PipelineCacheCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!PipelineCache {
     var out_pipelineCache: PipelineCache = undefined;
     const result = vkCreatePipelineCache(device, &createInfo, pAllocator, &out_pipelineCache);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5747,7 +5747,7 @@ pub inline fn GetPipelineCacheData(device: Device, pipelineCache: PipelineCache,
     var returnValues: GetPipelineCacheDataResult = undefined;
     var dataSize: usize = @intCast(usize, data.len);
     const result = vkGetPipelineCacheData(device, pipelineCache, &dataSize, data.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5761,7 +5761,7 @@ pub inline fn GetPipelineCacheData(device: Device, pipelineCache: PipelineCache,
 pub inline fn GetPipelineCacheDataCount(device: Device, pipelineCache: PipelineCache) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!usize {
     var out_dataSize: usize = undefined;
     const result = vkGetPipelineCacheData(device, pipelineCache, &out_dataSize, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5773,7 +5773,7 @@ pub inline fn GetPipelineCacheDataCount(device: Device, pipelineCache: PipelineC
 
 pub inline fn MergePipelineCaches(device: Device, dstCache: PipelineCache, srcCaches: []const PipelineCache) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkMergePipelineCaches(device, dstCache, @intCast(u32, srcCaches.len), srcCaches.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5785,7 +5785,7 @@ pub inline fn MergePipelineCaches(device: Device, dstCache: PipelineCache, srcCa
 pub inline fn CreateGraphicsPipelines(device: Device, pipelineCache: PipelineCache, createInfos: []const GraphicsPipelineCreateInfo, pAllocator: ?*const AllocationCallbacks, pipelines: []Pipeline) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INVALID_SHADER_NV,VK_UNDOCUMENTED_ERROR}!void {
     assert(pipelines.len >= createInfos.len);
     const result = vkCreateGraphicsPipelines(device, pipelineCache, @intCast(u32, createInfos.len), createInfos.ptr, pAllocator, pipelines.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5798,7 +5798,7 @@ pub inline fn CreateGraphicsPipelines(device: Device, pipelineCache: PipelineCac
 pub inline fn CreateComputePipelines(device: Device, pipelineCache: PipelineCache, createInfos: []const ComputePipelineCreateInfo, pAllocator: ?*const AllocationCallbacks, pipelines: []Pipeline) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INVALID_SHADER_NV,VK_UNDOCUMENTED_ERROR}!void {
     assert(pipelines.len >= createInfos.len);
     const result = vkCreateComputePipelines(device, pipelineCache, @intCast(u32, createInfos.len), createInfos.ptr, pAllocator, pipelines.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5813,7 +5813,7 @@ pub const DestroyPipeline = vkDestroyPipeline;
 pub inline fn CreatePipelineLayout(device: Device, createInfo: PipelineLayoutCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!PipelineLayout {
     var out_pipelineLayout: PipelineLayout = undefined;
     const result = vkCreatePipelineLayout(device, &createInfo, pAllocator, &out_pipelineLayout);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5828,7 +5828,7 @@ pub const DestroyPipelineLayout = vkDestroyPipelineLayout;
 pub inline fn CreateSampler(device: Device, createInfo: SamplerCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_TOO_MANY_OBJECTS,VK_UNDOCUMENTED_ERROR}!Sampler {
     var out_sampler: Sampler = undefined;
     const result = vkCreateSampler(device, &createInfo, pAllocator, &out_sampler);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5844,7 +5844,7 @@ pub const DestroySampler = vkDestroySampler;
 pub inline fn CreateDescriptorSetLayout(device: Device, createInfo: DescriptorSetLayoutCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!DescriptorSetLayout {
     var out_setLayout: DescriptorSetLayout = undefined;
     const result = vkCreateDescriptorSetLayout(device, &createInfo, pAllocator, &out_setLayout);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5859,7 +5859,7 @@ pub const DestroyDescriptorSetLayout = vkDestroyDescriptorSetLayout;
 pub inline fn CreateDescriptorPool(device: Device, createInfo: DescriptorPoolCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_FRAGMENTATION,VK_UNDOCUMENTED_ERROR}!DescriptorPool {
     var out_descriptorPool: DescriptorPool = undefined;
     const result = vkCreateDescriptorPool(device, &createInfo, pAllocator, &out_descriptorPool);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5874,7 +5874,7 @@ pub const DestroyDescriptorPool = vkDestroyDescriptorPool;
 
 pub inline fn ResetDescriptorPool(device: Device, descriptorPool: DescriptorPool, flags: DescriptorPoolResetFlags) error{VK_UNDOCUMENTED_ERROR}!void {
     const result = vkResetDescriptorPool(device, descriptorPool, flags.toInt());
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
 }
@@ -5882,7 +5882,7 @@ pub inline fn ResetDescriptorPool(device: Device, descriptorPool: DescriptorPool
 pub inline fn AllocateDescriptorSets(device: Device, allocateInfo: DescriptorSetAllocateInfo, descriptorSets: []DescriptorSet) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_FRAGMENTED_POOL,VK_OUT_OF_POOL_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     assert(descriptorSets.len >= allocateInfo.descriptorSetCount);
     const result = vkAllocateDescriptorSets(device, &allocateInfo, descriptorSets.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5895,7 +5895,7 @@ pub inline fn AllocateDescriptorSets(device: Device, allocateInfo: DescriptorSet
 
 pub inline fn FreeDescriptorSets(device: Device, descriptorPool: DescriptorPool, descriptorSets: []const DescriptorSet) error{VK_UNDOCUMENTED_ERROR}!void {
     const result = vkFreeDescriptorSets(device, descriptorPool, @intCast(u32, descriptorSets.len), descriptorSets.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
 }
@@ -5907,7 +5907,7 @@ pub inline fn UpdateDescriptorSets(device: Device, descriptorWrites: []const Wri
 pub inline fn CreateFramebuffer(device: Device, createInfo: FramebufferCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!Framebuffer {
     var out_framebuffer: Framebuffer = undefined;
     const result = vkCreateFramebuffer(device, &createInfo, pAllocator, &out_framebuffer);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5922,7 +5922,7 @@ pub const DestroyFramebuffer = vkDestroyFramebuffer;
 pub inline fn CreateRenderPass(device: Device, createInfo: RenderPassCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!RenderPass {
     var out_renderPass: RenderPass = undefined;
     const result = vkCreateRenderPass(device, &createInfo, pAllocator, &out_renderPass);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5943,7 +5943,7 @@ pub inline fn GetRenderAreaGranularity(device: Device, renderPass: RenderPass) E
 pub inline fn CreateCommandPool(device: Device, createInfo: CommandPoolCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!CommandPool {
     var out_commandPool: CommandPool = undefined;
     const result = vkCreateCommandPool(device, &createInfo, pAllocator, &out_commandPool);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5957,7 +5957,7 @@ pub const DestroyCommandPool = vkDestroyCommandPool;
 
 pub inline fn ResetCommandPool(device: Device, commandPool: CommandPool, flags: CommandPoolResetFlags) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkResetCommandPool(device, commandPool, flags.toInt());
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5969,7 +5969,7 @@ pub inline fn ResetCommandPool(device: Device, commandPool: CommandPool, flags: 
 pub inline fn AllocateCommandBuffers(device: Device, allocateInfo: CommandBufferAllocateInfo, commandBuffers: []CommandBuffer) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     assert(commandBuffers.len >= allocateInfo.commandBufferCount);
     const result = vkAllocateCommandBuffers(device, &allocateInfo, commandBuffers.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5984,7 +5984,7 @@ pub inline fn FreeCommandBuffers(device: Device, commandPool: CommandPool, comma
 
 pub inline fn BeginCommandBuffer(commandBuffer: CommandBuffer, beginInfo: CommandBufferBeginInfo) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -5995,7 +5995,7 @@ pub inline fn BeginCommandBuffer(commandBuffer: CommandBuffer, beginInfo: Comman
 
 pub inline fn EndCommandBuffer(commandBuffer: CommandBuffer) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkEndCommandBuffer(commandBuffer);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -6006,7 +6006,7 @@ pub inline fn EndCommandBuffer(commandBuffer: CommandBuffer) error{VK_OUT_OF_HOS
 
 pub inline fn ResetCommandBuffer(commandBuffer: CommandBuffer, flags: CommandBufferResetFlags) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkResetCommandBuffer(commandBuffer, flags.toInt());
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -7362,7 +7362,7 @@ pub extern fn vkGetDescriptorSetLayoutSupport(
 pub inline fn EnumerateInstanceVersion() error{VK_UNDOCUMENTED_ERROR}!u32 {
     var out_apiVersion: u32 = undefined;
     const result = vkEnumerateInstanceVersion(&out_apiVersion);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
     return out_apiVersion;
@@ -7370,7 +7370,7 @@ pub inline fn EnumerateInstanceVersion() error{VK_UNDOCUMENTED_ERROR}!u32 {
 
 pub inline fn BindBufferMemory2(device: Device, bindInfos: []const BindBufferMemoryInfo) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INVALID_OPAQUE_CAPTURE_ADDRESS,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkBindBufferMemory2(device, @intCast(u32, bindInfos.len), bindInfos.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -7382,7 +7382,7 @@ pub inline fn BindBufferMemory2(device: Device, bindInfos: []const BindBufferMem
 
 pub inline fn BindImageMemory2(device: Device, bindInfos: []const BindImageMemoryInfo) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkBindImageMemory2(device, @intCast(u32, bindInfos.len), bindInfos.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -7408,7 +7408,7 @@ pub inline fn EnumeratePhysicalDeviceGroups(instance: Instance, physicalDeviceGr
     var returnValues: EnumeratePhysicalDeviceGroupsResult = undefined;
     var physicalDeviceGroupCount: u32 = @intCast(u32, physicalDeviceGroupProperties.len);
     const result = vkEnumeratePhysicalDeviceGroups(instance, &physicalDeviceGroupCount, physicalDeviceGroupProperties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -7423,7 +7423,7 @@ pub inline fn EnumeratePhysicalDeviceGroups(instance: Instance, physicalDeviceGr
 pub inline fn EnumeratePhysicalDeviceGroupsCount(instance: Instance) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INITIALIZATION_FAILED,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_physicalDeviceGroupCount: u32 = undefined;
     const result = vkEnumeratePhysicalDeviceGroups(instance, &out_physicalDeviceGroupCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -7480,7 +7480,7 @@ pub inline fn GetPhysicalDeviceFormatProperties2(physicalDevice: PhysicalDevice,
 pub inline fn GetPhysicalDeviceImageFormatProperties2(physicalDevice: PhysicalDevice, imageFormatInfo: PhysicalDeviceImageFormatInfo2) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_FORMAT_NOT_SUPPORTED,VK_UNDOCUMENTED_ERROR}!ImageFormatProperties2 {
     var out_imageFormatProperties: ImageFormatProperties2 = undefined;
     const result = vkGetPhysicalDeviceImageFormatProperties2(physicalDevice, &imageFormatInfo, &out_imageFormatProperties);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -7536,7 +7536,7 @@ pub inline fn GetDeviceQueue2(device: Device, queueInfo: DeviceQueueInfo2) Queue
 pub inline fn CreateSamplerYcbcrConversion(device: Device, createInfo: SamplerYcbcrConversionCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!SamplerYcbcrConversion {
     var out_ycbcrConversion: SamplerYcbcrConversion = undefined;
     const result = vkCreateSamplerYcbcrConversion(device, &createInfo, pAllocator, &out_ycbcrConversion);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -7551,7 +7551,7 @@ pub const DestroySamplerYcbcrConversion = vkDestroySamplerYcbcrConversion;
 pub inline fn CreateDescriptorUpdateTemplate(device: Device, createInfo: DescriptorUpdateTemplateCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!DescriptorUpdateTemplate {
     var out_descriptorUpdateTemplate: DescriptorUpdateTemplate = undefined;
     const result = vkCreateDescriptorUpdateTemplate(device, &createInfo, pAllocator, &out_descriptorUpdateTemplate);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8436,7 +8436,7 @@ pub const CmdDrawIndexedIndirectCount = vkCmdDrawIndexedIndirectCount;
 pub inline fn CreateRenderPass2(device: Device, createInfo: RenderPassCreateInfo2, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!RenderPass {
     var out_renderPass: RenderPass = undefined;
     const result = vkCreateRenderPass2(device, &createInfo, pAllocator, &out_renderPass);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8463,7 +8463,7 @@ pub const ResetQueryPool = vkResetQueryPool;
 pub inline fn GetSemaphoreCounterValue(device: Device, semaphore: Semaphore) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!u64 {
     var out_value: u64 = undefined;
     const result = vkGetSemaphoreCounterValue(device, semaphore, &out_value);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8476,7 +8476,7 @@ pub inline fn GetSemaphoreCounterValue(device: Device, semaphore: Semaphore) err
 
 pub inline fn WaitSemaphores(device: Device, waitInfo: SemaphoreWaitInfo, timeout: u64) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!Result {
     const result = vkWaitSemaphores(device, &waitInfo, timeout);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8489,7 +8489,7 @@ pub inline fn WaitSemaphores(device: Device, waitInfo: SemaphoreWaitInfo, timeou
 
 pub inline fn SignalSemaphore(device: Device, signalInfo: SemaphoreSignalInfo) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkSignalSemaphore(device, &signalInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8684,7 +8684,7 @@ pub const DestroySurfaceKHR = vkDestroySurfaceKHR;
 pub inline fn GetPhysicalDeviceSurfaceSupportKHR(physicalDevice: PhysicalDevice, queueFamilyIndex: u32, surface: SurfaceKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!Bool32 {
     var out_supported: Bool32 = undefined;
     const result = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queueFamilyIndex, surface, &out_supported);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8698,7 +8698,7 @@ pub inline fn GetPhysicalDeviceSurfaceSupportKHR(physicalDevice: PhysicalDevice,
 pub inline fn GetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice: PhysicalDevice, surface: SurfaceKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!SurfaceCapabilitiesKHR {
     var out_surfaceCapabilities: SurfaceCapabilitiesKHR = undefined;
     const result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &out_surfaceCapabilities);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8717,7 +8717,7 @@ pub inline fn GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice: PhysicalDevice,
     var returnValues: GetPhysicalDeviceSurfaceFormatsKHRResult = undefined;
     var surfaceFormatCount: u32 = @intCast(u32, surfaceFormats.len);
     const result = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, surfaceFormats.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8732,7 +8732,7 @@ pub inline fn GetPhysicalDeviceSurfaceFormatsKHR(physicalDevice: PhysicalDevice,
 pub inline fn GetPhysicalDeviceSurfaceFormatsCountKHR(physicalDevice: PhysicalDevice, surface: SurfaceKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_surfaceFormatCount: u32 = undefined;
     const result = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &out_surfaceFormatCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8751,7 +8751,7 @@ pub inline fn GetPhysicalDeviceSurfacePresentModesKHR(physicalDevice: PhysicalDe
     var returnValues: GetPhysicalDeviceSurfacePresentModesKHRResult = undefined;
     var presentModeCount: u32 = @intCast(u32, presentModes.len);
     const result = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8766,7 +8766,7 @@ pub inline fn GetPhysicalDeviceSurfacePresentModesKHR(physicalDevice: PhysicalDe
 pub inline fn GetPhysicalDeviceSurfacePresentModesCountKHR(physicalDevice: PhysicalDevice, surface: SurfaceKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_presentModeCount: u32 = undefined;
     const result = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &out_presentModeCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -8995,7 +8995,7 @@ pub extern fn vkAcquireNextImage2KHR(
 pub inline fn CreateSwapchainKHR(device: Device, createInfo: SwapchainCreateInfoKHR, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_SURFACE_LOST_KHR,VK_NATIVE_WINDOW_IN_USE_KHR,VK_INITIALIZATION_FAILED,VK_UNDOCUMENTED_ERROR}!SwapchainKHR {
     var out_swapchain: SwapchainKHR = undefined;
     const result = vkCreateSwapchainKHR(device, &createInfo, pAllocator, &out_swapchain);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9019,7 +9019,7 @@ pub inline fn GetSwapchainImagesKHR(device: Device, swapchain: SwapchainKHR, swa
     var returnValues: GetSwapchainImagesKHRResult = undefined;
     var swapchainImageCount: u32 = @intCast(u32, swapchainImages.len);
     const result = vkGetSwapchainImagesKHR(device, swapchain, &swapchainImageCount, swapchainImages.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9033,7 +9033,7 @@ pub inline fn GetSwapchainImagesKHR(device: Device, swapchain: SwapchainKHR, swa
 pub inline fn GetSwapchainImagesCountKHR(device: Device, swapchain: SwapchainKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_swapchainImageCount: u32 = undefined;
     const result = vkGetSwapchainImagesKHR(device, swapchain, &out_swapchainImageCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9050,7 +9050,7 @@ pub const AcquireNextImageKHRResult = struct {
 pub inline fn AcquireNextImageKHR(device: Device, swapchain: SwapchainKHR, timeout: u64, semaphore: Semaphore, fence: Fence) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_OUT_OF_DATE_KHR,VK_SURFACE_LOST_KHR,VK_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,VK_UNDOCUMENTED_ERROR}!AcquireNextImageKHRResult {
     var returnValues: AcquireNextImageKHRResult = undefined;
     const result = vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, &returnValues.imageIndex);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9067,7 +9067,7 @@ pub inline fn AcquireNextImageKHR(device: Device, swapchain: SwapchainKHR, timeo
 
 pub inline fn QueuePresentKHR(queue: Queue, presentInfo: PresentInfoKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_OUT_OF_DATE_KHR,VK_SURFACE_LOST_KHR,VK_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,VK_UNDOCUMENTED_ERROR}!Result {
     const result = vkQueuePresentKHR(queue, &presentInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9084,7 +9084,7 @@ pub inline fn QueuePresentKHR(queue: Queue, presentInfo: PresentInfoKHR) error{V
 pub inline fn GetDeviceGroupPresentCapabilitiesKHR(device: Device) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!DeviceGroupPresentCapabilitiesKHR {
     var out_deviceGroupPresentCapabilities: DeviceGroupPresentCapabilitiesKHR = undefined;
     const result = vkGetDeviceGroupPresentCapabilitiesKHR(device, &out_deviceGroupPresentCapabilities);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9097,7 +9097,7 @@ pub inline fn GetDeviceGroupPresentCapabilitiesKHR(device: Device) error{VK_OUT_
 pub inline fn GetDeviceGroupSurfacePresentModesKHR(device: Device, surface: SurfaceKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!DeviceGroupPresentModeFlagsKHR {
     var out_modes: DeviceGroupPresentModeFlagsKHR align(4) = undefined;
     const result = vkGetDeviceGroupSurfacePresentModesKHR(device, surface, &out_modes);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9116,7 +9116,7 @@ pub inline fn GetPhysicalDevicePresentRectanglesKHR(physicalDevice: PhysicalDevi
     var returnValues: GetPhysicalDevicePresentRectanglesKHRResult = undefined;
     var rectCount: u32 = @intCast(u32, rects.len);
     const result = vkGetPhysicalDevicePresentRectanglesKHR(physicalDevice, surface, &rectCount, rects.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9130,7 +9130,7 @@ pub inline fn GetPhysicalDevicePresentRectanglesKHR(physicalDevice: PhysicalDevi
 pub inline fn GetPhysicalDevicePresentRectanglesCountKHR(physicalDevice: PhysicalDevice, surface: SurfaceKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_rectCount: u32 = undefined;
     const result = vkGetPhysicalDevicePresentRectanglesKHR(physicalDevice, surface, &out_rectCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9147,7 +9147,7 @@ pub const AcquireNextImage2KHRResult = struct {
 pub inline fn AcquireNextImage2KHR(device: Device, acquireInfo: AcquireNextImageInfoKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_OUT_OF_DATE_KHR,VK_SURFACE_LOST_KHR,VK_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,VK_UNDOCUMENTED_ERROR}!AcquireNextImage2KHRResult {
     var returnValues: AcquireNextImage2KHRResult = undefined;
     const result = vkAcquireNextImage2KHR(device, &acquireInfo, &returnValues.imageIndex);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9330,7 +9330,7 @@ pub inline fn GetPhysicalDeviceDisplayPropertiesKHR(physicalDevice: PhysicalDevi
     var returnValues: GetPhysicalDeviceDisplayPropertiesKHRResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkGetPhysicalDeviceDisplayPropertiesKHR(physicalDevice, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9344,7 +9344,7 @@ pub inline fn GetPhysicalDeviceDisplayPropertiesKHR(physicalDevice: PhysicalDevi
 pub inline fn GetPhysicalDeviceDisplayPropertiesCountKHR(physicalDevice: PhysicalDevice) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkGetPhysicalDeviceDisplayPropertiesKHR(physicalDevice, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9362,7 +9362,7 @@ pub inline fn GetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice: Physica
     var returnValues: GetPhysicalDeviceDisplayPlanePropertiesKHRResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9376,7 +9376,7 @@ pub inline fn GetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice: Physica
 pub inline fn GetPhysicalDeviceDisplayPlanePropertiesCountKHR(physicalDevice: PhysicalDevice) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkGetPhysicalDeviceDisplayPlanePropertiesKHR(physicalDevice, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9394,7 +9394,7 @@ pub inline fn GetDisplayPlaneSupportedDisplaysKHR(physicalDevice: PhysicalDevice
     var returnValues: GetDisplayPlaneSupportedDisplaysKHRResult = undefined;
     var displayCount: u32 = @intCast(u32, displays.len);
     const result = vkGetDisplayPlaneSupportedDisplaysKHR(physicalDevice, planeIndex, &displayCount, displays.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9408,7 +9408,7 @@ pub inline fn GetDisplayPlaneSupportedDisplaysKHR(physicalDevice: PhysicalDevice
 pub inline fn GetDisplayPlaneSupportedDisplaysCountKHR(physicalDevice: PhysicalDevice, planeIndex: u32) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_displayCount: u32 = undefined;
     const result = vkGetDisplayPlaneSupportedDisplaysKHR(physicalDevice, planeIndex, &out_displayCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9426,7 +9426,7 @@ pub inline fn GetDisplayModePropertiesKHR(physicalDevice: PhysicalDevice, displa
     var returnValues: GetDisplayModePropertiesKHRResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkGetDisplayModePropertiesKHR(physicalDevice, display, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9440,7 +9440,7 @@ pub inline fn GetDisplayModePropertiesKHR(physicalDevice: PhysicalDevice, displa
 pub inline fn GetDisplayModePropertiesCountKHR(physicalDevice: PhysicalDevice, display: DisplayKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkGetDisplayModePropertiesKHR(physicalDevice, display, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9453,7 +9453,7 @@ pub inline fn GetDisplayModePropertiesCountKHR(physicalDevice: PhysicalDevice, d
 pub inline fn CreateDisplayModeKHR(physicalDevice: PhysicalDevice, display: DisplayKHR, createInfo: DisplayModeCreateInfoKHR, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INITIALIZATION_FAILED,VK_UNDOCUMENTED_ERROR}!DisplayModeKHR {
     var out_mode: DisplayModeKHR = undefined;
     const result = vkCreateDisplayModeKHR(physicalDevice, display, &createInfo, pAllocator, &out_mode);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9467,7 +9467,7 @@ pub inline fn CreateDisplayModeKHR(physicalDevice: PhysicalDevice, display: Disp
 pub inline fn GetDisplayPlaneCapabilitiesKHR(physicalDevice: PhysicalDevice, mode: DisplayModeKHR, planeIndex: u32) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!DisplayPlaneCapabilitiesKHR {
     var out_capabilities: DisplayPlaneCapabilitiesKHR = undefined;
     const result = vkGetDisplayPlaneCapabilitiesKHR(physicalDevice, mode, planeIndex, &out_capabilities);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9480,7 +9480,7 @@ pub inline fn GetDisplayPlaneCapabilitiesKHR(physicalDevice: PhysicalDevice, mod
 pub inline fn CreateDisplayPlaneSurfaceKHR(instance: Instance, createInfo: DisplaySurfaceCreateInfoKHR, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!SurfaceKHR {
     var out_surface: SurfaceKHR = undefined;
     const result = vkCreateDisplayPlaneSurfaceKHR(instance, &createInfo, pAllocator, &out_surface);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9514,7 +9514,7 @@ pub extern fn vkCreateSharedSwapchainsKHR(
 pub inline fn CreateSharedSwapchainsKHR(device: Device, createInfos: []const SwapchainCreateInfoKHR, pAllocator: ?*const AllocationCallbacks, swapchains: []SwapchainKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INCOMPATIBLE_DISPLAY_KHR,VK_DEVICE_LOST,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!void {
     assert(swapchains.len >= createInfos.len);
     const result = vkCreateSharedSwapchainsKHR(device, @intCast(u32, createInfos.len), createInfos.ptr, pAllocator, swapchains.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9616,7 +9616,7 @@ pub inline fn GetPhysicalDeviceFormatProperties2KHR(physicalDevice: PhysicalDevi
 pub inline fn GetPhysicalDeviceImageFormatProperties2KHR(physicalDevice: PhysicalDevice, imageFormatInfo: PhysicalDeviceImageFormatInfo2) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_FORMAT_NOT_SUPPORTED,VK_UNDOCUMENTED_ERROR}!ImageFormatProperties2 {
     var out_imageFormatProperties: ImageFormatProperties2 = undefined;
     const result = vkGetPhysicalDeviceImageFormatProperties2KHR(physicalDevice, &imageFormatInfo, &out_imageFormatProperties);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9752,7 +9752,7 @@ pub inline fn EnumeratePhysicalDeviceGroupsKHR(instance: Instance, physicalDevic
     var returnValues: EnumeratePhysicalDeviceGroupsKHRResult = undefined;
     var physicalDeviceGroupCount: u32 = @intCast(u32, physicalDeviceGroupProperties.len);
     const result = vkEnumeratePhysicalDeviceGroupsKHR(instance, &physicalDeviceGroupCount, physicalDeviceGroupProperties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9767,7 +9767,7 @@ pub inline fn EnumeratePhysicalDeviceGroupsKHR(instance: Instance, physicalDevic
 pub inline fn EnumeratePhysicalDeviceGroupsCountKHR(instance: Instance) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INITIALIZATION_FAILED,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_physicalDeviceGroupCount: u32 = undefined;
     const result = vkEnumeratePhysicalDeviceGroupsKHR(instance, &out_physicalDeviceGroupCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -9857,7 +9857,7 @@ pub extern fn vkGetMemoryFdPropertiesKHR(
 pub inline fn GetMemoryFdKHR(device: Device, getFdInfo: MemoryGetFdInfoKHR) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!c_int {
     var out_fd: c_int = undefined;
     const result = vkGetMemoryFdKHR(device, &getFdInfo, &out_fd);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -9870,7 +9870,7 @@ pub inline fn GetMemoryFdKHR(device: Device, getFdInfo: MemoryGetFdInfoKHR) erro
 pub inline fn GetMemoryFdPropertiesKHR(device: Device, handleType: ExternalMemoryHandleTypeFlags, fd: c_int) error{VK_INVALID_EXTERNAL_HANDLE,VK_UNDOCUMENTED_ERROR}!MemoryFdPropertiesKHR {
     var out_memoryFdProperties: MemoryFdPropertiesKHR = undefined;
     const result = vkGetMemoryFdPropertiesKHR(device, handleType.toInt(), fd, &out_memoryFdProperties);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_INVALID_EXTERNAL_HANDLE => error.VK_INVALID_EXTERNAL_HANDLE,
             else => error.VK_UNDOCUMENTED_ERROR,
@@ -9945,7 +9945,7 @@ pub extern fn vkGetSemaphoreFdKHR(
 
 pub inline fn ImportSemaphoreFdKHR(device: Device, importSemaphoreFdInfo: ImportSemaphoreFdInfoKHR) error{VK_OUT_OF_HOST_MEMORY,VK_INVALID_EXTERNAL_HANDLE,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkImportSemaphoreFdKHR(device, &importSemaphoreFdInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_INVALID_EXTERNAL_HANDLE => error.VK_INVALID_EXTERNAL_HANDLE,
@@ -9957,7 +9957,7 @@ pub inline fn ImportSemaphoreFdKHR(device: Device, importSemaphoreFdInfo: Import
 pub inline fn GetSemaphoreFdKHR(device: Device, getFdInfo: SemaphoreGetFdInfoKHR) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!c_int {
     var out_fd: c_int = undefined;
     const result = vkGetSemaphoreFdKHR(device, &getFdInfo, &out_fd);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -10076,7 +10076,7 @@ pub extern fn vkUpdateDescriptorSetWithTemplateKHR(
 pub inline fn CreateDescriptorUpdateTemplateKHR(device: Device, createInfo: DescriptorUpdateTemplateCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!DescriptorUpdateTemplate {
     var out_descriptorUpdateTemplate: DescriptorUpdateTemplate = undefined;
     const result = vkCreateDescriptorUpdateTemplateKHR(device, &createInfo, pAllocator, &out_descriptorUpdateTemplate);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10139,7 +10139,7 @@ pub extern fn vkCmdEndRenderPass2KHR(
 pub inline fn CreateRenderPass2KHR(device: Device, createInfo: RenderPassCreateInfo2, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!RenderPass {
     var out_renderPass: RenderPass = undefined;
     const result = vkCreateRenderPass2KHR(device, &createInfo, pAllocator, &out_renderPass);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10179,7 +10179,7 @@ pub extern fn vkGetSwapchainStatusKHR(
 
 pub inline fn GetSwapchainStatusKHR(device: Device, swapchain: SwapchainKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_OUT_OF_DATE_KHR,VK_SURFACE_LOST_KHR,VK_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,VK_UNDOCUMENTED_ERROR}!Result {
     const result = vkGetSwapchainStatusKHR(device, swapchain);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10259,7 +10259,7 @@ pub extern fn vkGetFenceFdKHR(
 
 pub inline fn ImportFenceFdKHR(device: Device, importFenceFdInfo: ImportFenceFdInfoKHR) error{VK_OUT_OF_HOST_MEMORY,VK_INVALID_EXTERNAL_HANDLE,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkImportFenceFdKHR(device, &importFenceFdInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_INVALID_EXTERNAL_HANDLE => error.VK_INVALID_EXTERNAL_HANDLE,
@@ -10271,7 +10271,7 @@ pub inline fn ImportFenceFdKHR(device: Device, importFenceFdInfo: ImportFenceFdI
 pub inline fn GetFenceFdKHR(device: Device, getFdInfo: FenceGetFdInfoKHR) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!c_int {
     var out_fd: c_int = undefined;
     const result = vkGetFenceFdKHR(device, &getFdInfo, &out_fd);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -10489,7 +10489,7 @@ pub inline fn EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(phys
     var counterCount: u32 = @intCast(u32, counters.len);
     assert(counterDescriptions.len >= counters.len);
     const result = vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(physicalDevice, queueFamilyIndex, &counterCount, counters.ptr, counterDescriptions.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10505,7 +10505,7 @@ pub inline fn EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(phys
 pub inline fn EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersCountKHR(physicalDevice: PhysicalDevice, queueFamilyIndex: u32) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INITIALIZATION_FAILED,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_counterCount: u32 = undefined;
     const result = vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(physicalDevice, queueFamilyIndex, &out_counterCount, null, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10524,7 +10524,7 @@ pub inline fn GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(physicalDevi
 
 pub inline fn AcquireProfilingLockKHR(device: Device, info: AcquireProfilingLockInfoKHR) error{VK_TIMEOUT,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkAcquireProfilingLockKHR(device, &info);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .TIMEOUT => error.VK_TIMEOUT,
             else => error.VK_UNDOCUMENTED_ERROR,
@@ -10587,7 +10587,7 @@ pub extern fn vkGetPhysicalDeviceSurfaceFormats2KHR(
 pub inline fn GetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice: PhysicalDevice, surfaceInfo: PhysicalDeviceSurfaceInfo2KHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!SurfaceCapabilities2KHR {
     var out_surfaceCapabilities: SurfaceCapabilities2KHR = undefined;
     const result = vkGetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice, &surfaceInfo, &out_surfaceCapabilities);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10606,7 +10606,7 @@ pub inline fn GetPhysicalDeviceSurfaceFormats2KHR(physicalDevice: PhysicalDevice
     var returnValues: GetPhysicalDeviceSurfaceFormats2KHRResult = undefined;
     var surfaceFormatCount: u32 = @intCast(u32, surfaceFormats.len);
     const result = vkGetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, &surfaceInfo, &surfaceFormatCount, surfaceFormats.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10621,7 +10621,7 @@ pub inline fn GetPhysicalDeviceSurfaceFormats2KHR(physicalDevice: PhysicalDevice
 pub inline fn GetPhysicalDeviceSurfaceFormats2CountKHR(physicalDevice: PhysicalDevice, surfaceInfo: PhysicalDeviceSurfaceInfo2KHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_surfaceFormatCount: u32 = undefined;
     const result = vkGetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, &surfaceInfo, &out_surfaceFormatCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10709,7 +10709,7 @@ pub inline fn GetPhysicalDeviceDisplayProperties2KHR(physicalDevice: PhysicalDev
     var returnValues: GetPhysicalDeviceDisplayProperties2KHRResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkGetPhysicalDeviceDisplayProperties2KHR(physicalDevice, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10723,7 +10723,7 @@ pub inline fn GetPhysicalDeviceDisplayProperties2KHR(physicalDevice: PhysicalDev
 pub inline fn GetPhysicalDeviceDisplayProperties2CountKHR(physicalDevice: PhysicalDevice) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkGetPhysicalDeviceDisplayProperties2KHR(physicalDevice, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10741,7 +10741,7 @@ pub inline fn GetPhysicalDeviceDisplayPlaneProperties2KHR(physicalDevice: Physic
     var returnValues: GetPhysicalDeviceDisplayPlaneProperties2KHRResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkGetPhysicalDeviceDisplayPlaneProperties2KHR(physicalDevice, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10755,7 +10755,7 @@ pub inline fn GetPhysicalDeviceDisplayPlaneProperties2KHR(physicalDevice: Physic
 pub inline fn GetPhysicalDeviceDisplayPlaneProperties2CountKHR(physicalDevice: PhysicalDevice) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkGetPhysicalDeviceDisplayPlaneProperties2KHR(physicalDevice, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10773,7 +10773,7 @@ pub inline fn GetDisplayModeProperties2KHR(physicalDevice: PhysicalDevice, displ
     var returnValues: GetDisplayModeProperties2KHRResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkGetDisplayModeProperties2KHR(physicalDevice, display, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10787,7 +10787,7 @@ pub inline fn GetDisplayModeProperties2KHR(physicalDevice: PhysicalDevice, displ
 pub inline fn GetDisplayModeProperties2CountKHR(physicalDevice: PhysicalDevice, display: DisplayKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkGetDisplayModeProperties2KHR(physicalDevice, display, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10800,7 +10800,7 @@ pub inline fn GetDisplayModeProperties2CountKHR(physicalDevice: PhysicalDevice, 
 pub inline fn GetDisplayPlaneCapabilities2KHR(physicalDevice: PhysicalDevice, displayPlaneInfo: DisplayPlaneInfo2KHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!DisplayPlaneCapabilities2KHR {
     var out_capabilities: DisplayPlaneCapabilities2KHR = undefined;
     const result = vkGetDisplayPlaneCapabilities2KHR(physicalDevice, &displayPlaneInfo, &out_capabilities);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10923,7 +10923,7 @@ pub extern fn vkDestroySamplerYcbcrConversionKHR(
 pub inline fn CreateSamplerYcbcrConversionKHR(device: Device, createInfo: SamplerYcbcrConversionCreateInfo, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!SamplerYcbcrConversion {
     var out_ycbcrConversion: SamplerYcbcrConversion = undefined;
     const result = vkCreateSamplerYcbcrConversionKHR(device, &createInfo, pAllocator, &out_ycbcrConversion);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10957,7 +10957,7 @@ pub extern fn vkBindImageMemory2KHR(
 
 pub inline fn BindBufferMemory2KHR(device: Device, bindInfos: []const BindBufferMemoryInfo) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INVALID_OPAQUE_CAPTURE_ADDRESS,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkBindBufferMemory2KHR(device, @intCast(u32, bindInfos.len), bindInfos.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -10969,7 +10969,7 @@ pub inline fn BindBufferMemory2KHR(device: Device, bindInfos: []const BindBuffer
 
 pub inline fn BindImageMemory2KHR(device: Device, bindInfos: []const BindImageMemoryInfo) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkBindImageMemory2KHR(device, @intCast(u32, bindInfos.len), bindInfos.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11131,7 +11131,7 @@ pub extern fn vkSignalSemaphoreKHR(
 pub inline fn GetSemaphoreCounterValueKHR(device: Device, semaphore: Semaphore) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!u64 {
     var out_value: u64 = undefined;
     const result = vkGetSemaphoreCounterValueKHR(device, semaphore, &out_value);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11144,7 +11144,7 @@ pub inline fn GetSemaphoreCounterValueKHR(device: Device, semaphore: Semaphore) 
 
 pub inline fn WaitSemaphoresKHR(device: Device, waitInfo: SemaphoreWaitInfo, timeout: u64) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_DEVICE_LOST,VK_UNDOCUMENTED_ERROR}!Result {
     const result = vkWaitSemaphoresKHR(device, &waitInfo, timeout);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11157,7 +11157,7 @@ pub inline fn WaitSemaphoresKHR(device: Device, waitInfo: SemaphoreWaitInfo, tim
 
 pub inline fn SignalSemaphoreKHR(device: Device, signalInfo: SemaphoreSignalInfo) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkSignalSemaphoreKHR(device, &signalInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11342,7 +11342,7 @@ pub inline fn GetPipelineExecutablePropertiesKHR(device: Device, pipelineInfo: P
     var returnValues: GetPipelineExecutablePropertiesKHRResult = undefined;
     var executableCount: u32 = @intCast(u32, properties.len);
     const result = vkGetPipelineExecutablePropertiesKHR(device, &pipelineInfo, &executableCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11356,7 +11356,7 @@ pub inline fn GetPipelineExecutablePropertiesKHR(device: Device, pipelineInfo: P
 pub inline fn GetPipelineExecutablePropertiesCountKHR(device: Device, pipelineInfo: PipelineInfoKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_executableCount: u32 = undefined;
     const result = vkGetPipelineExecutablePropertiesKHR(device, &pipelineInfo, &out_executableCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11374,7 +11374,7 @@ pub inline fn GetPipelineExecutableStatisticsKHR(device: Device, executableInfo:
     var returnValues: GetPipelineExecutableStatisticsKHRResult = undefined;
     var statisticCount: u32 = @intCast(u32, statistics.len);
     const result = vkGetPipelineExecutableStatisticsKHR(device, &executableInfo, &statisticCount, statistics.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11388,7 +11388,7 @@ pub inline fn GetPipelineExecutableStatisticsKHR(device: Device, executableInfo:
 pub inline fn GetPipelineExecutableStatisticsCountKHR(device: Device, executableInfo: PipelineExecutableInfoKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_statisticCount: u32 = undefined;
     const result = vkGetPipelineExecutableStatisticsKHR(device, &executableInfo, &out_statisticCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11406,7 +11406,7 @@ pub inline fn GetPipelineExecutableInternalRepresentationsKHR(device: Device, ex
     var returnValues: GetPipelineExecutableInternalRepresentationsKHRResult = undefined;
     var internalRepresentationCount: u32 = @intCast(u32, internalRepresentations.len);
     const result = vkGetPipelineExecutableInternalRepresentationsKHR(device, &executableInfo, &internalRepresentationCount, internalRepresentations.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11420,7 +11420,7 @@ pub inline fn GetPipelineExecutableInternalRepresentationsKHR(device: Device, ex
 pub inline fn GetPipelineExecutableInternalRepresentationsCountKHR(device: Device, executableInfo: PipelineExecutableInfoKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_internalRepresentationCount: u32 = undefined;
     const result = vkGetPipelineExecutableInternalRepresentationsKHR(device, &executableInfo, &out_internalRepresentationCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11521,7 +11521,7 @@ pub const DebugReportFlagsEXT = packed struct {
     pub usingnamespace FlagsMixin(@This());
 };
 
-pub const PFN_DebugReportCallbackEXT = fn (
+pub const PFN_DebugReportCallbackEXT = *const fn (
     DebugReportFlagsEXT.IntType,
     DebugReportObjectTypeEXT,
     u64,
@@ -11567,7 +11567,7 @@ pub extern fn vkDebugReportMessageEXT(
 pub inline fn CreateDebugReportCallbackEXT(instance: Instance, createInfo: DebugReportCallbackCreateInfoEXT, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!DebugReportCallbackEXT {
     var out_callback: DebugReportCallbackEXT = undefined;
     const result = vkCreateDebugReportCallbackEXT(instance, &createInfo, pAllocator, &out_callback);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             else => error.VK_UNDOCUMENTED_ERROR,
@@ -11678,7 +11678,7 @@ pub extern fn vkCmdDebugMarkerInsertEXT(
 
 pub inline fn DebugMarkerSetObjectTagEXT(device: Device, tagInfo: DebugMarkerObjectTagInfoEXT) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkDebugMarkerSetObjectTagEXT(device, &tagInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11689,7 +11689,7 @@ pub inline fn DebugMarkerSetObjectTagEXT(device: Device, tagInfo: DebugMarkerObj
 
 pub inline fn DebugMarkerSetObjectNameEXT(device: Device, nameInfo: DebugMarkerObjectNameInfoEXT) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkDebugMarkerSetObjectNameEXT(device, &nameInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -11973,7 +11973,7 @@ pub inline fn GetShaderInfoAMD(device: Device, pipeline: Pipeline, shaderStage: 
     var returnValues: GetShaderInfoAMDResult = undefined;
     var infoSize: usize = @intCast(usize, info.len);
     const result = vkGetShaderInfoAMD(device, pipeline, shaderStage.toInt(), infoType, &infoSize, info.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_FEATURE_NOT_PRESENT => error.VK_FEATURE_NOT_PRESENT,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -11987,7 +11987,7 @@ pub inline fn GetShaderInfoAMD(device: Device, pipeline: Pipeline, shaderStage: 
 pub inline fn GetShaderInfoCountAMD(device: Device, pipeline: Pipeline, shaderStage: ShaderStageFlags, infoType: ShaderInfoTypeAMD) error{VK_FEATURE_NOT_PRESENT,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!usize {
     var out_infoSize: usize = undefined;
     const result = vkGetShaderInfoAMD(device, pipeline, shaderStage.toInt(), infoType, &out_infoSize, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_FEATURE_NOT_PRESENT => error.VK_FEATURE_NOT_PRESENT,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -12118,7 +12118,7 @@ pub extern fn vkGetPhysicalDeviceExternalImageFormatPropertiesNV(
 pub inline fn GetPhysicalDeviceExternalImageFormatPropertiesNV(physicalDevice: PhysicalDevice, format: Format, inType: ImageType, tiling: ImageTiling, usage: ImageUsageFlags, flags: ImageCreateFlags, externalHandleType: ExternalMemoryHandleTypeFlagsNV) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_FORMAT_NOT_SUPPORTED,VK_UNDOCUMENTED_ERROR}!ExternalImageFormatPropertiesNV {
     var out_externalImageFormatProperties: ExternalImageFormatPropertiesNV = undefined;
     const result = vkGetPhysicalDeviceExternalImageFormatPropertiesNV(physicalDevice, format, inType, tiling, usage.toInt(), flags.toInt(), externalHandleType.toInt(), &out_externalImageFormatProperties);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -12563,7 +12563,7 @@ pub inline fn CmdReserveSpaceForCommandsNVX(commandBuffer: CommandBuffer, reserv
 pub inline fn CreateIndirectCommandsLayoutNVX(device: Device, createInfo: IndirectCommandsLayoutCreateInfoNVX, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!IndirectCommandsLayoutNVX {
     var out_indirectCommandsLayout: IndirectCommandsLayoutNVX = undefined;
     const result = vkCreateIndirectCommandsLayoutNVX(device, &createInfo, pAllocator, &out_indirectCommandsLayout);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -12578,7 +12578,7 @@ pub const DestroyIndirectCommandsLayoutNVX = vkDestroyIndirectCommandsLayoutNVX;
 pub inline fn CreateObjectTableNVX(device: Device, createInfo: ObjectTableCreateInfoNVX, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!ObjectTableNVX {
     var out_objectTable: ObjectTableNVX = undefined;
     const result = vkCreateObjectTableNVX(device, &createInfo, pAllocator, &out_objectTable);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -12593,7 +12593,7 @@ pub const DestroyObjectTableNVX = vkDestroyObjectTableNVX;
 pub inline fn RegisterObjectsNVX(device: Device, objectTable: ObjectTableNVX, pObjectTableEntries: []const*const ObjectTableEntryNVX, objectIndices: []const u32) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     assert(objectIndices.len >= pObjectTableEntries.len);
     const result = vkRegisterObjectsNVX(device, objectTable, @intCast(u32, pObjectTableEntries.len), pObjectTableEntries.ptr, objectIndices.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -12605,7 +12605,7 @@ pub inline fn RegisterObjectsNVX(device: Device, objectTable: ObjectTableNVX, pO
 pub inline fn UnregisterObjectsNVX(device: Device, objectTable: ObjectTableNVX, objectEntryTypes: []const ObjectEntryTypeNVX, objectIndices: []const u32) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     assert(objectIndices.len >= objectEntryTypes.len);
     const result = vkUnregisterObjectsNVX(device, objectTable, @intCast(u32, objectEntryTypes.len), objectEntryTypes.ptr, objectIndices.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -12665,7 +12665,7 @@ pub extern fn vkReleaseDisplayEXT(
 
 pub inline fn ReleaseDisplayEXT(physicalDevice: PhysicalDevice, display: DisplayKHR) error{VK_UNDOCUMENTED_ERROR}!void {
     const result = vkReleaseDisplayEXT(physicalDevice, display);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
 }
@@ -12737,7 +12737,7 @@ pub extern fn vkGetPhysicalDeviceSurfaceCapabilities2EXT(
 pub inline fn GetPhysicalDeviceSurfaceCapabilities2EXT(physicalDevice: PhysicalDevice, surface: SurfaceKHR) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!SurfaceCapabilities2EXT {
     var out_surfaceCapabilities: SurfaceCapabilities2EXT = undefined;
     const result = vkGetPhysicalDeviceSurfaceCapabilities2EXT(physicalDevice, surface, &out_surfaceCapabilities);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -12824,7 +12824,7 @@ pub extern fn vkGetSwapchainCounterEXT(
 
 pub inline fn DisplayPowerControlEXT(device: Device, display: DisplayKHR, displayPowerInfo: DisplayPowerInfoEXT) error{VK_UNDOCUMENTED_ERROR}!void {
     const result = vkDisplayPowerControlEXT(device, display, &displayPowerInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
 }
@@ -12832,7 +12832,7 @@ pub inline fn DisplayPowerControlEXT(device: Device, display: DisplayKHR, displa
 pub inline fn RegisterDeviceEventEXT(device: Device, deviceEventInfo: DeviceEventInfoEXT, pAllocator: ?*const AllocationCallbacks) error{VK_UNDOCUMENTED_ERROR}!Fence {
     var out_fence: Fence = undefined;
     const result = vkRegisterDeviceEventEXT(device, &deviceEventInfo, pAllocator, &out_fence);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
     return out_fence;
@@ -12841,7 +12841,7 @@ pub inline fn RegisterDeviceEventEXT(device: Device, deviceEventInfo: DeviceEven
 pub inline fn RegisterDisplayEventEXT(device: Device, display: DisplayKHR, displayEventInfo: DisplayEventInfoEXT, pAllocator: ?*const AllocationCallbacks) error{VK_UNDOCUMENTED_ERROR}!Fence {
     var out_fence: Fence = undefined;
     const result = vkRegisterDisplayEventEXT(device, display, &displayEventInfo, pAllocator, &out_fence);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
     return out_fence;
@@ -12850,7 +12850,7 @@ pub inline fn RegisterDisplayEventEXT(device: Device, display: DisplayKHR, displ
 pub inline fn GetSwapchainCounterEXT(device: Device, swapchain: SwapchainKHR, counter: SurfaceCounterFlagsEXT) error{VK_DEVICE_LOST,VK_OUT_OF_DATE_KHR,VK_UNDOCUMENTED_ERROR}!u64 {
     var out_counterValue: u64 = undefined;
     const result = vkGetSwapchainCounterEXT(device, swapchain, counter.toInt(), &out_counterValue);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_DEVICE_LOST => error.VK_DEVICE_LOST,
             .ERROR_OUT_OF_DATE_KHR => error.VK_OUT_OF_DATE_KHR,
@@ -12905,7 +12905,7 @@ pub extern fn vkGetPastPresentationTimingGOOGLE(
 pub inline fn GetRefreshCycleDurationGOOGLE(device: Device, swapchain: SwapchainKHR) error{VK_DEVICE_LOST,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!RefreshCycleDurationGOOGLE {
     var out_displayTimingProperties: RefreshCycleDurationGOOGLE = undefined;
     const result = vkGetRefreshCycleDurationGOOGLE(device, swapchain, &out_displayTimingProperties);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_DEVICE_LOST => error.VK_DEVICE_LOST,
             .ERROR_SURFACE_LOST_KHR => error.VK_SURFACE_LOST_KHR,
@@ -12923,7 +12923,7 @@ pub inline fn GetPastPresentationTimingGOOGLE(device: Device, swapchain: Swapcha
     var returnValues: GetPastPresentationTimingGOOGLEResult = undefined;
     var presentationTimingCount: u32 = @intCast(u32, presentationTimings.len);
     const result = vkGetPastPresentationTimingGOOGLE(device, swapchain, &presentationTimingCount, presentationTimings.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_DEVICE_LOST => error.VK_DEVICE_LOST,
             .ERROR_OUT_OF_DATE_KHR => error.VK_OUT_OF_DATE_KHR,
@@ -12938,7 +12938,7 @@ pub inline fn GetPastPresentationTimingGOOGLE(device: Device, swapchain: Swapcha
 pub inline fn GetPastPresentationTimingCountGOOGLE(device: Device, swapchain: SwapchainKHR) error{VK_DEVICE_LOST,VK_OUT_OF_DATE_KHR,VK_SURFACE_LOST_KHR,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_presentationTimingCount: u32 = undefined;
     const result = vkGetPastPresentationTimingGOOGLE(device, swapchain, &out_presentationTimingCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_DEVICE_LOST => error.VK_DEVICE_LOST,
             .ERROR_OUT_OF_DATE_KHR => error.VK_OUT_OF_DATE_KHR,
@@ -13298,7 +13298,7 @@ pub const DebugUtilsMessengerCallbackDataEXT = extern struct {
     pObjects: [*]const DebugUtilsObjectNameInfoEXT = undefined,
 };
 
-pub const PFN_DebugUtilsMessengerCallbackEXT = fn (
+pub const PFN_DebugUtilsMessengerCallbackEXT = *const fn (
     DebugUtilsMessageSeverityFlagsEXT.IntType,
     DebugUtilsMessageTypeFlagsEXT.IntType,
     ?[*]const DebugUtilsMessengerCallbackDataEXT,
@@ -13371,7 +13371,7 @@ pub extern fn vkSubmitDebugUtilsMessageEXT(
 
 pub inline fn SetDebugUtilsObjectNameEXT(device: Device, nameInfo: DebugUtilsObjectNameInfoEXT) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -13382,7 +13382,7 @@ pub inline fn SetDebugUtilsObjectNameEXT(device: Device, nameInfo: DebugUtilsObj
 
 pub inline fn SetDebugUtilsObjectTagEXT(device: Device, tagInfo: DebugUtilsObjectTagInfoEXT) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkSetDebugUtilsObjectTagEXT(device, &tagInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -13414,7 +13414,7 @@ pub inline fn CmdInsertDebugUtilsLabelEXT(commandBuffer: CommandBuffer, labelInf
 pub inline fn CreateDebugUtilsMessengerEXT(instance: Instance, createInfo: DebugUtilsMessengerCreateInfoEXT, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!DebugUtilsMessengerEXT {
     var out_messenger: DebugUtilsMessengerEXT = undefined;
     const result = vkCreateDebugUtilsMessengerEXT(instance, &createInfo, pAllocator, &out_messenger);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             else => error.VK_UNDOCUMENTED_ERROR,
@@ -13744,7 +13744,7 @@ pub extern fn vkGetImageDrmFormatModifierPropertiesEXT(
 pub inline fn GetImageDrmFormatModifierPropertiesEXT(device: Device, image: Image) error{VK_UNDOCUMENTED_ERROR}!ImageDrmFormatModifierPropertiesEXT {
     var out_properties: ImageDrmFormatModifierPropertiesEXT = undefined;
     const result = vkGetImageDrmFormatModifierPropertiesEXT(device, image, &out_properties);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
     return out_properties;
@@ -13811,7 +13811,7 @@ pub extern fn vkGetValidationCacheDataEXT(
 pub inline fn CreateValidationCacheEXT(device: Device, createInfo: ValidationCacheCreateInfoEXT, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!ValidationCacheEXT {
     var out_validationCache: ValidationCacheEXT = undefined;
     const result = vkCreateValidationCacheEXT(device, &createInfo, pAllocator, &out_validationCache);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             else => error.VK_UNDOCUMENTED_ERROR,
@@ -13824,7 +13824,7 @@ pub const DestroyValidationCacheEXT = vkDestroyValidationCacheEXT;
 
 pub inline fn MergeValidationCachesEXT(device: Device, dstCache: ValidationCacheEXT, srcCaches: []const ValidationCacheEXT) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkMergeValidationCachesEXT(device, dstCache, @intCast(u32, srcCaches.len), srcCaches.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -13841,7 +13841,7 @@ pub inline fn GetValidationCacheDataEXT(device: Device, validationCache: Validat
     var returnValues: GetValidationCacheDataEXTResult = undefined;
     var dataSize: usize = @intCast(usize, data.len);
     const result = vkGetValidationCacheDataEXT(device, validationCache, &dataSize, data.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -13855,7 +13855,7 @@ pub inline fn GetValidationCacheDataEXT(device: Device, validationCache: Validat
 pub inline fn GetValidationCacheDataCountEXT(device: Device, validationCache: ValidationCacheEXT) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!usize {
     var out_dataSize: usize = undefined;
     const result = vkGetValidationCacheDataEXT(device, validationCache, &out_dataSize, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -14363,7 +14363,7 @@ pub extern fn vkCompileDeferredNV(
 pub inline fn CreateAccelerationStructureNV(device: Device, createInfo: AccelerationStructureCreateInfoNV, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!AccelerationStructureNV {
     var out_accelerationStructure: AccelerationStructureNV = undefined;
     const result = vkCreateAccelerationStructureNV(device, &createInfo, pAllocator, &out_accelerationStructure);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             else => error.VK_UNDOCUMENTED_ERROR,
@@ -14382,7 +14382,7 @@ pub inline fn GetAccelerationStructureMemoryRequirementsNV(device: Device, info:
 
 pub inline fn BindAccelerationStructureMemoryNV(device: Device, bindInfos: []const BindAccelerationStructureMemoryInfoNV) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkBindAccelerationStructureMemoryNV(device, @intCast(u32, bindInfos.len), bindInfos.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -14401,7 +14401,7 @@ pub const CmdTraceRaysNV = vkCmdTraceRaysNV;
 pub inline fn CreateRayTracingPipelinesNV(device: Device, pipelineCache: PipelineCache, createInfos: []const RayTracingPipelineCreateInfoNV, pAllocator: ?*const AllocationCallbacks, pipelines: []Pipeline) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_INVALID_SHADER_NV,VK_UNDOCUMENTED_ERROR}!void {
     assert(pipelines.len >= createInfos.len);
     const result = vkCreateRayTracingPipelinesNV(device, pipelineCache, @intCast(u32, createInfos.len), createInfos.ptr, pAllocator, pipelines.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -14413,7 +14413,7 @@ pub inline fn CreateRayTracingPipelinesNV(device: Device, pipelineCache: Pipelin
 
 pub inline fn GetRayTracingShaderGroupHandlesNV(device: Device, pipeline: Pipeline, firstGroup: u32, groupCount: u32, data: []u8) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkGetRayTracingShaderGroupHandlesNV(device, pipeline, firstGroup, groupCount, @intCast(usize, data.len), data.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -14424,7 +14424,7 @@ pub inline fn GetRayTracingShaderGroupHandlesNV(device: Device, pipeline: Pipeli
 
 pub inline fn GetAccelerationStructureHandleNV(device: Device, accelerationStructure: AccelerationStructureNV, data: []u8) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkGetAccelerationStructureHandleNV(device, accelerationStructure, @intCast(usize, data.len), data.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -14439,7 +14439,7 @@ pub inline fn CmdWriteAccelerationStructuresPropertiesNV(commandBuffer: CommandB
 
 pub inline fn CompileDeferredNV(device: Device, pipeline: Pipeline, shader: u32) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkCompileDeferredNV(device, pipeline, shader);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -14536,7 +14536,7 @@ pub extern fn vkGetMemoryHostPointerPropertiesEXT(
 pub inline fn GetMemoryHostPointerPropertiesEXT(device: Device, handleType: ExternalMemoryHandleTypeFlags, pHostPointer: ?*const anyopaque) error{VK_INVALID_EXTERNAL_HANDLE,VK_UNDOCUMENTED_ERROR}!MemoryHostPointerPropertiesEXT {
     var out_memoryHostPointerProperties: MemoryHostPointerPropertiesEXT = undefined;
     const result = vkGetMemoryHostPointerPropertiesEXT(device, handleType.toInt(), pHostPointer, &out_memoryHostPointerProperties);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_INVALID_EXTERNAL_HANDLE => error.VK_INVALID_EXTERNAL_HANDLE,
             else => error.VK_UNDOCUMENTED_ERROR,
@@ -14651,7 +14651,7 @@ pub inline fn GetPhysicalDeviceCalibrateableTimeDomainsEXT(physicalDevice: Physi
     var returnValues: GetPhysicalDeviceCalibrateableTimeDomainsEXTResult = undefined;
     var timeDomainCount: u32 = @intCast(u32, timeDomains.len);
     const result = vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(physicalDevice, &timeDomainCount, timeDomains.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -14665,7 +14665,7 @@ pub inline fn GetPhysicalDeviceCalibrateableTimeDomainsEXT(physicalDevice: Physi
 pub inline fn GetPhysicalDeviceCalibrateableTimeDomainsCountEXT(physicalDevice: PhysicalDevice) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_timeDomainCount: u32 = undefined;
     const result = vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(physicalDevice, &out_timeDomainCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -14679,7 +14679,7 @@ pub inline fn GetCalibratedTimestampsEXT(device: Device, timestampInfos: []const
     var out_maxDeviation: u64 = undefined;
     assert(timestamps.len >= timestampInfos.len);
     const result = vkGetCalibratedTimestampsEXT(device, @intCast(u32, timestampInfos.len), timestampInfos.ptr, timestamps.ptr, &out_maxDeviation);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -15137,7 +15137,7 @@ pub extern fn vkGetPerformanceParameterINTEL(
 
 pub inline fn InitializePerformanceApiINTEL(device: Device, initializeInfo: InitializePerformanceApiInfoINTEL) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkInitializePerformanceApiINTEL(device, &initializeInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -15150,7 +15150,7 @@ pub const UninitializePerformanceApiINTEL = vkUninitializePerformanceApiINTEL;
 
 pub inline fn CmdSetPerformanceMarkerINTEL(commandBuffer: CommandBuffer, markerInfo: PerformanceMarkerInfoINTEL) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkCmdSetPerformanceMarkerINTEL(commandBuffer, &markerInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -15161,7 +15161,7 @@ pub inline fn CmdSetPerformanceMarkerINTEL(commandBuffer: CommandBuffer, markerI
 
 pub inline fn CmdSetPerformanceStreamMarkerINTEL(commandBuffer: CommandBuffer, markerInfo: PerformanceStreamMarkerInfoINTEL) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkCmdSetPerformanceStreamMarkerINTEL(commandBuffer, &markerInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -15172,7 +15172,7 @@ pub inline fn CmdSetPerformanceStreamMarkerINTEL(commandBuffer: CommandBuffer, m
 
 pub inline fn CmdSetPerformanceOverrideINTEL(commandBuffer: CommandBuffer, overrideInfo: PerformanceOverrideInfoINTEL) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkCmdSetPerformanceOverrideINTEL(commandBuffer, &overrideInfo);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -15184,7 +15184,7 @@ pub inline fn CmdSetPerformanceOverrideINTEL(commandBuffer: CommandBuffer, overr
 pub inline fn AcquirePerformanceConfigurationINTEL(device: Device, acquireInfo: PerformanceConfigurationAcquireInfoINTEL) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!PerformanceConfigurationINTEL {
     var out_configuration: PerformanceConfigurationINTEL = undefined;
     const result = vkAcquirePerformanceConfigurationINTEL(device, &acquireInfo, &out_configuration);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -15196,7 +15196,7 @@ pub inline fn AcquirePerformanceConfigurationINTEL(device: Device, acquireInfo: 
 
 pub inline fn ReleasePerformanceConfigurationINTEL(device: Device, configuration: PerformanceConfigurationINTEL) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkReleasePerformanceConfigurationINTEL(device, configuration);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -15207,7 +15207,7 @@ pub inline fn ReleasePerformanceConfigurationINTEL(device: Device, configuration
 
 pub inline fn QueueSetPerformanceConfigurationINTEL(queue: Queue, configuration: PerformanceConfigurationINTEL) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!void {
     const result = vkQueueSetPerformanceConfigurationINTEL(queue, configuration);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -15219,7 +15219,7 @@ pub inline fn QueueSetPerformanceConfigurationINTEL(queue: Queue, configuration:
 pub inline fn GetPerformanceParameterINTEL(device: Device, parameter: PerformanceParameterTypeINTEL) error{VK_TOO_MANY_OBJECTS,VK_OUT_OF_HOST_MEMORY,VK_UNDOCUMENTED_ERROR}!PerformanceValueINTEL {
     var out_value: PerformanceValueINTEL = undefined;
     const result = vkGetPerformanceParameterINTEL(device, parameter, &out_value);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_TOO_MANY_OBJECTS => error.VK_TOO_MANY_OBJECTS,
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
@@ -15537,7 +15537,7 @@ pub inline fn GetPhysicalDeviceToolPropertiesEXT(physicalDevice: PhysicalDevice,
     var returnValues: GetPhysicalDeviceToolPropertiesEXTResult = undefined;
     var toolCount: u32 = @intCast(u32, toolProperties.len);
     const result = vkGetPhysicalDeviceToolPropertiesEXT(physicalDevice, &toolCount, toolProperties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
     returnValues.toolProperties = toolProperties[0..toolCount];
@@ -15547,7 +15547,7 @@ pub inline fn GetPhysicalDeviceToolPropertiesEXT(physicalDevice: PhysicalDevice,
 pub inline fn GetPhysicalDeviceToolPropertiesCountEXT(physicalDevice: PhysicalDevice) error{VK_UNDOCUMENTED_ERROR}!u32 {
     var out_toolCount: u32 = undefined;
     const result = vkGetPhysicalDeviceToolPropertiesEXT(physicalDevice, &out_toolCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return error.VK_UNDOCUMENTED_ERROR;
     }
     return out_toolCount;
@@ -15660,7 +15660,7 @@ pub inline fn GetPhysicalDeviceCooperativeMatrixPropertiesNV(physicalDevice: Phy
     var returnValues: GetPhysicalDeviceCooperativeMatrixPropertiesNVResult = undefined;
     var propertyCount: u32 = @intCast(u32, properties.len);
     const result = vkGetPhysicalDeviceCooperativeMatrixPropertiesNV(physicalDevice, &propertyCount, properties.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -15674,7 +15674,7 @@ pub inline fn GetPhysicalDeviceCooperativeMatrixPropertiesNV(physicalDevice: Phy
 pub inline fn GetPhysicalDeviceCooperativeMatrixPropertiesCountNV(physicalDevice: PhysicalDevice) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_propertyCount: u32 = undefined;
     const result = vkGetPhysicalDeviceCooperativeMatrixPropertiesNV(physicalDevice, &out_propertyCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -15736,7 +15736,7 @@ pub inline fn GetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV(ph
     var returnValues: GetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNVResult = undefined;
     var combinationCount: u32 = @intCast(u32, combinations.len);
     const result = vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV(physicalDevice, &combinationCount, combinations.ptr);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -15750,7 +15750,7 @@ pub inline fn GetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV(ph
 pub inline fn GetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsCountNV(physicalDevice: PhysicalDevice) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!u32 {
     var out_combinationCount: u32 = undefined;
     const result = vkGetPhysicalDeviceSupportedFramebufferMixedSamplesCombinationsNV(physicalDevice, &out_combinationCount, null);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
@@ -15810,7 +15810,7 @@ pub extern fn vkCreateHeadlessSurfaceEXT(
 pub inline fn CreateHeadlessSurfaceEXT(instance: Instance, createInfo: HeadlessSurfaceCreateInfoEXT, pAllocator: ?*const AllocationCallbacks) error{VK_OUT_OF_HOST_MEMORY,VK_OUT_OF_DEVICE_MEMORY,VK_UNDOCUMENTED_ERROR}!SurfaceKHR {
     var out_surface: SurfaceKHR = undefined;
     const result = vkCreateHeadlessSurfaceEXT(instance, &createInfo, pAllocator, &out_surface);
-    if (@bitCast(c_int, result) < 0) {
+    if (@enumToInt(result) < 0) {
         return switch (result) {
             .ERROR_OUT_OF_HOST_MEMORY => error.VK_OUT_OF_HOST_MEMORY,
             .ERROR_OUT_OF_DEVICE_MEMORY => error.VK_OUT_OF_DEVICE_MEMORY,
