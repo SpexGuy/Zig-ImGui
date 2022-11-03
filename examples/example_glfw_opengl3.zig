@@ -13,7 +13,8 @@ const gl = @import("include/gl.zig");
 const is_darwin = builtin.os.tag.isDarwin();
 
 fn glfw_error_callback(err: c_int, description: ?[*:0]const u8) callconv(.C) void {
-    std.debug.print("Glfw Error {}: {s}\n", .{ err, description });
+    const description_safe = description orelse "<null>"[0..];
+    std.debug.print("Glfw Error {}: {s}\n", .{ err, description_safe });
 }
 
 pub fn main() !void {

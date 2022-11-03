@@ -35,7 +35,8 @@ fn debug_report(flags: vk.DebugReportFlagsEXT.IntType, objectType: vk.DebugRepor
     _ = location;
     _ = object;
     _ = flags;
-    std.debug.print("[vulkan] ObjectType: {}\nMessage: {s}\n\n", .{ objectType, pMessage });
+    const message: [*:0]const u8 = pMessage orelse "<null>"[0..];
+    std.debug.print("[vulkan] ObjectType: {}\nMessage: {s}\n\n", .{ objectType, message });
     @panic("VK Error");
     //return vk.FALSE;
 }
@@ -67,12 +68,12 @@ fn SetupVulkan(extensions: []const [*:0]const u8, allocator: std.mem.Allocator) 
             g_Instance = try vk.CreateInstance(create_info, g_Allocator);
 
             // Get the function pointer (required for any extensions)
-            var vkCreateDebugReportCallbackEXT = @ptrCast(?@TypeOf(vk.vkCreateDebugReportCallbackEXT), vk.GetInstanceProcAddr(g_Instance, "vkCreateDebugReportCallbackEXT")).?;
+            var vkCreateDebugReportCallbackEXT = @ptrCast(?*const @TypeOf(vk.vkCreateDebugReportCallbackEXT), vk.GetInstanceProcAddr(g_Instance, "vkCreateDebugReportCallbackEXT")).?;
 
             // Setup the debug report callback
             var debug_report_ci = vk.DebugReportCallbackCreateInfoEXT{
                 .flags = .{ .errorBit = true, .warning = true, .performanceWarning = true },
-                .pfnCallback = debug_report,
+                .pfnCallback = &debug_report,
                 .pUserData = null,
             };
             var err = vkCreateDebugReportCallbackEXT(g_Instance, &debug_report_ci, g_Allocator, &g_DebugReport);
@@ -200,7 +201,7 @@ fn CleanupVulkan() void {
 
     if (IMGUI_VULKAN_DEBUG_REPORT) {
         // Remove the debug report callback
-        const vkDestroyDebugReportCallbackEXT = @ptrCast(?@TypeOf(vk.vkDestroyDebugReportCallbackEXT), vk.GetInstanceProcAddr(g_Instance, "vkDestroyDebugReportCallbackEXT"));
+        const vkDestroyDebugReportCallbackEXT = @ptrCast(?*const @TypeOf(vk.vkDestroyDebugReportCallbackEXT), vk.GetInstanceProcAddr(g_Instance, "vkDestroyDebugReportCallbackEXT"));
         assert(vkDestroyDebugReportCallbackEXT != null);
         vkDestroyDebugReportCallbackEXT.?(g_Instance, g_DebugReport, g_Allocator);
     }
@@ -311,7 +312,7 @@ pub fn main() !void {
     const allocator = std.heap.c_allocator;
 
     // Setup GLFW window
-    _ = glfw.glfwSetErrorCallback(glfw_error_callback);
+    _ = glfw.glfwSetErrorCallback(&glfw_error_callback);
     if (glfw.glfwInit() == 0)
         return error.GlfwInitFailed;
 
@@ -520,11 +521,11 @@ fn ArrayPtrType(comptime ptrType: type) type {
         assert(info.Pointer.sentinel == null);
 
         // Create the new value type, [1]T
-        const arrayInfo = std.builtin.TypeInfo{
+        const arrayInfo = std.builtin.Type{
             .Array = .{
                 .len = 1,
                 .child = info.Pointer.child,
-                .sentinel = @as(?info.Pointer.child, null),
+                .sentinel = null,
             },
         };
 
@@ -533,7 +534,7 @@ fn ArrayPtrType(comptime ptrType: type) type {
         info.Pointer.child = singleArrayType;
         // also need to change the type of the sentinel
         // we checked that this is null above so no work needs to be done here.
-        info.Pointer.sentinel = @as(?singleArrayType, null);
+        info.Pointer.sentinel = null;
         return @Type(info);
     }
 }

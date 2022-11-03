@@ -42,7 +42,7 @@ fn exampleExe(b: *Builder, comptime name: []const u8, mode: std.builtin.Mode, ta
 
 fn linkGlad(exe: *LibExeObjStep, target: std.zig.CrossTarget) void {
     _ = target;
-    exe.addIncludeDir("examples/include/c_include");
+    exe.addIncludePath("examples/include/c_include");
     exe.addCSourceFile("examples/c_src/glad.c", &[_][]const u8{"-std=c99"});
     //exe.linkSystemLibrary("opengl");
 }
